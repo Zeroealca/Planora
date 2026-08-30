@@ -1,0 +1,16 @@
+---
+description: Cálculos de presupuesto y reglas de status/priority de items
+globs: src/utils/budget/**/*.{ts,tsx},src/features/dashboard/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Budget & item rules
+
+- Usar literales de dominio en inglés; labels ES solo en UI.
+- `Pending` → suma `estimated_cost` a pending; no completed.
+- `Purchased` → suma `actual_cost` a spent; completed.
+- `AlreadyOwned` → no suma pending ni spent; sí completed.
+- Planned = pending + spent (sin AlreadyOwned).
+- Filtros dashboard (priority/category) alimentan las mismas funciones puras; no duplicar en componentes.
+- Null costs: política única y testeada (`?? 0` recomendado en MVP).
+- Skill: `.cursor/skills/budget-domain/SKILL.md`.

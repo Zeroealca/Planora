@@ -1,0 +1,14 @@
+---
+description: Convenciones React/UI Planora — componentes, estado UI, mobile-first
+globs: src/**/*.{tsx,jsx}
+alwaysApply: false
+---
+
+# React / UI
+
+- Functional components; composición; componentes pequeños y claros.
+- No lógica de presupuesto en JSX; no `useMemo`/`useCallback` por defecto; evitar effects innecesarios.
+- Toda pantalla de datos: loading, empty (vs filtro vacío), error.
+- Mobile-first; acciones visibles; cards de items sin densidad excesiva.
+- No crear componente compartido hasta ≥2 usos reales.
+- Skill: `.cursor/skills/frontend-react/SKILL.md`.

@@ -1,0 +1,17 @@
+---
+description: Núcleo Planora — leer agent.md, dominio genérico, anti-sobrearquitectura
+alwaysApply: true
+---
+
+# Planora — núcleo
+
+1. Antes de cambios: leer `agent.md` y solo los skills necesarios en `.cursor/skills/`.
+2. Dominio genérico: `Project` / `Category` / `Item` / `ItemOption`. Nunca acoplar a casas, habitaciones o muebles.
+3. Estados internos: `Pending` | `Purchased` | `AlreadyOwned`. Prioridades: `Critical` | `High` | `Medium` | `Optional`.
+4. Presupuesto: solo funciones puras en `src/utils/budget/` — no lógica financiera en JSX.
+5. Stack: React + Vite + TS + Supabase + PWA + GitHub Pages. Sin backend propio.
+6. Prohibido salvo necesidad demostrable: Clean/Hexagonal/DDD complejo, repos vacíos sobre Supabase, Redux, Nest, microservicios, CQRS, DI, EAV/`dynamic_field`.
+7. Estado: local → derivado → servidor; Zustand solo si es realmente global.
+8. Seguridad: anon key en cliente; RLS siempre; nunca `service_role` en frontend.
+9. Cambios acotados al pedido; sin refactors ni dependencias extra injustificadas.
+10. DoD: typecheck, lint, tests relevantes, build si aplica; resumir archivos tocados.

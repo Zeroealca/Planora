@@ -1,0 +1,14 @@
+---
+description: Convenciones Supabase, RLS, auth y Storage en Planora
+globs: src/lib/supabase/**/*.{ts,tsx},supabase/**/*.{sql,ts},**/migrations/**/*.sql
+alwaysApply: false
+---
+
+# Supabase
+
+- Cliente browser solo con anon/public key.
+- Toda tabla/storage expuesto: RLS. Ownership vía `projects.user_id`; hijos por `project_id`/`item_id`.
+- No repositorios que solo envuelvan una query; manejar `error` siempre.
+- Schema solo con migraciones SQL versionadas + policies en la misma entrega.
+- Tipos TS alineados al schema; regenerar tras migraciones.
+- Skill: `.cursor/skills/supabase/SKILL.md` y `database-migrations`.
