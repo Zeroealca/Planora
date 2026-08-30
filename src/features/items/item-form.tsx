@@ -1,36 +1,35 @@
 import { useState, type FormEvent } from 'react'
+import type { Category, Item, ProjectPriorityOption, ProjectStatusOption } from '@/types/domain'
 import {
-  ITEM_PRIORITIES,
-  ITEM_STATUSES,
-  ITEM_STATUS_LABELS,
-  type Category,
-  type Item,
-  type ItemPriority,
-  type ItemStatus,
-  type LabelPreset,
-} from '@/types/domain'
-import { priorityLabel } from '@/features/projects/priority-labels'
-import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
+  defaultPriorityId,
+  defaultStatusId,
+  priorityLabel,
+  statusLabel,
+} from '@/features/projects/project-options'
+import { costInputValue, emptyToNull, normalizeUrl, parseCost } from '@/utils/form'
 import { createItem, updateItem, type ItemInput } from './item-api'
 
 export function ItemForm({
   projectId,
   categories,
-  preset,
+  statusOptions,
+  priorityOptions,
   item,
   onSaved,
 }: {
   projectId: string
   categories: readonly Category[]
-  preset: LabelPreset
+  statusOptions: readonly ProjectStatusOption[]
+  priorityOptions: readonly ProjectPriorityOption[]
   item?: Item
   onSaved: () => void
 }) {
   const [name, setName] = useState(item?.name ?? '')
   const [description, setDescription] = useState(item?.description ?? '')
+  const [purchaseUrl, setPurchaseUrl] = useState(item?.purchase_url ?? '')
   const [categoryId, setCategoryId] = useState(item?.category_id ?? '')
-  const [status, setStatus] = useState<ItemStatus>(item?.status ?? 'Pending')
-  const [priority, setPriority] = useState<ItemPriority>(item?.priority ?? 'Medium')
+  const [status, setStatus] = useState(item?.status ?? defaultStatusId(statusOptions))
+  const [priority, setPriority] = useState(item?.priority ?? defaultPriorityId(priorityOptions))
   const [estimated, setEstimated] = useState(costInputValue(item?.estimated_cost ?? null))
   const [actual, setActual] = useState(costInputValue(item?.actual_cost ?? null))
   const [notes, setNotes] = useState(item?.notes ?? '')
@@ -49,11 +48,18 @@ export function ItemForm({
     const estimated_cost = parseCost(estimated)
     const actual_cost = parseCost(actual)
     if (Number.isNaN(estimated_cost) || (estimated_cost != null && estimated_cost < 0)) {
-      setError('El costo estimado no es válido.')
+      setError('El presupuesto esperado no es válido.')
       return
     }
     if (Number.isNaN(actual_cost) || (actual_cost != null && actual_cost < 0)) {
-      setError('El costo real no es válido.')
+      setError('El precio real no es válido.')
+      return
+    }
+
+    const purchase_url =
+      purchaseUrl.trim() === '' ? null : normalizeUrl(purchaseUrl)
+    if (purchaseUrl.trim() !== '' && purchase_url == null) {
+      setError('El enlace de compra no es válido.')
       return
     }
 
@@ -65,15 +71,16 @@ export function ItemForm({
       priority,
       estimated_cost,
       actual_cost,
+      purchase_url,
       notes: emptyToNull(notes),
     }
 
     setSubmitting(true)
     try {
       if (item) {
-        await updateItem(item.id, input, item.completed_at)
+        await updateItem(item.id, input, statusOptions, item.completed_at)
       } else {
-        await createItem(projectId, input)
+        await createItem(projectId, input, statusOptions)
       }
       onSaved()
     } catch (err) {
@@ -96,12 +103,24 @@ export function ItemForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="item-description">Descripción (opcional)</label>
+        <label htmlFor="item-description">Descripción</label>
         <textarea
           id="item-description"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           rows={3}
+          placeholder="Detalles del producto o qué buscas"
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="item-purchase-url">Enlace de compra</label>
+        <input
+          id="item-purchase-url"
+          type="url"
+          inputMode="url"
+          value={purchaseUrl}
+          onChange={(event) => setPurchaseUrl(event.target.value)}
+          placeholder="https://tienda.com/producto"
         />
       </div>
       <div className="field">
@@ -124,11 +143,11 @@ export function ItemForm({
         <select
           id="item-status"
           value={status}
-          onChange={(event) => setStatus(event.target.value as ItemStatus)}
+          onChange={(event) => setStatus(event.target.value)}
         >
-          {ITEM_STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {ITEM_STATUS_LABELS[value]}
+          {statusOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {statusLabel(option.id, statusOptions)}
             </option>
           ))}
         </select>
@@ -138,17 +157,17 @@ export function ItemForm({
         <select
           id="item-priority"
           value={priority}
-          onChange={(event) => setPriority(event.target.value as ItemPriority)}
+          onChange={(event) => setPriority(event.target.value)}
         >
-          {ITEM_PRIORITIES.map((value) => (
-            <option key={value} value={value}>
-              {priorityLabel(value, preset)}
+          {priorityOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {priorityLabel(option.id, priorityOptions)}
             </option>
           ))}
         </select>
       </div>
       <div className="field">
-        <label htmlFor="item-estimated">Costo estimado</label>
+        <label htmlFor="item-estimated">Presupuesto esperado</label>
         <input
           id="item-estimated"
           inputMode="decimal"
@@ -156,17 +175,15 @@ export function ItemForm({
           onChange={(event) => setEstimated(event.target.value)}
         />
       </div>
-      {status === 'Purchased' ? (
-        <div className="field">
-          <label htmlFor="item-actual">Costo real</label>
-          <input
-            id="item-actual"
-            inputMode="decimal"
-            value={actual}
-            onChange={(event) => setActual(event.target.value)}
-          />
-        </div>
-      ) : null}
+      <div className="field">
+        <label htmlFor="item-actual">Precio real pagado</label>
+        <input
+          id="item-actual"
+          inputMode="decimal"
+          value={actual}
+          onChange={(event) => setActual(event.target.value)}
+        />
+      </div>
       <div className="field">
         <label htmlFor="item-notes">Notas</label>
         <textarea
@@ -174,6 +191,7 @@ export function ItemForm({
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           rows={3}
+          placeholder="Observaciones, talla, color, alternativas…"
         />
       </div>
       {error ? (

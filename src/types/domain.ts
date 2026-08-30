@@ -1,42 +1,37 @@
 /**
  * Domain types for Planora. Generic project planning — not houses, rooms, or furniture.
- *
- * Field names follow the future DB (`snake_case`) so they can align with
- * generated Supabase types later.
- *
- * UI labels (Spanish, presentation only):
- * - Status: Pendiente / Comprado / Ya lo tengo
- * - Priority: Crítica / Alta / Media / Opcional
- *
- * A later use-case may show different priority labels (e.g. Mudanza / Primer
- * mes / Después / Opcional). That mapping stays in the UI and must not enter
- * these types.
  */
 
-export const ITEM_STATUSES = ['Pending', 'Purchased', 'AlreadyOwned'] as const
-export type ItemStatus = (typeof ITEM_STATUSES)[number]
+import type {
+  ProjectPriorityOption,
+  ProjectStatusOption,
+} from '@/features/projects/project-options'
+import {
+  getStatusBehavior,
+  isCompletedBehavior,
+} from '@/features/projects/project-options'
 
-export const ITEM_STATUS_LABELS = {
-  Pending: 'Pendiente',
-  Purchased: 'Comprado',
-  AlreadyOwned: 'Ya lo tengo',
-} as const satisfies Record<ItemStatus, string>
+export type { CurrencyCode } from '@/features/profile/currencies'
+export { DEFAULT_CURRENCY } from '@/features/profile/currencies'
+export type { ProjectPriorityOption, ProjectStatusOption, StatusBehavior } from '@/features/projects/project-options'
 
-export const ITEM_PRIORITIES = ['Critical', 'High', 'Medium', 'Optional'] as const
-export type ItemPriority = (typeof ITEM_PRIORITIES)[number]
-
-export const ITEM_PRIORITY_LABELS = {
-  Critical: 'Crítica',
-  High: 'Alta',
-  Medium: 'Media',
-  Optional: 'Opcional',
-} as const satisfies Record<ItemPriority, string>
-
+/** @deprecated Use per-project priority_options instead. */
 export const LABEL_PRESETS = ['default', 'move_in'] as const
 export type LabelPreset = (typeof LABEL_PRESETS)[number]
 
-export function isCompletedStatus(status: ItemStatus): boolean {
-  return status === 'Purchased' || status === 'AlreadyOwned'
+export function isCompletedStatus(
+  statusId: string,
+  statusOptions: readonly ProjectStatusOption[],
+): boolean {
+  return isCompletedBehavior(getStatusBehavior(statusId, statusOptions))
+}
+
+export interface Profile {
+  id: string
+  display_name: string | null
+  currency_code: import('@/features/profile/currencies').CurrencyCode
+  created_at: string
+  updated_at: string
 }
 
 export interface Project {
@@ -47,6 +42,13 @@ export interface Project {
   budget: number | null
   icon: string | null
   label_preset: LabelPreset
+  status_options: ProjectStatusOption[]
+  priority_options: ProjectPriorityOption[]
+  savings_amount: number | null
+  savings_accrues_interest: boolean
+  savings_interest_rate_annual: number | null
+  savings_start_date: string | null
+  savings_end_date: string | null
   created_at: string
   updated_at: string
 }
@@ -66,20 +68,17 @@ export interface Item {
   category_id: string | null
   name: string
   description: string | null
-  status: ItemStatus
-  priority: ItemPriority
+  status: string
+  priority: string
   estimated_cost: number | null
   actual_cost: number | null
+  purchase_url: string | null
   notes: string | null
   completed_at: string | null
   created_at: string
   updated_at: string
 }
 
-/**
- * Purchase alternative for an item. At most one option per item may have
- * `selected: true` (enforced later in DB and UI).
- */
 export interface ItemOption {
   id: string
   item_id: string

@@ -11,6 +11,9 @@ export function supabaseErrorMessage(error: { message: string } | null): string 
 
 export function authErrorMessage(message: string): string {
   const lower = message.toLowerCase()
+  if (lower.includes('email not confirmed')) {
+    return 'Confirma tu cuenta con el enlace del correo antes de entrar.'
+  }
   if (lower.includes('invalid login')) return 'Email o contraseña incorrectos.'
   if (lower.includes('user already registered')) return 'Ese email ya tiene una cuenta.'
   if (lower.includes('password')) return 'La contraseña no es válida (mínimo 6 caracteres).'

@@ -9,29 +9,36 @@ import {
   countCompletedItems,
   type BudgetItem,
 } from '@/utils/budget/calculations'
-import { formatMoney, formatPercent } from '@/utils/format'
-import { priorityLabel } from '@/features/projects/priority-labels'
-import { ITEM_PRIORITIES, type Category, type LabelPreset } from '@/types/domain'
+import { formatPercent, useFormatMoney } from '@/utils/format'
+import {
+  priorityLabel,
+  type ProjectPriorityOption,
+  type ProjectStatusOption,
+} from '@/features/projects/project-options'
+import type { Category } from '@/types/domain'
 
 export function DashboardPanel({
   budget,
   items,
   categories,
-  preset,
+  statusOptions,
+  priorityOptions,
 }: {
   budget: number | null
   items: readonly BudgetItem[]
   categories: readonly Category[]
-  preset: LabelPreset
+  statusOptions: readonly ProjectStatusOption[]
+  priorityOptions: readonly ProjectPriorityOption[]
 }) {
-  const pending = calculatePendingBudget(items)
-  const spent = calculateActualSpent(items)
-  const planned = calculatePlannedBudget(items)
-  const remaining = calculateRemainingBudget(budget, items)
-  const completion = calculateCompletionPercentage(items)
-  const completed = countCompletedItems(items)
-  const byPriority = calculateBudgetByPriority(items)
-  const byCategory = calculateBudgetByCategory(items)
+  const formatMoney = useFormatMoney()
+  const pending = calculatePendingBudget(items, statusOptions)
+  const spent = calculateActualSpent(items, statusOptions)
+  const planned = calculatePlannedBudget(items, statusOptions)
+  const remaining = calculateRemainingBudget(budget, items, statusOptions)
+  const completion = calculateCompletionPercentage(items, statusOptions)
+  const completed = countCompletedItems(items, statusOptions)
+  const byPriority = calculateBudgetByPriority(items, statusOptions)
+  const byCategory = calculateBudgetByCategory(items, statusOptions)
   const categoryName = (id: string | null) => {
     if (!id) return 'Sin categoría'
     return categories.find((category) => category.id === id)?.name ?? 'Categoría'
@@ -78,12 +85,12 @@ export function DashboardPanel({
         <section>
           <h3>Por prioridad</h3>
           <ul className="plain-list">
-            {ITEM_PRIORITIES.map((priority) => (
-              <li key={priority}>
-                <span>{priorityLabel(priority, preset)}</span>
+            {priorityOptions.map((option) => (
+              <li key={option.id}>
+                <span>{priorityLabel(option.id, priorityOptions)}</span>
                 <span>
-                  {formatMoney(byPriority[priority].planned)} · gastado{' '}
-                  {formatMoney(byPriority[priority].spent)}
+                  {formatMoney(byPriority[option.id]?.planned ?? 0)} · gastado{' '}
+                  {formatMoney(byPriority[option.id]?.spent ?? 0)}
                 </span>
               </li>
             ))}

@@ -19,4 +19,11 @@ export const isSupabaseConfigured = Boolean(url && anonKey && looksLikeApiUrl(ur
 export const supabase = createClient<Database>(
   looksLikeApiUrl(url) ? url! : 'https://unavailable.local',
   anonKey || 'unavailable',
+  {
+    auth: {
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  },
 )

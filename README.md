@@ -45,6 +45,13 @@ La app estará en `http://localhost:5173`.
 2. Aplica la migración `supabase/migrations/20260830120000_initial_schema.sql` (SQL Editor o CLI).
 3. Copia URL y anon key a `.env`.
 4. En Authentication, habilita email/password.
+5. En **Authentication → URL Configuration**, configura:
+   - **Site URL**: `https://<usuario>.github.io/Planora/` (o `http://localhost:5173` en local)
+   - **Redirect URLs** (añade ambas):
+     - `http://localhost:5173/auth/callback`
+     - `https://<usuario>.github.io/Planora/auth/callback`
+
+Sin esas URLs, el enlace del correo de confirmación no redirige correctamente a la app.
 
 Tras cambiar el schema, regenera tipos:
 
@@ -75,6 +82,7 @@ El build genera manifest + service worker. Cachea el app shell y assets estátic
 
 - `VITE_SUPABASE_URL` — URL del proyecto Supabase
 - `VITE_SUPABASE_ANON_KEY` — clave anónima (pública en el cliente)
+- `VITE_SITE_URL` — (opcional) URL pública del sitio para redirects de auth
 
 Nunca commitear `.env` con secretos reales. No usar `service_role` en el frontend.
 

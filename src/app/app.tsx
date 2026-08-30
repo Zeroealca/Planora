@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router'
 import { AuthProvider } from '@/features/auth/auth-provider'
+import { ProfileProvider } from '@/features/profile/profile-provider'
 import { AppRoutes } from './router'
 
 /** Matches Vite `base` (`/` locally, `/Planora/` on GitHub Pages). */
@@ -9,7 +10,9 @@ export function App() {
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
-        <AppRoutes />
+        <ProfileProvider>
+          <AppRoutes />
+        </ProfileProvider>
       </AuthProvider>
     </BrowserRouter>
   )

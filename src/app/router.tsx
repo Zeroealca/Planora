@@ -1,18 +1,20 @@
 import { Route, Routes } from 'react-router'
 import { AppLayout } from './app-layout'
 import { HomePage } from '@/pages/home-page'
+import { AuthCallbackPage } from '@/pages/auth-callback-page'
 import { LoginPage } from '@/pages/login-page'
 import { ProjectsPage } from '@/pages/projects-page'
 import { ProjectPage } from '@/pages/project-page'
 import { ItemPage } from '@/pages/item-page'
+import { SettingsPage } from '@/pages/settings-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { RequireSession } from '@/features/auth/require-session'
 
 /**
  * Client-side routing (history API). Basename follows Vite `base`.
  *
- * Public: `/login`
- * Protected: `/projects`, `/projects/:projectId`, `/projects/:projectId/items/:itemId`
+ * Public: `/login`, `/auth/callback`
+ * Protected: `/projects`, `/projects/:projectId`, `/projects/:projectId/items/:itemId`, `/settings`
  */
 export function AppRoutes() {
   return (
@@ -20,10 +22,12 @@ export function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="auth/callback" element={<AuthCallbackPage />} />
         <Route element={<RequireSession />}>
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:projectId" element={<ProjectPage />} />
           <Route path="projects/:projectId/items/:itemId" element={<ItemPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

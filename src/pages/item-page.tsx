@@ -5,8 +5,8 @@ import { deleteItem } from '@/features/items/item-api'
 import { OptionList } from '@/features/item-options/option-list'
 import { fetchProjectBundle } from '@/features/projects/project-api'
 import { useAuth } from '@/features/auth/auth-context'
-import { ITEM_STATUS_LABELS, type Category, type ItemWithOptions, type Project } from '@/types/domain'
-import { priorityLabel } from '@/features/projects/priority-labels'
+import { priorityLabel, statusLabel } from '@/features/projects/project-options'
+import type { Category, ItemWithOptions, Project } from '@/types/domain'
 
 export function ItemPage() {
   const { projectId, itemId } = useParams()
@@ -100,12 +100,27 @@ export function ItemPage() {
       </p>
       <h1>{item.name}</h1>
       <p className="muted">
-        {ITEM_STATUS_LABELS[item.status]} · {priorityLabel(item.priority, project.label_preset)}
+        {statusLabel(item.status, project.status_options)} ·{' '}
+        {priorityLabel(item.priority, project.priority_options)}
       </p>
+      {item.description ? <p>{item.description}</p> : null}
+      {item.purchase_url ? (
+        <p>
+          <a href={item.purchase_url} target="_blank" rel="noopener noreferrer">
+            Abrir enlace de compra
+          </a>
+        </p>
+      ) : null}
+      {item.notes ? (
+        <p className="muted">
+          <strong>Notas:</strong> {item.notes}
+        </p>
+      ) : null}
       <ItemForm
         projectId={project.id}
         categories={categories}
-        preset={project.label_preset}
+        statusOptions={project.status_options}
+        priorityOptions={project.priority_options}
         item={item}
         onSaved={() => void load()}
       />

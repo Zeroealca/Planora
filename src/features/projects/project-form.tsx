@@ -1,7 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import type { LabelPreset, Project } from '@/types/domain'
-import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
+import type { Project } from '@/types/domain'
+import { emptyToNull } from '@/utils/form'
 import { createProject, deleteProject, updateProject } from './project-api'
+import { SavingsPlanFields } from './savings-plan-fields'
+import {
+  parseSavingsPlanInput,
+  savingsPlanFromProject,
+  validateSavingsPlan,
+} from './savings-plan-utils'
+import { costInputValue } from '@/utils/form'
 
 export function ProjectForm({
   userId,
@@ -14,12 +21,24 @@ export function ProjectForm({
   onSaved: (projectId: string) => void
   onDeleted?: () => void
 }) {
+  const isCreate = project == null
+  const initialSavings = savingsPlanFromProject(project)
   const [name, setName] = useState(project?.name ?? '')
   const [description, setDescription] = useState(project?.description ?? '')
-  const [budget, setBudget] = useState(costInputValue(project?.budget ?? null))
   const [icon, setIcon] = useState(project?.icon ?? '')
   const [useTemplate, setUseTemplate] = useState(false)
-  const [preset, setPreset] = useState<LabelPreset>(project?.label_preset ?? 'default')
+  const preset = project?.label_preset ?? 'default'
+  const [savingsAmount, setSavingsAmount] = useState(
+    costInputValue(initialSavings.savings_amount),
+  )
+  const [savingsStart, setSavingsStart] = useState(initialSavings.savings_start_date ?? '')
+  const [savingsEnd, setSavingsEnd] = useState(initialSavings.savings_end_date ?? '')
+  const [savingsInterest, setSavingsInterest] = useState(
+    initialSavings.savings_accrues_interest,
+  )
+  const [savingsRate, setSavingsRate] = useState(
+    costInputValue(initialSavings.savings_interest_rate_annual),
+  )
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -30,34 +49,50 @@ export function ProjectForm({
       setError('El nombre es obligatorio.')
       return
     }
-    const parsedBudget = parseCost(budget)
-    if (Number.isNaN(parsedBudget) || (parsedBudget != null && parsedBudget < 0)) {
-      setError('El presupuesto debe ser un número mayor o igual a 0.')
+
+    if (isCreate) {
+      const savings = parseSavingsPlanInput({
+        amount: savingsAmount,
+        accruesInterest: savingsInterest,
+        interestRate: savingsRate,
+        startDate: savingsStart,
+        endDate: savingsEnd,
+      })
+      const savingsError = validateSavingsPlan(savings)
+      if (savingsError) {
+        setError(savingsError)
+        return
+      }
+
+      setSubmitting(true)
+      try {
+        const created = await createProject({
+          userId,
+          name,
+          description: emptyToNull(description),
+          icon: emptyToNull(icon),
+          useMoveInTemplate: useTemplate,
+          savings,
+        })
+        onSaved(created.id)
+      } catch (err) {
+        console.error(err)
+        setError(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.')
+      } finally {
+        setSubmitting(false)
+      }
       return
     }
 
     setSubmitting(true)
     try {
-      if (project) {
-        await updateProject(project.id, {
-          name,
-          description: emptyToNull(description),
-          budget: parsedBudget,
-          icon: emptyToNull(icon),
-          label_preset: preset,
-        })
-        onSaved(project.id)
-      } else {
-        const created = await createProject({
-          userId,
-          name,
-          description: emptyToNull(description),
-          budget: parsedBudget,
-          icon: emptyToNull(icon),
-          useMoveInTemplate: useTemplate,
-        })
-        onSaved(created.id)
-      }
+      await updateProject(project.id, {
+        name,
+        description: emptyToNull(description),
+        icon: emptyToNull(icon),
+        label_preset: preset,
+      })
+      onSaved(project.id)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'No se pudo guardar el proyecto.')
@@ -100,15 +135,22 @@ export function ProjectForm({
           rows={3}
         />
       </div>
-      <div className="field">
-        <label htmlFor="project-budget">Presupuesto</label>
-        <input
-          id="project-budget"
-          inputMode="decimal"
-          value={budget}
-          onChange={(event) => setBudget(event.target.value)}
+
+      {isCreate ? (
+        <SavingsPlanFields
+          amount={savingsAmount}
+          accruesInterest={savingsInterest}
+          interestRate={savingsRate}
+          startDate={savingsStart}
+          endDate={savingsEnd}
+          onAmountChange={setSavingsAmount}
+          onAccruesInterestChange={setSavingsInterest}
+          onInterestRateChange={setSavingsRate}
+          onStartDateChange={setSavingsStart}
+          onEndDateChange={setSavingsEnd}
         />
-      </div>
+      ) : null}
+
       <div className="field">
         <label htmlFor="project-icon">Icono (emoji, opcional)</label>
         <input
@@ -117,19 +159,7 @@ export function ProjectForm({
           onChange={(event) => setIcon(event.target.value)}
         />
       </div>
-      {project ? (
-        <div className="field">
-          <label htmlFor="project-preset">Etiquetas de prioridad</label>
-          <select
-            id="project-preset"
-            value={preset}
-            onChange={(event) => setPreset(event.target.value as LabelPreset)}
-          >
-            <option value="default">Genéricas (Crítica, Alta, Media, Opcional)</option>
-            <option value="move_in">Mudanza / primer mes / después</option>
-          </select>
-        </div>
-      ) : (
+      {isCreate ? (
         <div className="field checkbox-field">
           <input
             id="project-template"
@@ -138,17 +168,17 @@ export function ProjectForm({
             onChange={(event) => setUseTemplate(event.target.checked)}
           />
           <label htmlFor="project-template">
-            Usar plantilla “Amueblar mi casa” (categorías de ejemplo)
+            Usar plantilla “Amueblar mi casa” (categorías y prioridades de ejemplo)
           </label>
         </div>
-      )}
+      ) : null}
       {error ? (
         <p className="field-error" role="alert">
           {error}
         </p>
       ) : null}
       <button className="btn btn-primary" type="submit" disabled={submitting}>
-        {submitting ? 'Guardando…' : project ? 'Guardar proyecto' : 'Crear proyecto'}
+        {submitting ? 'Guardando…' : isCreate ? 'Crear proyecto' : 'Guardar proyecto'}
       </button>
       {project && onDeleted ? (
         <button type="button" className="btn btn-danger" onClick={() => void onDelete()}>

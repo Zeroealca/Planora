@@ -7,14 +7,15 @@ export function AppLayout() {
   const { session } = useAuth()
 
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <Link to={session ? '/projects' : '/'} className="app-brand">
-          Planora
-        </Link>
-        {session ? (
+    <div className={session ? 'app-shell' : 'app-shell app-shell-guest'}>
+      {session ? (
+        <header className="app-header">
+          <Link to="/projects" className="app-brand">
+            Planora
+          </Link>
           <nav className="app-nav">
             <Link to="/projects">Proyectos</Link>
+            <Link to="/settings">Cuenta</Link>
             <button
               type="button"
               className="btn btn-ghost"
@@ -25,8 +26,8 @@ export function AppLayout() {
               Cerrar sesión
             </button>
           </nav>
-        ) : null}
-      </header>
+        </header>
+      ) : null}
       <PwaUpdateBanner />
       <main className="app-main">
         <Outlet />

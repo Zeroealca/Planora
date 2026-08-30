@@ -1,29 +1,33 @@
-import type { Category, Item, ItemOption, ItemPriority, ItemStatus, LabelPreset, Project } from '@/types/domain'
-import { ITEM_PRIORITIES, ITEM_STATUSES, LABEL_PRESETS } from '@/types/domain'
+import type { Category, Item, ItemOption, LabelPreset, Profile, Project } from '@/types/domain'
+import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
+import { DEFAULT_CURRENCY, isCurrencyCode } from '@/features/profile/currencies'
+import {
+  parsePriorityOptions,
+  parseStatusOptions,
+} from '@/features/projects/project-options'
 import { parseNumeric } from './errors'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 type CategoryRow = Database['public']['Tables']['categories']['Row']
 type ItemRow = Database['public']['Tables']['items']['Row']
 type OptionRow = Database['public']['Tables']['item_options']['Row']
-
-function asStatus(value: string): ItemStatus {
-  return (ITEM_STATUSES as readonly string[]).includes(value)
-    ? (value as ItemStatus)
-    : 'Pending'
-}
-
-function asPriority(value: string): ItemPriority {
-  return (ITEM_PRIORITIES as readonly string[]).includes(value)
-    ? (value as ItemPriority)
-    : 'Medium'
-}
+type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
 function asPreset(value: string): LabelPreset {
   return (LABEL_PRESETS as readonly string[]).includes(value)
     ? (value as LabelPreset)
     : 'default'
+}
+
+export function mapProfile(row: ProfileRow): Profile {
+  return {
+    id: row.id,
+    display_name: row.display_name,
+    currency_code: isCurrencyCode(row.currency_code) ? row.currency_code : DEFAULT_CURRENCY,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }
 }
 
 export function mapProject(row: ProjectRow): Project {
@@ -35,6 +39,13 @@ export function mapProject(row: ProjectRow): Project {
     budget: parseNumeric(row.budget),
     icon: row.icon,
     label_preset: asPreset(row.label_preset),
+    status_options: parseStatusOptions(row.status_options ?? null),
+    priority_options: parsePriorityOptions(row.priority_options ?? null),
+    savings_amount: parseNumeric(row.savings_amount),
+    savings_accrues_interest: row.savings_accrues_interest,
+    savings_interest_rate_annual: parseNumeric(row.savings_interest_rate_annual),
+    savings_start_date: row.savings_start_date,
+    savings_end_date: row.savings_end_date,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
@@ -59,8 +70,8 @@ export function mapBudgetItem(row: {
   actual_cost: string | number | null
 }): import('@/utils/budget/calculations').BudgetItem {
   return {
-    status: asStatus(row.status),
-    priority: asPriority(row.priority),
+    status: row.status,
+    priority: row.priority,
     category_id: row.category_id,
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
@@ -74,10 +85,11 @@ export function mapItem(row: ItemRow): Item {
     category_id: row.category_id,
     name: row.name,
     description: row.description,
-    status: asStatus(row.status),
-    priority: asPriority(row.priority),
+    status: row.status,
+    priority: row.priority,
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
+    purchase_url: row.purchase_url,
     notes: row.notes,
     completed_at: row.completed_at,
     created_at: row.created_at,

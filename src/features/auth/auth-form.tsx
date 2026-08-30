@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase/client'
+import { getAuthRedirectUrl } from '@/lib/supabase/auth-redirect'
 import { authErrorMessage } from '@/lib/supabase/errors'
+import { PasswordInput } from './password-input'
 
 export function AuthForm() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -40,11 +42,16 @@ export function AuthForm() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: getAuthRedirectUrl(),
+          },
         })
         if (signUpError) {
           setError(authErrorMessage(signUpError.message))
         } else if (!data.session) {
-          setInfo('Revisa tu email para confirmar la cuenta.')
+          setInfo(
+            'Te enviamos un correo de confirmación. Abre el enlace para activar tu cuenta.',
+          )
         }
       }
     } catch (err) {
@@ -56,19 +63,27 @@ export function AuthForm() {
   }
 
   return (
-    <form className="stack" onSubmit={onSubmit}>
+    <form className="stack auth-form" onSubmit={onSubmit}>
       <div className="segmented" role="group" aria-label="Tipo de acceso">
         <button
           type="button"
           className={mode === 'login' ? 'segmented-active' : ''}
-          onClick={() => setMode('login')}
+          onClick={() => {
+            setMode('login')
+            setError(null)
+            setInfo(null)
+          }}
         >
           Entrar
         </button>
         <button
           type="button"
           className={mode === 'register' ? 'segmented-active' : ''}
-          onClick={() => setMode('register')}
+          onClick={() => {
+            setMode('register')
+            setError(null)
+            setInfo(null)
+          }}
         >
           Crear cuenta
         </button>
@@ -81,6 +96,8 @@ export function AuthForm() {
           name="email"
           type="email"
           autoComplete="email"
+          inputMode="email"
+          placeholder="tu@email.com"
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -89,16 +106,18 @@ export function AuthForm() {
 
       <div className="field">
         <label htmlFor="password">Contraseña</label>
-        <input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           minLength={6}
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
+        {mode === 'register' ? (
+          <p className="field-hint">Mínimo 6 caracteres.</p>
+        ) : null}
       </div>
 
       {error ? (
@@ -107,12 +126,12 @@ export function AuthForm() {
         </p>
       ) : null}
       {info ? (
-        <p className="alert" role="status">
+        <p className="alert alert-success" role="status">
           {info}
         </p>
       ) : null}
 
-      <button className="btn btn-primary" type="submit" disabled={submitting}>
+      <button className="btn btn-primary btn-block" type="submit" disabled={submitting}>
         {submitting
           ? 'Enviando…'
           : mode === 'login'
