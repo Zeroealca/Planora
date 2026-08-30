@@ -1,0 +1,13 @@
+---
+description: TypeScript y naming en Planora
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript
+
+- Strict; evitar `any`; unions para status/priority.
+- Código e identificadores en inglés; DB en `snake_case`.
+- Archivos/carpetas `kebab-case`; componentes `PascalCase`.
+- Tipos de dominio centralizados o junto al feature si son locales.
+- Alinear con tipos generados de Supabase cuando existan.
