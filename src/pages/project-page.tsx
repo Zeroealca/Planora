@@ -5,23 +5,19 @@ import { CategorySection } from '@/features/categories/category-section'
 import { ItemCard } from '@/features/items/item-card'
 import { ItemForm } from '@/features/items/item-form'
 import { ProjectForm } from '@/features/projects/project-form'
+import { ProjectOptionsSection } from '@/features/projects/project-options-section'
+import { ProjectSavingsSection } from '@/features/projects/project-savings-section'
 import { fetchProjectBundle } from '@/features/projects/project-api'
 import { useAuth } from '@/features/auth/auth-context'
-import { priorityLabel } from '@/features/projects/priority-labels'
-import {
-  ITEM_PRIORITIES,
-  ITEM_STATUSES,
-  ITEM_STATUS_LABELS,
-  type Category,
-  type ItemStatus,
-  type ItemWithOptions,
-  type Project,
-} from '@/types/domain'
+import { priorityLabel, statusLabel } from '@/features/projects/project-options'
+import type { Category, ItemWithOptions, Project } from '@/types/domain'
 import {
   filterItems,
   type CategoryFilter,
   type PriorityFilter,
+  type StatusFilter,
 } from '@/utils/budget/calculations'
+import { resolveProjectBudget } from '@/utils/budget/savings'
 
 export function ProjectPage() {
   const { projectId } = useParams()
@@ -36,7 +32,7 @@ export function ProjectPage() {
   const [creatingItem, setCreatingItem] = useState(false)
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
-  const [statusFilter, setStatusFilter] = useState<ItemStatus | 'All'>('All')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
 
   const load = useCallback(async () => {
     if (!projectId) return
@@ -99,6 +95,7 @@ export function ProjectPage() {
   const dashboardItems = filterItems(items, {
     priority: priorityFilter,
     categoryId: categoryFilter,
+    status: statusFilter,
   })
   const visibleItems = items.filter((item) => {
     const matchesPriority = priorityFilter === 'All' || item.priority === priorityFilter
@@ -119,10 +116,19 @@ export function ProjectPage() {
           {project.name}
         </h1>
         <button type="button" className="btn btn-ghost" onClick={() => setEditing(!editing)}>
-          {editing ? 'Cerrar' : 'Editar'}
+          {editing ? 'Cerrar' : 'Editar proyecto'}
         </button>
       </div>
       {project.description ? <p>{project.description}</p> : null}
+
+      <nav className="project-subnav" aria-label="Secciones del proyecto">
+        <a href="#ahorros">Ahorros</a>
+        <a href="#configuracion">Estados y prioridades</a>
+        <a href="#resumen">Resumen</a>
+        <a href="#items">Ítems</a>
+      </nav>
+
+      <ProjectSavingsSection project={project} onChanged={() => void load()} />
 
       {editing ? (
         <ProjectForm
@@ -138,18 +144,27 @@ export function ProjectPage() {
         />
       ) : null}
 
+      <div id="configuracion" className="project-section">
+        <ProjectOptionsSection
+        projectId={project.id}
+        statusOptions={project.status_options}
+        priorityOptions={project.priority_options}
+        onChanged={() => void load()}
+      />
+      </div>
+
       <div className="filters" role="group" aria-label="Filtros">
         <div className="field">
           <label htmlFor="filter-priority">Prioridad</label>
           <select
             id="filter-priority"
             value={priorityFilter}
-            onChange={(event) => setPriorityFilter(event.target.value as PriorityFilter)}
+            onChange={(event) => setPriorityFilter(event.target.value)}
           >
             <option value="All">Todas</option>
-            {ITEM_PRIORITIES.map((priority) => (
-              <option key={priority} value={priority}>
-                {priorityLabel(priority, project.label_preset)}
+            {project.priority_options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {priorityLabel(option.id, project.priority_options)}
               </option>
             ))}
           </select>
@@ -170,30 +185,33 @@ export function ProjectPage() {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="filter-status">Estado (lista)</label>
+          <label htmlFor="filter-status">Estado</label>
           <select
             id="filter-status"
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as ItemStatus | 'All')}
+            onChange={(event) => setStatusFilter(event.target.value)}
           >
             <option value="All">Todos</option>
-            {ITEM_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {ITEM_STATUS_LABELS[status]}
+            {project.status_options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {statusLabel(option.id, project.status_options)}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      <DashboardPanel
-        budget={project.budget}
+      <div id="resumen" className="project-section">
+        <DashboardPanel
+        budget={resolveProjectBudget(project)}
         items={dashboardItems}
         categories={categories}
-        preset={project.label_preset}
+        statusOptions={project.status_options}
+        priorityOptions={project.priority_options}
       />
+      </div>
 
-      <section className="stack" aria-labelledby="items-heading">
+      <section id="items" className="stack project-section" aria-labelledby="items-heading">
         <div className="row-between">
           <h2 id="items-heading">Ítems</h2>
           <button type="button" className="btn" onClick={() => setCreatingItem(!creatingItem)}>
@@ -204,7 +222,8 @@ export function ProjectPage() {
           <ItemForm
             projectId={project.id}
             categories={categories}
-            preset={project.label_preset}
+            statusOptions={project.status_options}
+            priorityOptions={project.priority_options}
             onSaved={() => {
               setCreatingItem(false)
               void load()
@@ -226,7 +245,8 @@ export function ProjectPage() {
                     categories.find((category) => category.id === item.category_id)?.name ??
                     'Sin categoría'
                   }
-                  preset={project.label_preset}
+                  statusOptions={project.status_options}
+                  priorityOptions={project.priority_options}
                 />
               </li>
             ))}

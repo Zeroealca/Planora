@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { ItemOption } from '@/types/domain'
 import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
-import { formatMoney } from '@/utils/format'
+import { useFormatMoney } from '@/utils/format'
 import {
   createOption,
   deleteOption,
@@ -198,6 +198,7 @@ export function OptionList({
   userId: string
   onChanged: () => void
 }) {
+  const formatMoney = useFormatMoney()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -22,18 +22,21 @@ export type Database = {
         Row: {
           id: string
           display_name: string | null
+          currency_code: string
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
           display_name?: string | null
+          currency_code?: string
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           display_name?: string | null
+          currency_code?: string
           created_at?: string
           updated_at?: string
         }
@@ -48,6 +51,13 @@ export type Database = {
           budget: string | null
           icon: string | null
           label_preset: string
+          status_options: Json
+          priority_options: Json
+          savings_amount: string | null
+          savings_accrues_interest: boolean
+          savings_interest_rate_annual: string | null
+          savings_start_date: string | null
+          savings_end_date: string | null
           created_at: string
           updated_at: string
         }
@@ -59,6 +69,13 @@ export type Database = {
           budget?: number | string | null
           icon?: string | null
           label_preset?: string
+          status_options?: Json
+          priority_options?: Json
+          savings_amount?: number | string | null
+          savings_accrues_interest?: boolean
+          savings_interest_rate_annual?: number | string | null
+          savings_start_date?: string | null
+          savings_end_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -70,6 +87,13 @@ export type Database = {
           budget?: number | string | null
           icon?: string | null
           label_preset?: string
+          status_options?: Json
+          priority_options?: Json
+          savings_amount?: number | string | null
+          savings_accrues_interest?: boolean
+          savings_interest_rate_annual?: number | string | null
+          savings_start_date?: string | null
+          savings_end_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -113,6 +137,7 @@ export type Database = {
           priority: string
           estimated_cost: string | null
           actual_cost: string | null
+          purchase_url: string | null
           notes: string | null
           completed_at: string | null
           created_at: string
@@ -128,6 +153,7 @@ export type Database = {
           priority?: string
           estimated_cost?: number | string | null
           actual_cost?: number | string | null
+          purchase_url?: string | null
           notes?: string | null
           completed_at?: string | null
           created_at?: string
@@ -143,6 +169,7 @@ export type Database = {
           priority?: string
           estimated_cost?: number | string | null
           actual_cost?: number | string | null
+          purchase_url?: string | null
           notes?: string | null
           completed_at?: string | null
           created_at?: string

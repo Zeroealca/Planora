@@ -3,7 +3,14 @@ import { mapBudgetItem, mapCategory, mapItem, mapOption, mapProject } from '@/li
 import { supabaseErrorMessage } from '@/lib/supabase/errors'
 import type { Category, ItemWithOptions, LabelPreset, Project } from '@/types/domain'
 import type { BudgetItem } from '@/utils/budget/calculations'
+import type { SavingsPlan } from '@/utils/budget/savings'
 import type { Database } from '@/types/database'
+import { buildProjectPayload, buildSavingsPayload } from './project-savings'
+import {
+  DEFAULT_PRIORITY_OPTIONS,
+  DEFAULT_STATUS_OPTIONS,
+  MOVE_IN_PRIORITY_OPTIONS,
+} from './project-options'
 import { MOVE_IN_TEMPLATE_CATEGORIES } from './templates'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
@@ -76,20 +83,28 @@ export async function createProject(input: {
   userId: string
   name: string
   description: string | null
-  budget: number | null
   icon: string | null
   useMoveInTemplate: boolean
+  savings: SavingsPlan
 }): Promise<Project> {
   const label_preset: LabelPreset = input.useMoveInTemplate ? 'move_in' : 'default'
+  const payload = buildProjectPayload({
+    name: input.name,
+    description: input.description,
+    icon: input.icon,
+    label_preset,
+    savings: input.savings,
+  })
+
   const { data, error } = await supabase
     .from('projects')
     .insert({
       user_id: input.userId,
-      name: input.name.trim(),
-      description: input.description,
-      budget: input.budget,
-      icon: input.icon,
-      label_preset,
+      ...payload,
+      status_options: DEFAULT_STATUS_OPTIONS as unknown as import('@/types/database').Json,
+      priority_options: (input.useMoveInTemplate
+        ? MOVE_IN_PRIORITY_OPTIONS
+        : DEFAULT_PRIORITY_OPTIONS) as unknown as import('@/types/database').Json,
     })
     .select()
     .single()
@@ -115,7 +130,6 @@ export async function updateProject(
   input: {
     name: string
     description: string | null
-    budget: number | null
     icon: string | null
     label_preset: LabelPreset
   },
@@ -125,10 +139,21 @@ export async function updateProject(
     .update({
       name: input.name.trim(),
       description: input.description,
-      budget: input.budget,
       icon: input.icon,
       label_preset: input.label_preset,
     })
+    .eq('id', projectId)
+
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
+
+export async function updateProjectSavings(
+  projectId: string,
+  savings: SavingsPlan,
+): Promise<void> {
+  const { error } = await supabase
+    .from('projects')
+    .update(buildSavingsPayload(savings))
     .eq('id', projectId)
 
   if (error) throw new Error(supabaseErrorMessage(error))

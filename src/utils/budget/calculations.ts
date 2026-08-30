@@ -1,58 +1,62 @@
 /**
  * Pure budget and completion calculations. No React, DOM, or Supabase.
  *
- * Null / NaN policy (MVP, do not mix with other fallbacks):
- * - `estimated_cost` / `actual_cost` null or non-finite → 0 in sums.
- * - `Purchased` without `actual_cost` → 0 (UI should capture actual later).
- * - `AlreadyOwned` never contributes to pending, spent, or planned.
- * - Empty item list → money totals 0, completion 0.
- * - `project.budget` null or non-finite → remaining is `null` (no target).
+ * Status behavior comes from per-project `ProjectStatusOption` lists.
  */
 
-import type { Item, ItemPriority } from '@/types/domain'
+import type { ProjectStatusOption, StatusBehavior } from '@/features/projects/project-options'
+import { getStatusBehavior, isCompletedBehavior } from '@/features/projects/project-options'
 
-export type PriorityFilter = 'All' | ItemPriority
+export type PriorityFilter = 'All' | string
 export type CategoryFilter = 'All' | string
+export type StatusFilter = 'All' | string
 
 export function filterItems(
   items: readonly BudgetItem[],
   filters: {
     priority?: PriorityFilter
     categoryId?: CategoryFilter
+    status?: StatusFilter
   } = {},
 ): BudgetItem[] {
   const priority = filters.priority ?? 'All'
   const categoryId = filters.categoryId ?? 'All'
+  const status = filters.status ?? 'All'
 
   return items.filter((item) => {
     if (priority !== 'All' && item.priority !== priority) return false
     if (categoryId !== 'All' && item.category_id !== categoryId) return false
+    if (status !== 'All' && item.status !== status) return false
     return true
   })
 }
 
-export function countCompletedItems(items: readonly BudgetItem[]): number {
+export function countCompletedItems(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
   let completed = 0
   for (const item of items) {
-    if (item.status === 'Purchased' || item.status === 'AlreadyOwned') {
+    if (isCompletedBehavior(getStatusBehavior(item.status, statusOptions))) {
       completed += 1
     }
   }
   return completed
 }
 
-export type BudgetItem = Pick<
-  Item,
-  'status' | 'priority' | 'category_id' | 'estimated_cost' | 'actual_cost'
->
+export type BudgetItem = {
+  status: string
+  priority: string
+  category_id: string | null
+  estimated_cost: number | null
+  actual_cost: number | null
+}
 
 export interface BudgetTotals {
   pending: number
   spent: number
   planned: number
 }
-
-export type BudgetByPriority = Record<ItemPriority, BudgetTotals>
 
 export interface CategoryBudgetTotals extends BudgetTotals {
   category_id: string | null
@@ -67,73 +71,88 @@ function emptyTotals(): BudgetTotals {
   return { pending: 0, spent: 0, planned: 0 }
 }
 
-function addItem(totals: BudgetTotals, item: BudgetItem): void {
-  switch (item.status) {
-    case 'Pending':
+function addItem(
+  totals: BudgetTotals,
+  item: BudgetItem,
+  behavior: StatusBehavior,
+): void {
+  switch (behavior) {
+    case 'pending':
       totals.pending += costOrZero(item.estimated_cost)
       break
-    case 'Purchased':
+    case 'purchased':
       totals.spent += costOrZero(item.actual_cost)
       break
-    case 'AlreadyOwned':
+    case 'owned':
       break
     default: {
-      const exhaustive: never = item.status
-      throw new Error(`Unexpected item status: ${exhaustive}`)
+      const exhaustive: never = behavior
+      throw new Error(`Unexpected status behavior: ${exhaustive}`)
     }
   }
 
   totals.planned = totals.pending + totals.spent
 }
 
-function totalsFor(items: readonly BudgetItem[]): BudgetTotals {
+function totalsFor(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): BudgetTotals {
   const totals = emptyTotals()
   for (const item of items) {
-    addItem(totals, item)
+    addItem(totals, item, getStatusBehavior(item.status, statusOptions))
   }
   return totals
 }
 
-export function calculatePendingBudget(items: readonly BudgetItem[]): number {
-  return totalsFor(items).pending
+export function calculatePendingBudget(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  return totalsFor(items, statusOptions).pending
 }
 
-export function calculateActualSpent(items: readonly BudgetItem[]): number {
-  return totalsFor(items).spent
+export function calculateActualSpent(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  return totalsFor(items, statusOptions).spent
 }
 
-export function calculatePlannedBudget(items: readonly BudgetItem[]): number {
-  return totalsFor(items).planned
+export function calculatePlannedBudget(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  return totalsFor(items, statusOptions).planned
 }
 
 export function calculateRemainingBudget(
   projectBudget: number | null,
   items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
 ): number | null {
   if (projectBudget == null || !Number.isFinite(projectBudget)) return null
-  return projectBudget - calculateActualSpent(items)
+  return projectBudget - calculateActualSpent(items, statusOptions)
 }
 
-/** Completed share in `[0, 100]`. Empty list → 0. */
 export function calculateCompletionPercentage(
   items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
 ): number {
   if (items.length === 0) return 0
-  return (countCompletedItems(items) / items.length) * 100
+  return (countCompletedItems(items, statusOptions) / items.length) * 100
 }
 
 export function calculateBudgetByPriority(
   items: readonly BudgetItem[],
-): BudgetByPriority {
-  const byPriority: BudgetByPriority = {
-    Critical: emptyTotals(),
-    High: emptyTotals(),
-    Medium: emptyTotals(),
-    Optional: emptyTotals(),
-  }
+  statusOptions: readonly ProjectStatusOption[],
+): Record<string, BudgetTotals> {
+  const byPriority: Record<string, BudgetTotals> = {}
 
   for (const item of items) {
-    addItem(byPriority[item.priority], item)
+    const bucket = byPriority[item.priority] ?? emptyTotals()
+    addItem(bucket, item, getStatusBehavior(item.status, statusOptions))
+    byPriority[item.priority] = bucket
   }
 
   return byPriority
@@ -141,16 +160,18 @@ export function calculateBudgetByPriority(
 
 export function calculateBudgetByCategory(
   items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
 ): CategoryBudgetTotals[] {
   const buckets = new Map<string | null, BudgetTotals>()
 
   for (const item of items) {
+    const behavior = getStatusBehavior(item.status, statusOptions)
     const existing = buckets.get(item.category_id)
     if (existing) {
-      addItem(existing, item)
+      addItem(existing, item, behavior)
     } else {
       const totals = emptyTotals()
-      addItem(totals, item)
+      addItem(totals, item, behavior)
       buckets.set(item.category_id, totals)
     }
   }
