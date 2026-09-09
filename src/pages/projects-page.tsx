@@ -64,9 +64,14 @@ export function ProjectsPage() {
           <h1>Proyectos</h1>
           <p className="muted">Tus planes con presupuesto y seguimiento.</p>
         </div>
-        <Link to="/settings" className="btn btn-ghost">
-          Cuenta
-        </Link>
+        <div className="row">
+          <Link to="/import" className="btn btn-ghost">
+            Importar
+          </Link>
+          <Link to="/settings" className="btn btn-ghost">
+            Cuenta
+          </Link>
+        </div>
       </header>
       {error ? (
         <div className="stack">
