@@ -99,11 +99,20 @@ export function priorityLabel(
   return options.find((option) => option.id === priorityId)?.label ?? priorityId
 }
 
+/** Fallback when a status id is missing from project options (legacy / import). */
+const CANONICAL_STATUS_BEHAVIOR: Record<string, StatusBehavior> = {
+  Pending: 'pending',
+  Purchased: 'purchased',
+  AlreadyOwned: 'owned',
+}
+
 export function getStatusBehavior(
   statusId: string,
   options: readonly ProjectStatusOption[],
 ): StatusBehavior {
-  return options.find((option) => option.id === statusId)?.behavior ?? 'pending'
+  const fromOptions = options.find((option) => option.id === statusId)?.behavior
+  if (fromOptions) return fromOptions
+  return CANONICAL_STATUS_BEHAVIOR[statusId] ?? 'pending'
 }
 
 export function isCompletedBehavior(behavior: StatusBehavior): boolean {

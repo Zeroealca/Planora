@@ -117,7 +117,7 @@ export function ItemPage() {
 
   const categoryName =
     categories.find((category) => category.id === item.category_id)?.name ?? 'Sin categoría'
-  const costs = getItemCostSummary(item)
+  const costs = getItemCostSummary(item, project.status_options)
   const selected = getSelectedOption(item)
   const store = getItemStore(item)
   const purchaseLink = getItemPurchaseLink(item)
@@ -172,7 +172,11 @@ export function ItemPage() {
         </div>
         <div>
           <dt>Planeado</dt>
-          <dd>{formatMoney(costs.planned)}</dd>
+          <dd>
+            {costs.contributesToBudget
+              ? formatMoney(costs.planned)
+              : `${formatMoney(0)} (no afecta al presupuesto)`}
+          </dd>
         </div>
         <div>
           <dt>Pagado</dt>

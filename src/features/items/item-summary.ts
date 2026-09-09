@@ -36,16 +36,28 @@ export function getItemPurchaseLink(item: ItemWithOptions): {
   return null
 }
 
-export function getItemCostSummary(item: ItemWithOptions): {
+export function getItemCostSummary(
+  item: ItemWithOptions,
+  statusOptions: readonly ProjectStatusOption[] = [],
+): {
   budget: number | null
   planned: number
   paid: number | null
+  /** False when status behavior is owned — amounts are informational only. */
+  contributesToBudget: boolean
 } {
   const budgetItem = toBudgetItem(item)
+  const behavior =
+    statusOptions.length > 0
+      ? getStatusBehavior(item.status, statusOptions)
+      : item.status === 'AlreadyOwned'
+        ? 'owned'
+        : null
   return {
     budget: item.estimated_cost,
     planned: plannedPrice(budgetItem),
     paid: item.actual_cost,
+    contributesToBudget: behavior !== 'owned',
   }
 }
 

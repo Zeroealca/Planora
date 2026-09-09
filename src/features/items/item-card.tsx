@@ -45,7 +45,7 @@ export function ItemCard({
   attentionContext: AttentionContext
 }) {
   const formatMoney = useFormatMoney()
-  const costs = getItemCostSummary(item)
+  const costs = getItemCostSummary(item, statusOptions)
   const selected = getSelectedOption(item)
   const store = getItemStore(item)
   const purchaseLink = getItemPurchaseLink(item)
@@ -53,7 +53,11 @@ export function ItemCard({
   const attentionIssues = collectItemAttentionIssues(item, attentionContext)
 
   return (
-    <article className={`card item-card${attentionIssues.length > 0 ? ' item-card-attention' : ''}`}>
+    <article
+      className={`card item-card${attentionIssues.length > 0 ? ' item-card-attention' : ''}${
+        !costs.contributesToBudget ? ' item-card-owned' : ''
+      }`}
+    >
       <div className="item-card-head">
         <h3>
           <Link to={`/projects/${projectId}/items/${item.id}`}>{item.name}</Link>
@@ -64,6 +68,9 @@ export function ItemCard({
         </p>
       </div>
       <p className="muted">{categoryName}</p>
+      {!costs.contributesToBudget ? (
+        <p className="muted">Ya lo tienes: no afecta al presupuesto del proyecto.</p>
+      ) : null}
       {attentionIssues.length > 0 ? (
         <ul className="attention-list" aria-label="Necesita atención">
           {attentionIssues.map((issue) => (
@@ -80,7 +87,11 @@ export function ItemCard({
         </div>
         <div>
           <dt>Planeado</dt>
-          <dd>{formatMoney(costs.planned)}</dd>
+          <dd>
+            {costs.contributesToBudget
+              ? formatMoney(costs.planned)
+              : `${formatMoney(0)} (no suma)`}
+          </dd>
         </div>
         <div>
           <dt>Pagado</dt>
