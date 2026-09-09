@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router'
 import { useAuth } from '@/features/auth/auth-context'
+import { ThemeToggle } from '@/features/theme/theme-toggle'
 import { supabase } from '@/lib/supabase/client'
 import { PwaUpdateBanner } from './pwa-update-banner'
 
@@ -16,6 +17,7 @@ export function AppLayout() {
           <nav className="app-nav">
             <Link to="/projects">Proyectos</Link>
             <Link to="/settings">Cuenta</Link>
+            <ThemeToggle />
             <button
               type="button"
               className="btn btn-ghost"
