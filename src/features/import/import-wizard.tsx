@@ -511,7 +511,7 @@ export function ImportWizard({
               className="btn"
               onClick={() =>
                 void navigate(
-                  `/projects/${resultProjectId}?attention=needs_attention`,
+                  `/projects/${resultProjectId}?tab=items&attention=needs_attention`,
                 )
               }
             >
