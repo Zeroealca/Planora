@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/login-page'
 import { ProjectsPage } from '@/pages/projects-page'
 import { ProjectPage } from '@/pages/project-page'
 import { ItemPage } from '@/pages/item-page'
+import { ImportPage } from '@/pages/import-page'
 import { SettingsPage } from '@/pages/settings-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { RequireSession } from '@/features/auth/require-session'
@@ -14,7 +15,7 @@ import { RequireSession } from '@/features/auth/require-session'
  * Client-side routing (history API). Basename follows Vite `base`.
  *
  * Public: `/login`, `/auth/callback`
- * Protected: `/projects`, `/projects/:projectId`, `/projects/:projectId/items/:itemId`, `/settings`
+ * Protected: `/projects`, `/import`, `/projects/:projectId`, `/projects/:projectId/items/:itemId`, `/settings`
  */
 export function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export function AppRoutes() {
         <Route path="auth/callback" element={<AuthCallbackPage />} />
         <Route element={<RequireSession />}>
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="import" element={<ImportPage />} />
           <Route path="projects/:projectId" element={<ProjectPage />} />
           <Route path="projects/:projectId/items/:itemId" element={<ItemPage />} />
           <Route path="settings" element={<SettingsPage />} />
