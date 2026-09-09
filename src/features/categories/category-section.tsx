@@ -70,11 +70,7 @@ export function CategorySection({
   }
 
   return (
-    <section className="stack" aria-labelledby="categories-heading">
-      <h2 id="categories-heading">Categorías</h2>
-      <p className="muted">
-        Al eliminar una categoría, sus ítems quedan sin categoría (no se borran).
-      </p>
+    <div className="stack">
       {categories.length === 0 ? (
         <p className="muted">Todavía no hay categorías.</p>
       ) : (
@@ -143,6 +139,6 @@ export function CategorySection({
           {submitting ? 'Añadiendo…' : 'Añadir categoría'}
         </button>
       </form>
-    </section>
+    </div>
   )
 }
