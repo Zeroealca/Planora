@@ -66,32 +66,32 @@ function SliceMetricsList({
   formatMoney: (value: number) => string
 }) {
   return (
-    <ul className="breakdown-metrics plain-list">
-      <li>
-        <span>Presupuesto original</span>
-        <span>{formatMoney(slice.originalBudget)}</span>
-      </li>
-      <li>
-        <span>Costo proyectado</span>
-        <span>{formatMoney(slice.projectedCost)}</span>
-      </li>
-      <li>
-        <span>Gastado</span>
-        <span>{formatMoney(slice.spent)}</span>
-      </li>
-      <li>
-        <span>Pendiente</span>
-        <span>{formatMoney(slice.pending)}</span>
-      </li>
-      <li>
-        <span>Ahorro esperado</span>
-        <span>{formatSignedMoney(slice.expectedSavings, formatMoney)}</span>
-      </li>
-      <li>
-        <span>Ahorro real</span>
-        <span>{formatSignedMoney(slice.actualSavings, formatMoney)}</span>
-      </li>
-    </ul>
+    <dl className="breakdown-metrics">
+      <div>
+        <dt>Original</dt>
+        <dd>{formatMoney(slice.originalBudget)}</dd>
+      </div>
+      <div>
+        <dt>Proyectado</dt>
+        <dd>{formatMoney(slice.projectedCost)}</dd>
+      </div>
+      <div>
+        <dt>Gastado</dt>
+        <dd>{formatMoney(slice.spent)}</dd>
+      </div>
+      <div>
+        <dt>Pendiente</dt>
+        <dd>{formatMoney(slice.pending)}</dd>
+      </div>
+      <div>
+        <dt>Ahorro esp.</dt>
+        <dd>{formatSignedMoney(slice.expectedSavings, formatMoney)}</dd>
+      </div>
+      <div>
+        <dt>Ahorro real</dt>
+        <dd>{formatSignedMoney(slice.actualSavings, formatMoney)}</dd>
+      </div>
+    </dl>
   )
 }
 
@@ -131,7 +131,7 @@ export function DashboardPanel({
   }
 
   return (
-    <div className="stack">
+    <div className="dashboard stack">
       {attentionCount > 0 ? (
         <p className="attention-banner" role="status">
           {attentionCount === 1
@@ -139,80 +139,106 @@ export function DashboardPanel({
             : `${attentionCount} ítems necesitan atención`}
         </p>
       ) : null}
-      <div className="metrics-grid">
-        <article className="metric-card">
-          <p className="metric-label">Presupuesto disponible</p>
-          <p className="metric-value">
-            {budget == null ? 'Sin definir' : formatMoney(budget)}
-          </p>
-        </article>
-        <article className="metric-card">
-          <p className="metric-label">Presupuesto original</p>
-          <p className="metric-value">{formatMoney(totals.originalBudget)}</p>
-        </article>
-        <article className="metric-card">
-          <p className="metric-label">Planeado</p>
-          <p className="metric-value">{formatMoney(totals.projectedCost)}</p>
-          <p className="metric-hint">Costo proyectado (gastado + pendiente)</p>
-        </article>
-        <article className="metric-card">
-          <p className="metric-label">Gastado</p>
-          <p className="metric-value">{formatMoney(totals.spent)}</p>
-        </article>
-        <article className="metric-card">
-          <p className="metric-label">Pendiente</p>
-          <p className="metric-value">{formatMoney(totals.pending)}</p>
-        </article>
-        <article className={`metric-card${overBudget ? ' metric-card-over' : ''}`}>
-          <p className="metric-label">Saldo proyectado</p>
-          <p className="metric-value">
-            {projectedBalance == null ? '—' : formatMoney(projectedBalance)}
-          </p>
-          {overBudget ? (
-            <p className="metric-hint metric-hint-over">Supera el presupuesto</p>
-          ) : null}
-        </article>
-        <article className={`metric-card${expectedDisplay.over ? ' metric-card-over' : ''}`}>
-          <p className="metric-label">{expectedDisplay.label}</p>
-          <p className="metric-value">{expectedDisplay.value}</p>
-          <p className="metric-hint">Solo ítems pendientes con presupuesto</p>
-        </article>
-        <article className={`metric-card${actualDisplay.over ? ' metric-card-over' : ''}`}>
-          <p className="metric-label">{actualDisplay.label}</p>
-          <p className="metric-value">{actualDisplay.value}</p>
-          <p className="metric-hint">Solo ítems comprados con precio real</p>
-        </article>
-        <article className="metric-card">
-          <p className="metric-label">Progreso</p>
-          <p className="metric-value">{formatPercent(completion)}</p>
-          <p className="metric-hint">
-            {counts.completed} de {counts.total} completados
-          </p>
-        </article>
-      </div>
 
-      <ul className="plain-list progress-counts" aria-label="Conteo de ítems">
-        <li>
-          <span>Comprados</span>
-          <span>{counts.purchased}</span>
-        </li>
-        <li>
-          <span>Ya lo tengo</span>
-          <span>{counts.owned}</span>
-        </li>
-        <li>
-          <span>Pendientes</span>
-          <span>{counts.pending}</span>
-        </li>
-        <li>
-          <span>Completados</span>
-          <span>{counts.completed}</span>
-        </li>
-      </ul>
+      <section className="dashboard-section" aria-label="Indicadores principales">
+        <div className="metrics-grid metrics-grid-hero">
+          <article className="metric-card metric-card-budget">
+            <p className="metric-label">Presupuesto disponible</p>
+            <p className="metric-value">
+              {budget == null ? 'Sin definir' : formatMoney(budget)}
+            </p>
+            <p className="metric-hint">Tope manual del proyecto</p>
+          </article>
+          <article className="metric-card metric-card-projected">
+            <p className="metric-label">Costo proyectado</p>
+            <p className="metric-value">{formatMoney(totals.projectedCost)}</p>
+            <p className="metric-hint">Gastado + pendiente</p>
+          </article>
+          <article
+            className={`metric-card metric-card-balance${overBudget ? ' metric-card-over' : ''}`}
+          >
+            <p className="metric-label">Saldo proyectado</p>
+            <p className="metric-value">
+              {projectedBalance == null ? '—' : formatMoney(projectedBalance)}
+            </p>
+            {overBudget ? (
+              <p className="metric-hint metric-hint-over">Supera el presupuesto</p>
+            ) : (
+              <p className="metric-hint">Disponible − proyectado</p>
+            )}
+          </article>
+          <article className="metric-card metric-card-progress">
+            <p className="metric-label">Progreso</p>
+            <p className="metric-value">{formatPercent(completion)}</p>
+            <p className="metric-hint">
+              {counts.completed} de {counts.total} completados
+            </p>
+            <div
+              className="progress-bar"
+              role="presentation"
+              aria-hidden="true"
+            >
+              <span style={{ width: `${Math.min(100, Math.max(0, completion))}%` }} />
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="dashboard-section" aria-labelledby="dashboard-money-heading">
+        <h3 id="dashboard-money-heading">Flujo de dinero</h3>
+        <div className="metrics-grid metrics-grid-secondary">
+          <article className="metric-card metric-card-compact">
+            <p className="metric-label">Presupuesto original</p>
+            <p className="metric-value">{formatMoney(totals.originalBudget)}</p>
+          </article>
+          <article className="metric-card metric-card-compact metric-card-spent">
+            <p className="metric-label">Gastado</p>
+            <p className="metric-value">{formatMoney(totals.spent)}</p>
+          </article>
+          <article className="metric-card metric-card-compact metric-card-pending">
+            <p className="metric-label">Pendiente</p>
+            <p className="metric-value">{formatMoney(totals.pending)}</p>
+          </article>
+          <article
+            className={`metric-card metric-card-compact${expectedDisplay.over ? ' metric-card-over' : ' metric-card-savings'}`}
+          >
+            <p className="metric-label">{expectedDisplay.label}</p>
+            <p className="metric-value">{expectedDisplay.value}</p>
+          </article>
+          <article
+            className={`metric-card metric-card-compact${actualDisplay.over ? ' metric-card-over' : ' metric-card-savings'}`}
+          >
+            <p className="metric-label">{actualDisplay.label}</p>
+            <p className="metric-value">{actualDisplay.value}</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="dashboard-section" aria-labelledby="dashboard-counts-heading">
+        <h3 id="dashboard-counts-heading">Estado de ítems</h3>
+        <ul className="progress-chips" aria-label="Conteo de ítems">
+          <li className="progress-chip progress-chip-purchased">
+            <span className="progress-chip-value">{counts.purchased}</span>
+            <span className="progress-chip-label">Comprados</span>
+          </li>
+          <li className="progress-chip progress-chip-owned">
+            <span className="progress-chip-value">{counts.owned}</span>
+            <span className="progress-chip-label">Ya lo tengo</span>
+          </li>
+          <li className="progress-chip progress-chip-pending">
+            <span className="progress-chip-value">{counts.pending}</span>
+            <span className="progress-chip-label">Pendientes</span>
+          </li>
+          <li className="progress-chip progress-chip-done">
+            <span className="progress-chip-value">{counts.completed}</span>
+            <span className="progress-chip-label">Completados</span>
+          </li>
+        </ul>
+      </section>
 
       <div className="breakdown-grid">
-        <section>
-          <h3>Por prioridad</h3>
+        <section className="breakdown-panel" aria-labelledby="dashboard-priority-heading">
+          <h3 id="dashboard-priority-heading">Por prioridad</h3>
           <ul className="breakdown-list">
             {byPriority.map((slice) => (
               <li key={slice.priority} className="breakdown-item">
@@ -225,8 +251,8 @@ export function DashboardPanel({
             ))}
           </ul>
         </section>
-        <section>
-          <h3>Por categoría</h3>
+        <section className="breakdown-panel" aria-labelledby="dashboard-category-heading">
+          <h3 id="dashboard-category-heading">Por categoría</h3>
           {byCategory.length === 0 ? (
             <p className="muted">Sin datos para desglosar.</p>
           ) : (

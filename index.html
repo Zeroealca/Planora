@@ -1,10 +1,23 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Planora</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('planora-theme')
+          var theme = stored === 'dark' || stored === 'light' ? stored : 'light'
+          document.documentElement.dataset.theme = theme
+          document.documentElement.style.colorScheme = theme
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light'
+          document.documentElement.style.colorScheme = 'light'
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
