@@ -75,10 +75,25 @@ describe('item-summary', () => {
       href: 'https://shop.example/hisense',
       source: 'option',
     })
-    expect(getItemCostSummary(entry)).toEqual({
+    expect(getItemCostSummary(entry, DEFAULT_STATUS_OPTIONS)).toEqual({
       budget: 800,
       planned: 723,
       paid: null,
+      contributesToBudget: true,
+    })
+  })
+
+  it('marks AlreadyOwned as not contributing to budget', () => {
+    const owned = item({
+      status: 'AlreadyOwned',
+      estimated_cost: 800,
+      options: [option({ id: 'o1', name: 'Hisense', price: 723, selected: true })],
+    })
+    expect(getItemCostSummary(owned, DEFAULT_STATUS_OPTIONS)).toEqual({
+      budget: 800,
+      planned: 723,
+      paid: null,
+      contributesToBudget: false,
     })
   })
 

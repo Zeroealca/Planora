@@ -79,20 +79,23 @@ export function collectItemAttentionIssues(
     issues.push('invalid_category')
   }
 
-  if (!isFiniteCost(item.estimated_cost)) {
-    issues.push('missing_budget')
-  }
+  // Owned items do not affect budget — skip money-related attention.
+  if (behavior !== 'owned') {
+    if (!isFiniteCost(item.estimated_cost)) {
+      issues.push('missing_budget')
+    }
 
-  if (behavior === 'purchased' && !isFiniteCost(item.actual_cost)) {
-    issues.push('purchased_without_actual')
-  }
+    if (behavior === 'purchased' && !isFiniteCost(item.actual_cost)) {
+      issues.push('purchased_without_actual')
+    }
 
-  if (behavior === 'pending' && !isFiniteCost(item.estimated_cost) && !selectedHasPrice(item)) {
-    issues.push('missing_planned_price')
-  }
+    if (behavior === 'pending' && !isFiniteCost(item.estimated_cost) && !selectedHasPrice(item)) {
+      issues.push('missing_planned_price')
+    }
 
-  if (selected != null && !isFiniteCost(selected.price)) {
-    issues.push('selected_option_without_price')
+    if (selected != null && !isFiniteCost(selected.price)) {
+      issues.push('selected_option_without_price')
+    }
   }
 
   if (!priorityKnown) {

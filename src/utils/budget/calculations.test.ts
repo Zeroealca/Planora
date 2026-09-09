@@ -137,6 +137,17 @@ describe('budget calculations', () => {
     expect(calculateCompletionPercentage(items, statusOptions)).toBe(100)
   })
 
+  it('treats canonical AlreadyOwned as owned even if missing from project options', () => {
+    const customOnlyPending = [
+      { id: 'Pending', label: 'Pendiente', behavior: 'pending' as const, display_order: 0 },
+    ]
+    const items = [item({ status: 'AlreadyOwned', estimated_cost: 500, actual_cost: 40 })]
+    expect(calculatePendingBudget(items, customOnlyPending)).toBe(0)
+    expect(calculateActualSpent(items, customOnlyPending)).toBe(0)
+    expect(calculateOriginalBudget(items, customOnlyPending)).toBe(0)
+    expect(calculatePlannedBudget(items, customOnlyPending)).toBe(0)
+  })
+
   it('excludes AlreadyOwned from money totals in a mixed list', () => {
     expect(calculatePendingBudget(canonical, statusOptions)).toBe(600)
     expect(calculateActualSpent(canonical, statusOptions)).toBe(620)

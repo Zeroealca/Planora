@@ -135,6 +135,21 @@ describe('item attention detection', () => {
     expect(issues).toEqual(expect.arrayContaining(['invalid_category', 'invalid_priority']))
   })
 
+  it('does not flag budget issues for AlreadyOwned', () => {
+    const issues = collectItemAttentionIssues(
+      item({
+        status: 'AlreadyOwned',
+        category_id: 'kitchen',
+        estimated_cost: null,
+        options: [option({ id: 'o1', name: 'A', price: null, selected: true })],
+      }),
+      context,
+    )
+    expect(issues).not.toContain('missing_budget')
+    expect(issues).not.toContain('missing_planned_price')
+    expect(issues).not.toContain('selected_option_without_price')
+  })
+
   it('filters needs_attention and specific presets', () => {
     const list = [
       item({ id: 'ok', status: 'Pending', estimated_cost: 10 }),

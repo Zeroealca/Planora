@@ -210,7 +210,7 @@ export function ItemTable({
               const selected = getSelectedOption(item)
               return (
                 <EditableItemRow
-                  key={`${item.id}-${item.updated_at}-${selected?.id ?? ''}-${selected?.price}-${selected?.store}-${selected?.product_url}`}
+                  key={`${item.id}-${item.updated_at}-${selected?.id ?? ''}-${selected?.price}-${selected?.store}-${selected?.product_url}-${item.status}`}
                   item={item}
                   projectId={projectId}
                   categories={categories}
@@ -258,7 +258,7 @@ function EditableItemRow({
     patch: Partial<Pick<ItemOption, 'price' | 'store' | 'product_url'>>,
   ) => void
 }) {
-  const costs = getItemCostSummary(item)
+  const costs = getItemCostSummary(item, statusOptions)
   const selected = getSelectedOption(item)
   const purchaseLink = getItemPurchaseLink(item)
   const attentionIssues = collectItemAttentionIssues(item, attentionContext)
@@ -275,8 +275,18 @@ function EditableItemRow({
 
   return (
     <tr
-      className={needsAttention ? 'item-table-row-attention' : undefined}
+      className={[
+        needsAttention ? 'item-table-row-attention' : null,
+        !costs.contributesToBudget ? 'item-table-row-owned' : null,
+      ]
+        .filter(Boolean)
+        .join(' ') || undefined}
       data-busy={busy ? 'true' : undefined}
+      title={
+        !costs.contributesToBudget
+          ? 'Ya lo tienes: este ítem no afecta al presupuesto del proyecto'
+          : undefined
+      }
     >
       <th scope="row" className="item-table-sticky-col item-table-name">
         <div className="item-table-name-edit">
@@ -354,6 +364,11 @@ function EditableItemRow({
           className="item-table-input item-table-input-num"
           inputMode="decimal"
           aria-label={`Presupuesto ${item.name}`}
+          title={
+            !costs.contributesToBudget
+              ? 'Informativo: no suma al presupuesto del proyecto'
+              : undefined
+          }
           value={estimated}
           disabled={busy}
           onChange={(e) => setEstimated(e.target.value)}
@@ -369,23 +384,29 @@ function EditableItemRow({
         />
       </td>
       <td>
-        <input
-          className="item-table-input item-table-input-num"
-          inputMode="decimal"
-          aria-label={`Precio planeado ${item.name}`}
-          value={planned}
-          disabled={busy}
-          onChange={(e) => setPlanned(e.target.value)}
-          onBlur={() => {
-            const value = parseCost(planned)
-            if (Number.isNaN(value) || (value != null && value < 0)) {
-              setPlanned(costInputValue(plannedDisplay))
-              return
-            }
-            if (value === (selected?.price ?? null)) return
-            onSaveOption({ price: value })
-          }}
-        />
+        {costs.contributesToBudget ? (
+          <input
+            className="item-table-input item-table-input-num"
+            inputMode="decimal"
+            aria-label={`Precio planeado ${item.name}`}
+            value={planned}
+            disabled={busy}
+            onChange={(e) => setPlanned(e.target.value)}
+            onBlur={() => {
+              const value = parseCost(planned)
+              if (Number.isNaN(value) || (value != null && value < 0)) {
+                setPlanned(costInputValue(plannedDisplay))
+                return
+              }
+              if (value === (selected?.price ?? null)) return
+              onSaveOption({ price: value })
+            }}
+          />
+        ) : (
+          <span className="item-table-owned-badge" aria-label={`Precio planeado ${item.name}`}>
+            No suma
+          </span>
+        )}
       </td>
       <td>
         <input
