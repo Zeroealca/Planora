@@ -2,14 +2,121 @@
  * Pure budget and completion calculations. No React, DOM, or Supabase.
  *
  * Status behavior comes from per-project `ProjectStatusOption` lists.
+ * Financial item costs go through plannedPrice / plannedCost only.
  */
 
 import type { ProjectStatusOption, StatusBehavior } from '@/features/projects/project-options'
-import { getStatusBehavior, isCompletedBehavior } from '@/features/projects/project-options'
+import { getStatusBehavior } from '@/features/projects/project-options'
 
 export type PriorityFilter = 'All' | string
 export type CategoryFilter = 'All' | string
 export type StatusFilter = 'All' | string
+
+export type BudgetItem = {
+  status: string
+  priority: string
+  category_id: string | null
+  estimated_cost: number | null
+  actual_cost: number | null
+  /** Price of the selected option, if any (derived; not a DB column). */
+  selected_option_price: number | null
+}
+
+export interface BudgetTotals {
+  pending: number
+  spent: number
+  planned: number
+}
+
+export interface CategoryBudgetTotals extends BudgetTotals {
+  category_id: string | null
+}
+
+export type BudgetItemInput = {
+  status: string
+  priority: string
+  category_id: string | null
+  estimated_cost: number | null
+  actual_cost: number | null
+  selected_option_price?: number | null
+  options?: readonly { selected: boolean; price: number | null }[] | null
+}
+
+function costOrZero(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value)) return 0
+  return value
+}
+
+/** Selected option price when present and finite; otherwise null. */
+export function getSelectedOptionPrice(
+  options: readonly { selected: boolean; price: number | null }[] | null | undefined,
+): number | null {
+  const selected = options?.find((option) => option.selected)
+  if (!selected) return null
+  if (selected.price == null || !Number.isFinite(selected.price)) return null
+  return selected.price
+}
+
+/** Normalize any item-like row into a BudgetItem for financial functions. */
+export function toBudgetItem(item: BudgetItemInput): BudgetItem {
+  const fromField =
+    item.selected_option_price != null && Number.isFinite(item.selected_option_price)
+      ? item.selected_option_price
+      : null
+  return {
+    status: item.status,
+    priority: item.priority,
+    category_id: item.category_id,
+    estimated_cost: item.estimated_cost,
+    actual_cost: item.actual_cost,
+    selected_option_price: fromField ?? getSelectedOptionPrice(item.options),
+  }
+}
+
+/**
+ * Derived expected purchase price (ignores status).
+ * selected option with price → else estimated_cost → else 0.
+ */
+export function plannedPrice(
+  item: Pick<BudgetItem, 'estimated_cost' | 'selected_option_price'>,
+): number {
+  if (item.selected_option_price != null && Number.isFinite(item.selected_option_price)) {
+    return item.selected_option_price
+  }
+  return costOrZero(item.estimated_cost)
+}
+
+/**
+ * Derived cost contribution of an item according to status behavior.
+ * already_owned → 0
+ * purchased → actual ?? selected option price ?? estimated ?? 0
+ * pending → plannedPrice
+ */
+export function plannedCost(
+  item: BudgetItem,
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  const behavior = getStatusBehavior(item.status, statusOptions)
+  switch (behavior) {
+    case 'owned':
+      return 0
+    case 'purchased': {
+      if (item.actual_cost != null && Number.isFinite(item.actual_cost)) {
+        return item.actual_cost
+      }
+      if (item.selected_option_price != null && Number.isFinite(item.selected_option_price)) {
+        return item.selected_option_price
+      }
+      return costOrZero(item.estimated_cost)
+    }
+    case 'pending':
+      return plannedPrice(item)
+    default: {
+      const exhaustive: never = behavior
+      throw new Error(`Unexpected status behavior: ${exhaustive}`)
+    }
+  }
+}
 
 export function filterItems(
   items: readonly BudgetItem[],
@@ -31,40 +138,72 @@ export function filterItems(
   })
 }
 
+export function countItemsByBehavior(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): {
+  pending: number
+  purchased: number
+  owned: number
+  completed: number
+  total: number
+} {
+  let pending = 0
+  let purchased = 0
+  let owned = 0
+  for (const item of items) {
+    const behavior = getStatusBehavior(item.status, statusOptions)
+    switch (behavior) {
+      case 'pending':
+        pending += 1
+        break
+      case 'purchased':
+        purchased += 1
+        break
+      case 'owned':
+        owned += 1
+        break
+      default: {
+        const exhaustive: never = behavior
+        throw new Error(`Unexpected status behavior: ${exhaustive}`)
+      }
+    }
+  }
+  return {
+    pending,
+    purchased,
+    owned,
+    completed: purchased + owned,
+    total: items.length,
+  }
+}
+
+export function countPendingItems(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  return countItemsByBehavior(items, statusOptions).pending
+}
+
+export function countPurchasedItems(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  return countItemsByBehavior(items, statusOptions).purchased
+}
+
+export function countOwnedItems(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  return countItemsByBehavior(items, statusOptions).owned
+}
+
 export function countCompletedItems(
   items: readonly BudgetItem[],
   statusOptions: readonly ProjectStatusOption[],
 ): number {
-  let completed = 0
-  for (const item of items) {
-    if (isCompletedBehavior(getStatusBehavior(item.status, statusOptions))) {
-      completed += 1
-    }
-  }
-  return completed
-}
-
-export type BudgetItem = {
-  status: string
-  priority: string
-  category_id: string | null
-  estimated_cost: number | null
-  actual_cost: number | null
-}
-
-export interface BudgetTotals {
-  pending: number
-  spent: number
-  planned: number
-}
-
-export interface CategoryBudgetTotals extends BudgetTotals {
-  category_id: string | null
-}
-
-function costOrZero(value: number | null): number {
-  if (value == null || !Number.isFinite(value)) return 0
-  return value
+  return countItemsByBehavior(items, statusOptions).completed
 }
 
 function emptyTotals(): BudgetTotals {
@@ -75,12 +214,14 @@ function addItem(
   totals: BudgetTotals,
   item: BudgetItem,
   behavior: StatusBehavior,
+  statusOptions: readonly ProjectStatusOption[],
 ): void {
   switch (behavior) {
     case 'pending':
-      totals.pending += costOrZero(item.estimated_cost)
+      totals.pending += plannedCost(item, statusOptions)
       break
     case 'purchased':
+      // Spent stays actual_cost only (dashboard contract).
       totals.spent += costOrZero(item.actual_cost)
       break
     case 'owned':
@@ -100,7 +241,7 @@ function totalsFor(
 ): BudgetTotals {
   const totals = emptyTotals()
   for (const item of items) {
-    addItem(totals, item, getStatusBehavior(item.status, statusOptions))
+    addItem(totals, item, getStatusBehavior(item.status, statusOptions), statusOptions)
   }
   return totals
 }
@@ -119,20 +260,59 @@ export function calculateActualSpent(
   return totalsFor(items, statusOptions).spent
 }
 
+/**
+ * Original item budgets (estimated_cost) for items that still require purchase
+ * money: pending + purchased. Excludes already_owned.
+ */
+export function calculateOriginalBudget(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  let total = 0
+  for (const item of items) {
+    if (getStatusBehavior(item.status, statusOptions) === 'owned') continue
+    total += costOrZero(item.estimated_cost)
+  }
+  return total
+}
+
+/** Costo proyectado = spent + pending. */
+export function calculateProjectedCost(
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number {
+  const totals = totalsFor(items, statusOptions)
+  return totals.spent + totals.pending
+}
+
+/**
+ * Alias de costo proyectado (métrica “Planeado” del dashboard).
+ * No duplicar: siempre igual a calculateProjectedCost.
+ */
 export function calculatePlannedBudget(
   items: readonly BudgetItem[],
   statusOptions: readonly ProjectStatusOption[],
 ): number {
-  return totalsFor(items, statusOptions).planned
+  return calculateProjectedCost(items, statusOptions)
 }
 
-export function calculateRemainingBudget(
+/** Saldo proyectado = budget − projectedCost. Negativo = supera el tope. */
+export function calculateProjectedBalance(
   projectBudget: number | null,
   items: readonly BudgetItem[],
   statusOptions: readonly ProjectStatusOption[],
 ): number | null {
   if (projectBudget == null || !Number.isFinite(projectBudget)) return null
-  return projectBudget - calculateActualSpent(items, statusOptions)
+  return projectBudget - calculateProjectedCost(items, statusOptions)
+}
+
+/** @deprecated Prefer calculateProjectedBalance (misma fórmula). */
+export function calculateRemainingBudget(
+  projectBudget: number | null,
+  items: readonly BudgetItem[],
+  statusOptions: readonly ProjectStatusOption[],
+): number | null {
+  return calculateProjectedBalance(projectBudget, items, statusOptions)
 }
 
 export function calculateCompletionPercentage(
@@ -151,7 +331,7 @@ export function calculateBudgetByPriority(
 
   for (const item of items) {
     const bucket = byPriority[item.priority] ?? emptyTotals()
-    addItem(bucket, item, getStatusBehavior(item.status, statusOptions))
+    addItem(bucket, item, getStatusBehavior(item.status, statusOptions), statusOptions)
     byPriority[item.priority] = bucket
   }
 
@@ -168,10 +348,10 @@ export function calculateBudgetByCategory(
     const behavior = getStatusBehavior(item.status, statusOptions)
     const existing = buckets.get(item.category_id)
     if (existing) {
-      addItem(existing, item, behavior)
+      addItem(existing, item, behavior, statusOptions)
     } else {
       const totals = emptyTotals()
-      addItem(totals, item, behavior)
+      addItem(totals, item, behavior, statusOptions)
       buckets.set(item.category_id, totals)
     }
   }

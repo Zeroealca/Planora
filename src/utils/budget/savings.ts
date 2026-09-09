@@ -91,11 +91,13 @@ export function calculateSavingsBudget(plan: SavingsPlan): number | null {
   return calculateSavingsBreakdown(plan)?.total ?? null
 }
 
-export function resolveProjectBudget(
-  project: SavingsPlan & { budget: number | null },
-): number | null {
-  const fromSavings = calculateSavingsBudget(project)
-  if (fromSavings != null) return fromSavings
+/**
+ * Project available budget / ceiling. Source of truth: `projects.budget` only.
+ * Savings plans are informational and must not override this value.
+ */
+export function resolveProjectBudget(project: {
+  budget: number | null
+}): number | null {
   if (project.budget == null || !Number.isFinite(project.budget)) return null
   return project.budget
 }

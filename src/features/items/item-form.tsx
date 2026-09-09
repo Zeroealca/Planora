@@ -48,18 +48,18 @@ export function ItemForm({
     const estimated_cost = parseCost(estimated)
     const actual_cost = parseCost(actual)
     if (Number.isNaN(estimated_cost) || (estimated_cost != null && estimated_cost < 0)) {
-      setError('El presupuesto esperado no es válido.')
+      setError('El presupuesto no es válido.')
       return
     }
     if (Number.isNaN(actual_cost) || (actual_cost != null && actual_cost < 0)) {
-      setError('El precio real no es válido.')
+      setError('El precio pagado no es válido.')
       return
     }
 
     const purchase_url =
       purchaseUrl.trim() === '' ? null : normalizeUrl(purchaseUrl)
     if (purchaseUrl.trim() !== '' && purchase_url == null) {
-      setError('El enlace de compra no es válido.')
+      setError('El enlace de referencia no es válido.')
       return
     }
 
@@ -113,15 +113,19 @@ export function ItemForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="item-purchase-url">Enlace de compra</label>
+        <label htmlFor="item-purchase-url">Enlace de referencia (opcional)</label>
         <input
           id="item-purchase-url"
           type="url"
           inputMode="url"
           value={purchaseUrl}
           onChange={(event) => setPurchaseUrl(event.target.value)}
-          placeholder="https://tienda.com/producto"
+          placeholder="https://…"
         />
+        <p className="field-hint">
+          El enlace de compra principal sale de la opción seleccionada. Usa este campo solo
+          como referencia general del ítem.
+        </p>
       </div>
       <div className="field">
         <label htmlFor="item-category">Categoría (opcional)</label>
@@ -167,22 +171,26 @@ export function ItemForm({
         </select>
       </div>
       <div className="field">
-        <label htmlFor="item-estimated">Presupuesto esperado</label>
+        <label htmlFor="item-estimated">Presupuesto (opcional)</label>
         <input
           id="item-estimated"
           inputMode="decimal"
           value={estimated}
           onChange={(event) => setEstimated(event.target.value)}
         />
+        <p className="field-hint">
+          Puedes dejarlo vacío y completarlo después. No cambia al elegir una opción.
+        </p>
       </div>
       <div className="field">
-        <label htmlFor="item-actual">Precio real pagado</label>
+        <label htmlFor="item-actual">Pagado</label>
         <input
           id="item-actual"
           inputMode="decimal"
           value={actual}
           onChange={(event) => setActual(event.target.value)}
         />
+        <p className="field-hint">Precio realmente pagado cuando el ítem está comprado.</p>
       </div>
       <div className="field">
         <label htmlFor="item-notes">Notas</label>

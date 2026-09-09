@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { Project } from '@/types/domain'
-import { emptyToNull } from '@/utils/form'
+import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
 import { createProject, deleteProject, updateProject } from './project-api'
 import { SavingsPlanFields } from './savings-plan-fields'
 import {
@@ -8,7 +8,6 @@ import {
   savingsPlanFromProject,
   validateSavingsPlan,
 } from './savings-plan-utils'
-import { costInputValue } from '@/utils/form'
 
 export function ProjectForm({
   userId,
@@ -26,6 +25,7 @@ export function ProjectForm({
   const [name, setName] = useState(project?.name ?? '')
   const [description, setDescription] = useState(project?.description ?? '')
   const [icon, setIcon] = useState(project?.icon ?? '')
+  const [budget, setBudget] = useState(costInputValue(project?.budget ?? null))
   const [useTemplate, setUseTemplate] = useState(false)
   const preset = project?.label_preset ?? 'default'
   const [savingsAmount, setSavingsAmount] = useState(
@@ -50,6 +50,12 @@ export function ProjectForm({
       return
     }
 
+    const parsedBudget = parseCost(budget)
+    if (Number.isNaN(parsedBudget) || (parsedBudget != null && parsedBudget < 0)) {
+      setError('El presupuesto del proyecto no es válido.')
+      return
+    }
+
     if (isCreate) {
       const savings = parseSavingsPlanInput({
         amount: savingsAmount,
@@ -71,6 +77,7 @@ export function ProjectForm({
           name,
           description: emptyToNull(description),
           icon: emptyToNull(icon),
+          budget: parsedBudget,
           useMoveInTemplate: useTemplate,
           savings,
         })
@@ -90,6 +97,7 @@ export function ProjectForm({
         name,
         description: emptyToNull(description),
         icon: emptyToNull(icon),
+        budget: parsedBudget,
         label_preset: preset,
       })
       onSaved(project.id)
@@ -134,6 +142,19 @@ export function ProjectForm({
           onChange={(event) => setDescription(event.target.value)}
           rows={3}
         />
+      </div>
+      <div className="field">
+        <label htmlFor="project-budget">Presupuesto del proyecto</label>
+        <input
+          id="project-budget"
+          inputMode="decimal"
+          value={budget}
+          onChange={(event) => setBudget(event.target.value)}
+          placeholder="Tope que puedes o quieres gastar"
+        />
+        <p className="field-hint">
+          Fuente de verdad del presupuesto disponible. Independiente del plan de ahorro.
+        </p>
       </div>
 
       {isCreate ? (

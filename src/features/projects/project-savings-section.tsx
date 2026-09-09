@@ -2,8 +2,8 @@ import { useState, type FormEvent } from 'react'
 import type { Project } from '@/types/domain'
 import {
   calculateSavingsBreakdown,
+  calculateSavingsBudget,
   isSavingsPlanComplete,
-  resolveProjectBudget,
 } from '@/utils/budget/savings'
 import { useFormatMoney } from '@/utils/format'
 import { costInputValue } from '@/utils/form'
@@ -52,7 +52,7 @@ export function ProjectSavingsSection({
   })
   const planComplete = isSavingsPlanComplete(currentPlan)
   const breakdown = planComplete ? calculateSavingsBreakdown(currentPlan) : null
-  const budget = planComplete ? resolveProjectBudget({ ...project, ...currentPlan }) : null
+  const savingsTotal = planComplete ? calculateSavingsBudget(currentPlan) : null
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -79,15 +79,7 @@ export function ProjectSavingsSection({
   }
 
   return (
-    <section id="ahorros" className="stack project-section" aria-labelledby="savings-heading">
-      <header className="page-header">
-        <h2 id="savings-heading">Ahorros</h2>
-        <p className="muted">
-          Define cuánto ahorrarás cada mes y el periodo. El presupuesto del proyecto se calcula
-          automáticamente.
-        </p>
-      </header>
-
+    <div className="stack">
       <form className="stack" onSubmit={onSubmit}>
         <SavingsPlanFields
           amount={amount}
@@ -157,11 +149,11 @@ export function ProjectSavingsSection({
             </li>
           ) : null}
           <li>
-            <span>Presupuesto del proyecto</span>
-            <strong>{budget == null ? '—' : formatMoney(budget)}</strong>
+            <span>Total del plan de ahorro</span>
+            <strong>{savingsTotal == null ? '—' : formatMoney(savingsTotal)}</strong>
           </li>
         </ul>
       ) : null}
-    </section>
+    </div>
   )
 }
