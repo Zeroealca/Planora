@@ -34,6 +34,7 @@ export function parseSavingsPlanInput(input: {
   }
 }
 
+/** Empty plan is allowed (optional). Partial plans must be completed. */
 export function validateSavingsPlan(plan: SavingsPlan): string | null {
   const hasAnyField =
     plan.savings_amount != null ||
@@ -42,7 +43,7 @@ export function validateSavingsPlan(plan: SavingsPlan): string | null {
     plan.savings_accrues_interest
 
   if (!hasAnyField) {
-    return 'Configura el plan de ahorro para calcular el presupuesto del proyecto.'
+    return null
   }
 
   if (!isSavingsPlanComplete(plan)) {

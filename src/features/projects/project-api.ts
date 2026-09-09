@@ -29,7 +29,7 @@ export async function fetchProjects(): Promise<ProjectListEntry[]> {
   const { data, error } = await supabase
     .from('projects')
     .select(
-      '*, items(status, priority, category_id, estimated_cost, actual_cost)',
+      '*, items(status, priority, category_id, estimated_cost, actual_cost, item_options(price, selected))',
     )
     .order('created_at', { ascending: false })
 
@@ -43,6 +43,10 @@ export async function fetchProjects(): Promise<ProjectListEntry[]> {
         category_id: string | null
         estimated_cost: string | null
         actual_cost: string | null
+        item_options: Array<{
+          price: string | null
+          selected: boolean
+        }> | null
       }> | null
     }
     return {
@@ -84,6 +88,7 @@ export async function createProject(input: {
   name: string
   description: string | null
   icon: string | null
+  budget: number | null
   useMoveInTemplate: boolean
   savings: SavingsPlan
 }): Promise<Project> {
@@ -93,6 +98,7 @@ export async function createProject(input: {
     description: input.description,
     icon: input.icon,
     label_preset,
+    budget: input.budget,
     savings: input.savings,
   })
 
@@ -131,6 +137,7 @@ export async function updateProject(
     name: string
     description: string | null
     icon: string | null
+    budget: number | null
     label_preset: LabelPreset
   },
 ): Promise<void> {
@@ -140,6 +147,7 @@ export async function updateProject(
       name: input.name.trim(),
       description: input.description,
       icon: input.icon,
+      budget: input.budget,
       label_preset: input.label_preset,
     })
     .eq('id', projectId)

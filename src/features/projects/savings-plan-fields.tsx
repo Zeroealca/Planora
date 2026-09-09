@@ -44,8 +44,9 @@ export function SavingsPlanFields({
     <fieldset className="stack savings-fieldset">
       <legend>Plan de ahorro</legend>
       <p className="field-hint">
-        El presupuesto del proyecto se calcula a partir de tus aportes mensuales
-        {accruesInterest ? ' y los intereses generados' : ''}.
+        Información secundaria de ahorro. No sustituye el presupuesto/tope del
+        proyecto
+        {accruesInterest ? ' (incluye proyección de intereses)' : ''}.
       </p>
 
       <div className="field">
@@ -106,7 +107,7 @@ export function SavingsPlanFields({
       {preview ? (
         <div className="alert savings-preview">
           <p>
-            <strong>Presupuesto estimado:</strong> {formatMoney(preview.total)}
+            <strong>Total proyectado del plan:</strong> {formatMoney(preview.total)}
           </p>
           <p className="muted">
             {preview.months} meses · aportes {formatMoney(preview.contributions)}

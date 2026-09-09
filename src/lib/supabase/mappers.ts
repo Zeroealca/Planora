@@ -68,13 +68,23 @@ export function mapBudgetItem(row: {
   category_id: string | null
   estimated_cost: string | number | null
   actual_cost: string | number | null
+  selected_option_price?: number | null
+  item_options?: Array<{ selected: boolean; price: string | number | null }> | null
 }): import('@/utils/budget/calculations').BudgetItem {
+  const options = (row.item_options ?? []).map((option) => ({
+    selected: option.selected,
+    price: parseNumeric(option.price),
+  }))
   return {
     status: row.status,
     priority: row.priority,
     category_id: row.category_id,
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
+    selected_option_price:
+      row.selected_option_price != null && Number.isFinite(row.selected_option_price)
+        ? row.selected_option_price
+        : (options.find((option) => option.selected)?.price ?? null),
   }
 }
 

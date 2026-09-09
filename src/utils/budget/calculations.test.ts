@@ -6,11 +6,17 @@ import {
   calculateBudgetByCategory,
   calculateBudgetByPriority,
   calculateCompletionPercentage,
+  calculateOriginalBudget,
   calculatePendingBudget,
   calculatePlannedBudget,
+  calculateProjectedBalance,
+  calculateProjectedCost,
   calculateRemainingBudget,
   countCompletedItems,
+  countItemsByBehavior,
   filterItems,
+  plannedCost,
+  plannedPrice,
 } from './calculations'
 import { formatPercent } from '@/utils/format'
 
@@ -22,6 +28,7 @@ function item(partial: Partial<BudgetItem> & Pick<BudgetItem, 'status'>): Budget
     category_id: null,
     estimated_cost: null,
     actual_cost: null,
+    selected_option_price: null,
     ...partial,
   }
 }
@@ -48,8 +55,51 @@ const canonical: BudgetItem[] = [
   }),
 ]
 
+describe('plannedPrice / plannedCost', () => {
+  it('Pending: estimated 800, no option → plannedCost 800', () => {
+    const fridge = item({ status: 'Pending', estimated_cost: 800 })
+    expect(plannedPrice(fridge)).toBe(800)
+    expect(plannedCost(fridge, statusOptions)).toBe(800)
+  })
+
+  it('Pending: estimated 800, selected option 723 → plannedCost 723', () => {
+    const fridge = item({
+      status: 'Pending',
+      estimated_cost: 800,
+      selected_option_price: 723,
+    })
+    expect(plannedPrice(fridge)).toBe(723)
+    expect(plannedCost(fridge, statusOptions)).toBe(723)
+  })
+
+  it('Purchased: estimated 800, option 723, actual 699 → plannedCost 699', () => {
+    const fridge = item({
+      status: 'Purchased',
+      estimated_cost: 800,
+      selected_option_price: 723,
+      actual_cost: 699,
+    })
+    expect(plannedCost(fridge, statusOptions)).toBe(699)
+  })
+
+  it('Purchased: estimated 800, option 723, actual null → plannedCost 723', () => {
+    const fridge = item({
+      status: 'Purchased',
+      estimated_cost: 800,
+      selected_option_price: 723,
+      actual_cost: null,
+    })
+    expect(plannedCost(fridge, statusOptions)).toBe(723)
+  })
+
+  it('Already owned: estimated 800 → plannedCost 0', () => {
+    const fridge = item({ status: 'AlreadyOwned', estimated_cost: 800 })
+    expect(plannedCost(fridge, statusOptions)).toBe(0)
+  })
+})
+
 describe('budget calculations', () => {
-  it('sums only Pending estimated costs as pending budget', () => {
+  it('sums Pending via plannedCost (estimated when no option)', () => {
     const items = [
       item({ status: 'Pending', estimated_cost: 100 }),
       item({ status: 'Pending', estimated_cost: 50 }),
@@ -58,6 +108,14 @@ describe('budget calculations', () => {
     expect(calculateActualSpent(items, statusOptions)).toBe(0)
     expect(calculatePlannedBudget(items, statusOptions)).toBe(150)
     expect(calculateCompletionPercentage(items, statusOptions)).toBe(0)
+  })
+
+  it('uses selected option price for Pending pending budget', () => {
+    const items = [
+      item({ status: 'Pending', estimated_cost: 800, selected_option_price: 723 }),
+    ]
+    expect(calculatePendingBudget(items, statusOptions)).toBe(723)
+    expect(calculatePlannedBudget(items, statusOptions)).toBe(723)
   })
 
   it('sums only Purchased actual costs as spent', () => {
@@ -106,7 +164,7 @@ describe('budget calculations', () => {
     expect(calculatePlannedBudget(items, statusOptions)).toBe(140)
   })
 
-  it('treats null and non-finite costs as 0, including Purchased without actual', () => {
+  it('treats null and non-finite costs as 0 for aggregates; spent ignores option fallback', () => {
     const items = [
       item({ status: 'Pending', estimated_cost: null }),
       item({ status: 'Purchased', estimated_cost: 80, actual_cost: null }),
@@ -115,23 +173,73 @@ describe('budget calculations', () => {
     expect(calculatePendingBudget(items, statusOptions)).toBe(0)
     expect(calculateActualSpent(items, statusOptions)).toBe(0)
     expect(calculatePlannedBudget(items, statusOptions)).toBe(0)
+    expect(plannedCost(items[1]!, statusOptions)).toBe(80)
   })
 
-  it('returns zeros for an empty list and never NaN', () => {
-    expect(calculatePendingBudget([], statusOptions)).toBe(0)
-    expect(calculateActualSpent([], statusOptions)).toBe(0)
-    expect(calculatePlannedBudget([], statusOptions)).toBe(0)
-    expect(calculateCompletionPercentage([], statusOptions)).toBe(0)
-    expect(calculateRemainingBudget(1000, [], statusOptions)).toBe(1000)
-    expect(Number.isNaN(calculateCompletionPercentage([], statusOptions))).toBe(false)
-  })
-
-  it('returns null remaining when project budget is null', () => {
+  it('returns null projected balance when project budget is null', () => {
+    expect(calculateProjectedBalance(null, canonical, statusOptions)).toBeNull()
     expect(calculateRemainingBudget(null, canonical, statusOptions)).toBeNull()
   })
 
-  it('subtracts spent from project budget for remaining', () => {
-    expect(calculateRemainingBudget(2000, canonical, statusOptions)).toBe(1380)
+  it('projectedCost equals spent + pending; projectedBalance equals budget - projectedCost', () => {
+    const spent = calculateActualSpent(canonical, statusOptions)
+    const pending = calculatePendingBudget(canonical, statusOptions)
+    const projected = calculateProjectedCost(canonical, statusOptions)
+    expect(projected).toBe(spent + pending)
+    expect(calculatePlannedBudget(canonical, statusOptions)).toBe(projected)
+    expect(calculateProjectedBalance(2000, canonical, statusOptions)).toBe(2000 - projected)
+    expect(calculateRemainingBudget(2000, canonical, statusOptions)).toBe(2000 - projected)
+  })
+
+  it('marks over-budget when projected cost exceeds available budget', () => {
+    expect(calculateProjectedBalance(500, canonical, statusOptions)).toBe(500 - 1220)
+    expect(calculateProjectedBalance(500, canonical, statusOptions)).toBeLessThan(0)
+  })
+
+  it('sums original budget from estimated_cost excluding already_owned', () => {
+    // 600 pending + 650 purchased; 180 owned excluded
+    expect(calculateOriginalBudget(canonical, statusOptions)).toBe(1250)
+    expect(
+      calculateOriginalBudget(
+        [item({ status: 'AlreadyOwned', estimated_cost: 999 })],
+        statusOptions,
+      ),
+    ).toBe(0)
+  })
+
+  it('counts items by status behavior', () => {
+    const counts = countItemsByBehavior(canonical, statusOptions)
+    expect(counts).toEqual({
+      pending: 1,
+      purchased: 1,
+      owned: 1,
+      completed: 2,
+      total: 3,
+    })
+    expect(countCompletedItems(canonical, statusOptions)).toBe(2)
+  })
+
+  it('does not invent spent for purchased without actual_cost', () => {
+    const items = [
+      item({
+        status: 'Purchased',
+        estimated_cost: 800,
+        selected_option_price: 723,
+        actual_cost: null,
+      }),
+    ]
+    expect(calculateActualSpent(items, statusOptions)).toBe(0)
+    expect(calculateProjectedCost(items, statusOptions)).toBe(0)
+  })
+
+  it('returns zeros for empty projected metrics', () => {
+    expect(calculatePendingBudget([], statusOptions)).toBe(0)
+    expect(calculateActualSpent([], statusOptions)).toBe(0)
+    expect(calculatePlannedBudget([], statusOptions)).toBe(0)
+    expect(calculateProjectedCost([], statusOptions)).toBe(0)
+    expect(calculateCompletionPercentage([], statusOptions)).toBe(0)
+    expect(calculateProjectedBalance(1000, [], statusOptions)).toBe(1000)
+    expect(Number.isNaN(calculateCompletionPercentage([], statusOptions))).toBe(false)
   })
 
   it('breaks down budget by priority without changing other groups', () => {

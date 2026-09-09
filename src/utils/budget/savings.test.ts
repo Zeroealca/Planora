@@ -57,23 +57,24 @@ describe('savings calculations', () => {
     ).toBe(false)
   })
 
-  it('prefers savings budget over manual budget', () => {
+  it('uses projects.budget only and ignores savings totals', () => {
     expect(
       resolveProjectBudget({
         ...basePlan,
         budget: 999,
       }),
-    ).toBe(600)
-  })
-
-  it('falls back to manual budget when savings plan is incomplete', () => {
+    ).toBe(999)
     expect(
       resolveProjectBudget({
-        savings_amount: null,
-        savings_accrues_interest: false,
-        savings_interest_rate_annual: null,
-        savings_start_date: null,
-        savings_end_date: null,
+        ...basePlan,
+        budget: null,
+      }),
+    ).toBeNull()
+  })
+
+  it('returns manual budget when present', () => {
+    expect(
+      resolveProjectBudget({
         budget: 1500,
       }),
     ).toBe(1500)

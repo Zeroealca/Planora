@@ -1,11 +1,11 @@
 import type { Project } from '@/types/domain'
-import { calculateSavingsBudget, type SavingsPlan } from '@/utils/budget/savings'
+import { type SavingsPlan } from '@/utils/budget/savings'
 
 export type ProjectSavingsInput = SavingsPlan
 
+/** Persist savings fields only — never writes projects.budget. */
 export function buildSavingsPayload(savings: ProjectSavingsInput) {
   return {
-    budget: calculateSavingsBudget(savings),
     savings_amount: savings.savings_amount,
     savings_accrues_interest: savings.savings_accrues_interest,
     savings_interest_rate_annual: savings.savings_accrues_interest
@@ -21,6 +21,7 @@ export function buildProjectPayload(input: {
   description: string | null
   icon: string | null
   label_preset: Project['label_preset']
+  budget: number | null
   savings: ProjectSavingsInput
 }) {
   return {
@@ -28,6 +29,7 @@ export function buildProjectPayload(input: {
     description: input.description,
     icon: input.icon,
     label_preset: input.label_preset,
+    budget: input.budget,
     ...buildSavingsPayload(input.savings),
   }
 }
