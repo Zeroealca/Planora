@@ -9,7 +9,7 @@ export const PROJECT_TABS: readonly { id: ProjectTabId; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'items', label: 'Ítems' },
   { id: 'categorias', label: 'Categorías' },
-  { id: 'configuracion', label: 'Estados y prioridades' },
+  { id: 'configuracion', label: 'Estados' },
   { id: 'ahorros', label: 'Ahorros' },
 ]
 

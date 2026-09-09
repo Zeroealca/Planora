@@ -27,22 +27,61 @@ describe('savings calculations', () => {
     expect(calculateSavingsBreakdown(basePlan)).toEqual({
       months: 6,
       contributions: 600,
+      extraordinaryNet: 0,
       interestEarned: 0,
       total: 600,
     })
   })
 
-  it('calculates budget with monthly compound interest', () => {
+  it('includes extraordinary inflows and outflows inside the window', () => {
+    const breakdown = calculateSavingsBreakdown(basePlan, [
+      { date: '2026-03-15', amount: 200, type: 'inflow' },
+      { date: '2026-05-01', amount: 50, type: 'outflow' },
+      { date: '2025-12-01', amount: 999, type: 'inflow' }, // outside window
+      { date: '2026-07-01', amount: 999, type: 'inflow' }, // outside window
+    ])
+    expect(breakdown).toEqual({
+      months: 6,
+      contributions: 600,
+      extraordinaryNet: 150,
+      interestEarned: 0,
+      total: 750,
+    })
+  })
+
+  it('matches closed-form annuity when there are no movements', () => {
     const withInterest = {
       ...basePlan,
       savings_accrues_interest: true,
       savings_interest_rate_annual: 12,
     }
-    const breakdown = calculateSavingsBreakdown(withInterest)
-    expect(breakdown).not.toBeNull()
-    expect(breakdown!.total).toBeGreaterThan(600)
-    expect(breakdown!.interestEarned).toBeGreaterThan(0)
-    expect(breakdown!.contributions).toBe(600)
+    const monthlyRate = 0.12 / 12
+    const months = 6
+    const payment = 100
+    const closedForm =
+      Math.round(
+        payment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * 100,
+      ) / 100
+    expect(calculateSavingsBreakdown(withInterest)?.total).toBe(closedForm)
+  })
+
+  it('compounds interest after monthly contribution and movements', () => {
+    const withInterest = {
+      ...basePlan,
+      savings_amount: 100,
+      savings_accrues_interest: true,
+      savings_interest_rate_annual: 12,
+      savings_start_date: '2026-01-01',
+      savings_end_date: '2026-02-01',
+    }
+    const withoutExtra = calculateSavingsBreakdown(withInterest)
+    const withExtra = calculateSavingsBreakdown(withInterest, [
+      { date: '2026-01-10', amount: 100, type: 'inflow' },
+    ])
+    expect(withoutExtra).not.toBeNull()
+    expect(withExtra).not.toBeNull()
+    expect(withExtra!.extraordinaryNet).toBe(100)
+    expect(withExtra!.total).toBeGreaterThan(withoutExtra!.total)
   })
 
   it('requires a complete plan', () => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { IconBack } from '@/components/icons'
 import { ItemForm } from '@/features/items/item-form'
 import { deleteItem } from '@/features/items/item-api'
 import {
@@ -110,7 +111,13 @@ export function ItemPage() {
     return (
       <div className="page">
         <p>Ítem no encontrado.</p>
-        <Link to={projectId ? `/projects/${projectId}` : '/projects'}>Volver</Link>
+        <Link
+          to={projectId ? `/projects/${projectId}` : '/projects'}
+          className="back-link"
+        >
+          <IconBack />
+          Volver
+        </Link>
       </div>
     )
   }
@@ -138,7 +145,10 @@ export function ItemPage() {
   return (
     <div className="page">
       <p>
-        <Link to={`/projects/${project.id}`}>← {project.name}</Link>
+        <Link to={`/projects/${project.id}`} className="back-link">
+          <IconBack />
+          {project.name}
+        </Link>
       </p>
       <h1>{item.name}</h1>
 
@@ -171,16 +181,12 @@ export function ItemPage() {
           <dd>{moneyOrDash(costs.budget, formatMoney)}</dd>
         </div>
         <div>
-          <dt>Planeado</dt>
+          <dt>Precio pagado</dt>
           <dd>
             {costs.contributesToBudget
-              ? formatMoney(costs.planned)
-              : `${formatMoney(0)} (no afecta al presupuesto)`}
+              ? moneyOrDash(costs.paid, formatMoney)
+              : 'No afecta al presupuesto'}
           </dd>
-        </div>
-        <div>
-          <dt>Pagado</dt>
-          <dd>{moneyOrDash(costs.paid, formatMoney)}</dd>
         </div>
         <div>
           <dt>Opción seleccionada</dt>

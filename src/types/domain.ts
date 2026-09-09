@@ -34,6 +34,9 @@ export interface Profile {
   updated_at: string
 }
 
+/** Per project: only one savings approach at a time (or none). */
+export type SavingsMode = 'none' | 'plan' | 'goal'
+
 export interface Project {
   id: string
   user_id: string
@@ -44,11 +47,40 @@ export interface Project {
   label_preset: LabelPreset
   status_options: ProjectStatusOption[]
   priority_options: ProjectPriorityOption[]
+  /**
+   * Exclusive savings approach for this project.
+   * - `plan`: monthly contributions window (informational / optional apply to budget)
+   * - `goal`: target + reserve + projection (independent from budget)
+   * - `none`: no savings tooling
+   */
+  savings_mode: SavingsMode
+  /** Mirror of `savings_mode === 'goal'` for convenience. */
+  savings_goal_enabled: boolean
+  savings_initial_balance: number | null
+  savings_target_amount: number | null
+  savings_minimum_reserve: number | null
+  /** Goal monthly contribution (separate from plan `savings_amount`). */
+  savings_goal_monthly_amount: number | null
+  savings_goal_start_date: string | null
+  /** Plan: monthly contribution. */
   savings_amount: number | null
   savings_accrues_interest: boolean
   savings_interest_rate_annual: number | null
   savings_start_date: string | null
   savings_end_date: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type SavingsMovementType = 'inflow' | 'outflow'
+
+export interface ProjectSavingsMovement {
+  id: string
+  project_id: string
+  name: string
+  movement_date: string
+  amount: number
+  movement_type: SavingsMovementType
   created_at: string
   updated_at: string
 }

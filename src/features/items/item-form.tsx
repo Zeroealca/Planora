@@ -183,7 +183,7 @@ export function ItemForm({
         </p>
       </div>
       <div className="field">
-        <label htmlFor="item-actual">Pagado</label>
+        <label htmlFor="item-actual">Precio pagado</label>
         <input
           id="item-actual"
           inputMode="decimal"

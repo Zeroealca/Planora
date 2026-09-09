@@ -86,16 +86,12 @@ export function ItemCard({
           <dd>{moneyOrDash(costs.budget, formatMoney)}</dd>
         </div>
         <div>
-          <dt>Planeado</dt>
+          <dt>Precio pagado</dt>
           <dd>
             {costs.contributesToBudget
-              ? formatMoney(costs.planned)
-              : `${formatMoney(0)} (no suma)`}
+              ? moneyOrDash(costs.paid, formatMoney)
+              : 'No suma'}
           </dd>
-        </div>
-        <div>
-          <dt>Pagado</dt>
-          <dd>{moneyOrDash(costs.paid, formatMoney)}</dd>
         </div>
       </dl>
 

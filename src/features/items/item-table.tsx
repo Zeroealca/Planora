@@ -20,6 +20,7 @@ import {
   collectItemAttentionIssues,
   type AttentionContext,
 } from './item-attention'
+import { ItemCard } from './item-card'
 import {
   getItemCostSummary,
   getItemPurchaseLink,
@@ -187,6 +188,25 @@ export function ItemTable({
           {error}
         </p>
       ) : null}
+
+      <ul className="item-card-list" aria-label="Ítems">
+        {items.map((item) => (
+          <li key={`card-${item.id}`}>
+            <ItemCard
+              item={item}
+              projectId={projectId}
+              categoryName={
+                categories.find((category) => category.id === item.category_id)?.name ??
+                'Sin categoría'
+              }
+              statusOptions={statusOptions}
+              priorityOptions={priorityOptions}
+              attentionContext={attentionContext}
+            />
+          </li>
+        ))}
+      </ul>
+
       <div className="item-table-wrap">
         <table className="item-table">
           <thead>
@@ -198,8 +218,7 @@ export function ItemTable({
               <th scope="col">Prioridad</th>
               <th scope="col">Categoría</th>
               <th scope="col">Presupuesto</th>
-              <th scope="col">Planeado</th>
-              <th scope="col">Pagado</th>
+              <th scope="col">Precio pagado</th>
               <th scope="col">Tienda</th>
               <th scope="col">Enlace</th>
               <th scope="col">Atención</th>
@@ -226,10 +245,10 @@ export function ItemTable({
           </tbody>
         </table>
       </div>
-      <p className="field-hint">
-        Edita las celdas directamente. Los cambios se guardan al salir del campo o al
-        cambiar un selector. Planeado, tienda y enlace actualizan la opción
-        seleccionada (se crea si no hay ninguna).
+      <p className="field-hint item-table-hint">
+        En pantalla grande puedes editar las celdas directo. Presupuesto es lo que
+        planeas gastar; precio pagado es lo que realmente pagaste. En el móvil abre el
+        detalle del ítem para editar.
       </p>
     </div>
   )
@@ -263,12 +282,9 @@ function EditableItemRow({
   const purchaseLink = getItemPurchaseLink(item)
   const attentionIssues = collectItemAttentionIssues(item, attentionContext)
   const needsAttention = attentionIssues.length > 0
-  const plannedDisplay =
-    selected?.price != null ? selected.price : costs.planned > 0 ? costs.planned : null
 
   const [name, setName] = useState(item.name)
   const [estimated, setEstimated] = useState(costInputValue(item.estimated_cost))
-  const [planned, setPlanned] = useState(costInputValue(plannedDisplay))
   const [paid, setPaid] = useState(costInputValue(item.actual_cost))
   const [store, setStore] = useState(selected?.store ?? '')
   const [link, setLink] = useState(selected?.product_url ?? item.purchase_url ?? '')
@@ -367,7 +383,7 @@ function EditableItemRow({
           title={
             !costs.contributesToBudget
               ? 'Informativo: no suma al presupuesto del proyecto'
-              : undefined
+              : 'Presupuesto del ítem'
           }
           value={estimated}
           disabled={busy}
@@ -388,44 +404,25 @@ function EditableItemRow({
           <input
             className="item-table-input item-table-input-num"
             inputMode="decimal"
-            aria-label={`Precio planeado ${item.name}`}
-            value={planned}
+            aria-label={`Precio pagado ${item.name}`}
+            value={paid}
             disabled={busy}
-            onChange={(e) => setPlanned(e.target.value)}
+            onChange={(e) => setPaid(e.target.value)}
             onBlur={() => {
-              const value = parseCost(planned)
+              const value = parseCost(paid)
               if (Number.isNaN(value) || (value != null && value < 0)) {
-                setPlanned(costInputValue(plannedDisplay))
+                setPaid(costInputValue(item.actual_cost))
                 return
               }
-              if (value === (selected?.price ?? null)) return
-              onSaveOption({ price: value })
+              if (value === item.actual_cost) return
+              onSaveItem({ actual_cost: value })
             }}
           />
         ) : (
-          <span className="item-table-owned-badge" aria-label={`Precio planeado ${item.name}`}>
+          <span className="item-table-owned-badge" aria-label={`Precio pagado ${item.name}`}>
             No suma
           </span>
         )}
-      </td>
-      <td>
-        <input
-          className="item-table-input item-table-input-num"
-          inputMode="decimal"
-          aria-label={`Precio pagado ${item.name}`}
-          value={paid}
-          disabled={busy}
-          onChange={(e) => setPaid(e.target.value)}
-          onBlur={() => {
-            const value = parseCost(paid)
-            if (Number.isNaN(value) || (value != null && value < 0)) {
-              setPaid(costInputValue(item.actual_cost))
-              return
-            }
-            if (value === item.actual_cost) return
-            onSaveItem({ actual_cost: value })
-          }}
-        />
       </td>
       <td>
         <input

@@ -22,7 +22,6 @@ import {
   type ProjectStatusOption,
 } from '@/features/projects/project-options'
 import type { Category, ItemOption, ItemWithOptions } from '@/types/domain'
-import type { SavingsPlan } from '@/utils/budget/savings'
 import {
   buildCommitPlan,
   type ImportCommitPlan,
@@ -33,14 +32,6 @@ import type {
   ImportDestination,
   PreviewRow,
 } from './import-types'
-
-const EMPTY_SAVINGS: SavingsPlan = {
-  savings_amount: null,
-  savings_accrues_interest: false,
-  savings_interest_rate_annual: null,
-  savings_start_date: null,
-  savings_end_date: null,
-}
 
 type RollbackJournal = {
   createdProjectId: string | null
@@ -197,7 +188,6 @@ export async function commitImport(input: {
         icon: null,
         budget: destination.budget,
         useMoveInTemplate: false,
-        savings: EMPTY_SAVINGS,
       })
       projectId = project.id
       journal.createdProjectId = project.id

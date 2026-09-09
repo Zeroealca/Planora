@@ -1,20 +1,22 @@
+import { IconMoon, IconSun } from '@/components/icons'
 import { useTheme } from './use-theme'
 
-export function ThemeToggle({ className = 'btn btn-ghost' }: { className?: string }) {
+/** Floating theme control (sun / moon). */
+export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
-  const nextLabel = theme === 'dark' ? 'Modo claro' : 'Modo oscuro'
+  const nextLabel = theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'
 
   return (
     <button
       type="button"
-      className={className}
+      className="theme-fab"
       onClick={() => {
         toggleTheme()
       }}
       aria-label={nextLabel}
       title={nextLabel}
     >
-      {theme === 'dark' ? 'Claro' : 'Oscuro'}
+      {theme === 'dark' ? <IconSun /> : <IconMoon />}
     </button>
   )
 }

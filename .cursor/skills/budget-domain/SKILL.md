@@ -20,7 +20,11 @@ Una sola fuente de verdad para métricas financieras y de progreso.
 
 - `projects.budget` es el tope/presupuesto disponible (manual).
 - `resolveProjectBudget` solo lee `projects.budget`.
-- Planes `savings_*` son informativos; **no** sobrescriben ni sustituyen `budget`.
+- Por proyecto, `savings_mode` es exclusivo y el tipo **meta (`goal`) es inmutable**
+  (solo se elige al crear).
+  - `plan` / `none`: proyectos de compras (ítems + presupuesto).
+  - `goal`: proyecto solo de meta; dashboard y pestañas distintos (sin ítems).
+- Los planes/meta **no** sobrescriben automáticamente `budget`.
 
 ## Funciones centrales (derivadas, no persistidas)
 

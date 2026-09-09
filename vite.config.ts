@@ -11,14 +11,20 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png'],
+      includeAssets: [
+        'favicon.svg',
+        'pwa-192.png',
+        'pwa-512.png',
+        'pwa-maskable-512.png',
+        'apple-touch-icon.png',
+      ],
       manifest: {
         name: 'Planora',
         short_name: 'Planora',
         description:
           'Gestión de proyectos personales con presupuesto, ítems y progreso.',
-        theme_color: '#6366f1',
-        background_color: '#ffffff',
+        theme_color: '#0f766e',
+        background_color: '#f0f7f8',
         display: 'standalone',
         lang: 'es',
         start_url: '.',
@@ -39,7 +45,13 @@ export default defineConfig({
             src: 'pwa-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

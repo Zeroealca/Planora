@@ -1,16 +1,21 @@
 import type { ReactNode } from 'react'
-import { PROJECT_TABS, type ProjectTabId } from './project-tab-ids'
+import type { SavingsMode } from '@/types/domain'
+import type { ProjectTabId } from './project-tab-ids'
+import { projectTabsForMode } from './project-kind'
 
 export function ProjectTabList({
   activeTab,
   onChange,
+  savingsMode,
 }: {
   activeTab: ProjectTabId
   onChange: (tab: ProjectTabId) => void
+  savingsMode: SavingsMode
 }) {
+  const tabs = projectTabsForMode(savingsMode)
   return (
     <div className="project-tabs" role="tablist" aria-label="Secciones del proyecto">
-      {PROJECT_TABS.map((tab) => {
+      {tabs.map((tab) => {
         const selected = tab.id === activeTab
         return (
           <button
