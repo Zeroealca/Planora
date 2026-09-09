@@ -176,13 +176,7 @@ export function ProjectOptionsSection({
   }
 
   return (
-    <section className="stack" aria-labelledby="project-options-heading">
-      <h2 id="project-options-heading">Estados y prioridades</h2>
-      <p className="muted">
-        Personaliza las listas que verás al crear ítems. El tipo de estado define cómo
-        afecta al presupuesto.
-      </p>
-
+    <div className="stack">
       <form className="stack" onSubmit={onSave}>
         <div className="stack">
           <h3>Estados</h3>
@@ -266,6 +260,6 @@ export function ProjectOptionsSection({
           {submitting ? 'Guardando…' : 'Guardar listas'}
         </button>
       </form>
-    </section>
+    </div>
   )
 }
