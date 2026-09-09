@@ -16,21 +16,29 @@ function readAuthCallbackError(): string | null {
 export function AuthCallbackPage() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(() => readAuthCallbackError())
+  const [status, setStatus] = useState('Confirmando cuenta…')
 
   useEffect(() => {
     if (error) return
 
     let cancelled = false
+    let recovery = false
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+      if (event === 'PASSWORD_RECOVERY') {
+        recovery = true
+        setStatus('Enlace de recuperación válido…')
+        void navigate('/settings?password=1', { replace: true })
+        return
+      }
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !recovery) {
         void navigate('/projects', { replace: true })
       }
     })
 
     void supabase.auth.getSession().then(({ data: sessionData, error: sessionError }) => {
-      if (cancelled) return
+      if (cancelled || recovery) return
       if (sessionError) {
         setError(authErrorMessage(sessionError.message))
         return
@@ -41,7 +49,7 @@ export function AuthCallbackPage() {
     })
 
     const timeout = window.setTimeout(() => {
-      if (cancelled) return
+      if (cancelled || recovery) return
       setError((current) => current ?? 'El enlace expiró o no es válido. Inicia sesión de nuevo.')
     }, 12000)
 
@@ -68,7 +76,7 @@ export function AuthCallbackPage() {
 
   return (
     <section className="auth-shell stack">
-      <h1>Confirmando cuenta…</h1>
+      <h1>{status}</h1>
       <p className="muted">Espera un momento mientras verificamos tu enlace.</p>
     </section>
   )

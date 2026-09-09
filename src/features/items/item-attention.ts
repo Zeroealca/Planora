@@ -38,7 +38,7 @@ export const ATTENTION_ISSUE_LABELS: Record<AttentionIssue, string> = {
   missing_category: 'Sin categoría',
   missing_budget: 'Sin presupuesto',
   purchased_without_actual: 'Comprado sin precio',
-  missing_planned_price: 'Sin precio planeado',
+  missing_planned_price: 'Sin presupuesto',
   selected_option_without_price: 'Opción seleccionada sin precio',
   invalid_category: 'Categoría inválida',
   invalid_priority: 'Prioridad inválida',

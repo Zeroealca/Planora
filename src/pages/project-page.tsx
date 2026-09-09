@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { IconBack } from '@/components/icons'
 import { DashboardPanel } from '@/features/dashboard/dashboard-panel'
+import { SavingsGoalDashboardPanel } from '@/features/dashboard/savings-goal-dashboard-panel'
 import { CategorySection } from '@/features/categories/category-section'
 import {
   countItemsNeedingAttention,
@@ -10,6 +12,11 @@ import {
 import { ItemTable } from '@/features/items/item-table'
 import { ItemForm } from '@/features/items/item-form'
 import {
+  ITEM_SORT_OPTIONS,
+  sortProjectItems,
+  type ItemSortKey,
+} from '@/features/items/item-sort'
+import {
   ProjectTabList,
   ProjectTabPanel,
 } from '@/features/projects/project-tabs'
@@ -17,13 +24,22 @@ import {
   parseProjectTab,
   type ProjectTabId,
 } from '@/features/projects/project-tab-ids'
+import {
+  isSavingsGoalProject,
+  isTabAllowedForMode,
+} from '@/features/projects/project-kind'
 import { ProjectForm } from '@/features/projects/project-form'
+import { ProjectDuplicatePanel } from '@/features/projects/project-duplicate-panel'
 import { ProjectOptionsSection } from '@/features/projects/project-options-section'
 import { ProjectSavingsSection } from '@/features/projects/project-savings-section'
 import { fetchProjectBundle } from '@/features/projects/project-api'
 import { useAuth } from '@/features/auth/auth-context'
 import { priorityLabel, statusLabel } from '@/features/projects/project-options'
-import type { Category, ItemWithOptions, Project } from '@/types/domain'
+import {
+  savingsGoalConfigFromProject,
+} from '@/features/projects/project-savings'
+import { movementsToProjectionInput } from '@/features/projects/savings-goal-utils'
+import type { Category, ItemWithOptions, Project, ProjectSavingsMovement } from '@/types/domain'
 import {
   toBudgetItem,
   type CategoryFilter,
@@ -53,14 +69,20 @@ export function ProjectPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<ItemWithOptions[]>([])
+  const [savingsMovements, setSavingsMovements] = useState<ProjectSavingsMovement[]>(
+    [],
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const [creatingItem, setCreatingItem] = useState(false)
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
   const [productQuery, setProductQuery] = useState('')
+  const [itemSort, setItemSort] = useState<ItemSortKey>('name')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [attentionFilter, setAttentionFilter] = useState<AttentionFilter | null>(
     null,
   )
@@ -71,12 +93,18 @@ export function ProjectPage() {
       : 'All'
   const activeAttentionFilter: AttentionFilter =
     attentionFilter ?? attentionFromUrl
-  const activeTab = resolveInitialTab(
+  const requestedTab = resolveInitialTab(
     searchParams.get('tab'),
     searchParams.get('attention'),
   )
+  const activeTab =
+    project && !isTabAllowedForMode(requestedTab, project.savings_mode)
+      ? 'resumen'
+      : requestedTab
+  const isGoalProject = project ? isSavingsGoalProject(project.savings_mode) : false
 
   function setActiveTab(tab: ProjectTabId) {
+    if (project && !isTabAllowedForMode(tab, project.savings_mode)) return
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -96,6 +124,7 @@ export function ProjectPage() {
       setProject(bundle.project)
       setCategories(bundle.categories)
       setItems(bundle.items)
+      setSavingsMovements(bundle.savingsMovements)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'No se pudo cargar el proyecto.')
@@ -114,6 +143,7 @@ export function ProjectPage() {
         setProject(bundle.project)
         setCategories(bundle.categories)
         setItems(bundle.items)
+        setSavingsMovements(bundle.savingsMovements)
         setLoading(false)
       },
       (err: unknown) => {
@@ -156,14 +186,20 @@ export function ProjectPage() {
     activeAttentionFilter,
     attentionContext,
   )
-  const visibleItems = attentionFiltered.filter((item) => {
-    const matchesPriority = priorityFilter === 'All' || item.priority === priorityFilter
-    const matchesCategory =
-      categoryFilter === 'All' || item.category_id === categoryFilter
-    const matchesStatus = statusFilter === 'All' || item.status === statusFilter
-    const matchesSearch = fuzzyMatch(productQuery, item.name)
-    return matchesPriority && matchesCategory && matchesStatus && matchesSearch
-  })
+  const visibleItems = sortProjectItems(
+    attentionFiltered.filter((item) => {
+      const matchesPriority = priorityFilter === 'All' || item.priority === priorityFilter
+      const matchesCategory =
+        categoryFilter === 'All' || item.category_id === categoryFilter
+      const matchesStatus = statusFilter === 'All' || item.status === statusFilter
+      const matchesSearch = fuzzyMatch(productQuery, item.name)
+      return matchesPriority && matchesCategory && matchesStatus && matchesSearch
+    }),
+    itemSort,
+    project.priority_options,
+    project.status_options,
+    attentionContext,
+  )
   const dashboardItems = items.map(toBudgetItem)
   const hasListFilters =
     priorityFilter !== 'All' ||
@@ -178,18 +214,54 @@ export function ProjectPage() {
   return (
     <div className="page">
       <p>
-        <Link to="/projects">← Proyectos</Link>
+        <Link to="/projects" className="back-link">
+          <IconBack />
+          Proyectos
+        </Link>
       </p>
       <div className="row-between">
         <h1>
           {project.icon ? `${project.icon} ` : ''}
           {project.name}
         </h1>
-        <button type="button" className="btn btn-ghost" onClick={() => setEditing(!editing)}>
-          {editing ? 'Cerrar' : 'Editar proyecto'}
-        </button>
+        <div className="row project-page-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              setDuplicating(!duplicating)
+              if (!duplicating) setEditing(false)
+            }}
+          >
+            {duplicating ? 'Cerrar' : 'Duplicar'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              setEditing(!editing)
+              if (!editing) setDuplicating(false)
+            }}
+          >
+            {editing ? 'Cerrar' : 'Editar'}
+          </button>
+        </div>
       </div>
       {project.description ? <p>{project.description}</p> : null}
+
+      {duplicating ? (
+        <ProjectDuplicatePanel
+          projectId={project.id}
+          projectName={project.name}
+          userId={user.id}
+          isGoalProject={isGoalProject}
+          onDuplicated={(newId) => {
+            setDuplicating(false)
+            void navigate(`/projects/${newId}`)
+          }}
+          onCancel={() => setDuplicating(false)}
+        />
+      ) : null}
 
       {editing ? (
         <ProjectForm
@@ -205,19 +277,32 @@ export function ProjectPage() {
         />
       ) : null}
 
-      <ProjectTabList activeTab={activeTab} onChange={setActiveTab} />
+      <ProjectTabList
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        savingsMode={project.savings_mode}
+      />
 
       <ProjectTabPanel id="resumen" activeTab={activeTab}>
-        <DashboardPanel
-          budget={resolveProjectBudget(project)}
-          items={dashboardItems}
-          categories={categories}
-          statusOptions={project.status_options}
-          priorityOptions={project.priority_options}
-          attentionCount={attentionCount}
-        />
+        {isGoalProject ? (
+          <SavingsGoalDashboardPanel
+            config={savingsGoalConfigFromProject(project)}
+            movements={movementsToProjectionInput(savingsMovements)}
+          />
+        ) : (
+          <DashboardPanel
+            budget={resolveProjectBudget(project)}
+            items={dashboardItems}
+            categories={categories}
+            statusOptions={project.status_options}
+            priorityOptions={project.priority_options}
+            attentionCount={attentionCount}
+          />
+        )}
       </ProjectTabPanel>
 
+      {!isGoalProject ? (
+        <>
       <ProjectTabPanel
         id="items"
         activeTab={activeTab}
@@ -236,11 +321,7 @@ export function ProjectPage() {
           </div>
         }
       >
-        <div
-          className="filters item-filters"
-          role="search"
-          aria-label="Buscar y filtrar ítems"
-        >
+        <div className="item-filters-bar" role="search" aria-label="Buscar y filtrar ítems">
           <div className="field filter-search">
             <label htmlFor="filter-product">Buscar producto</label>
             <input
@@ -252,67 +333,96 @@ export function ProjectPage() {
               onChange={(event) => setProductQuery(event.target.value)}
             />
           </div>
-          <div className="field">
-            <label htmlFor="filter-status">Estado</label>
-            <select
-              id="filter-status"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="All">Todos</option>
-              {project.status_options.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {statusLabel(option.id, project.status_options)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="filter-priority">Prioridad</label>
-            <select
-              id="filter-priority"
-              value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value)}
-            >
-              <option value="All">Todas</option>
-              {project.priority_options.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {priorityLabel(option.id, project.priority_options)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="filter-category">Categoría</label>
-            <select
-              id="filter-category"
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-            >
-              <option value="All">Todas</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="filter-attention">Atención</label>
-            <select
-              id="filter-attention"
-              value={activeAttentionFilter}
-              onChange={(event) =>
-                setAttentionFilter(event.target.value as AttentionFilter)
-              }
-            >
-              <option value="All">Todos</option>
-              <option value="needs_attention">Necesita atención</option>
-              <option value="missing_category">Sin categoría</option>
-              <option value="missing_budget">Sin presupuesto</option>
-              <option value="purchased_without_actual">Comprado sin precio</option>
-              <option value="missing_planned_price">Sin precio planeado</option>
-            </select>
+          <button
+            type="button"
+            className="btn btn-ghost filters-toggle"
+            aria-expanded={filtersOpen}
+            aria-controls="item-filters-panel"
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+            {hasListFilters ? <span className="filters-collapse-badge">Activos</span> : null}
+          </button>
+          <div
+            id="item-filters-panel"
+            className={`filters item-filters${filtersOpen ? ' item-filters-open' : ''}`}
+          >
+            <div className="field">
+              <label htmlFor="filter-status">Estado</label>
+              <select
+                id="filter-status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="All">Todos</option>
+                {project.status_options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {statusLabel(option.id, project.status_options)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="filter-priority">Prioridad</label>
+              <select
+                id="filter-priority"
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value)}
+              >
+                <option value="All">Todas</option>
+                {project.priority_options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {priorityLabel(option.id, project.priority_options)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="filter-category">Categoría</label>
+              <select
+                id="filter-category"
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+              >
+                <option value="All">Todas</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="filter-attention">Atención</label>
+              <select
+                id="filter-attention"
+                value={activeAttentionFilter}
+                onChange={(event) =>
+                  setAttentionFilter(event.target.value as AttentionFilter)
+                }
+              >
+                <option value="All">Todos</option>
+                <option value="needs_attention">Necesita atención</option>
+                <option value="missing_category">Sin categoría</option>
+                <option value="missing_budget">Sin presupuesto</option>
+                <option value="purchased_without_actual">Comprado sin precio</option>
+                <option value="missing_planned_price">Sin presupuesto</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="filter-sort">Ordenar por</label>
+              <select
+                id="filter-sort"
+                value={itemSort}
+                onChange={(event) => setItemSort(event.target.value as ItemSortKey)}
+              >
+                {ITEM_SORT_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -329,11 +439,21 @@ export function ProjectPage() {
           />
         ) : null}
         {items.length === 0 ? (
-          <div className="stack">
-            <p className="muted">Este proyecto no tiene ítems. Crea el primero.</p>
-            <Link to={`/import?projectId=${project.id}`} className="btn btn-ghost">
-              O importa varios desde CSV
-            </Link>
+          <div className="stack empty-state">
+            <p>Este proyecto aún no tiene ítems.</p>
+            <p className="muted">Crea el primero o importa varios desde un CSV.</p>
+            <div className="row">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setCreatingItem(true)}
+              >
+                Nuevo ítem
+              </button>
+              <Link to={`/import?projectId=${project.id}`} className="btn btn-ghost">
+                Importar CSV
+              </Link>
+            </div>
           </div>
         ) : visibleItems.length === 0 ? (
           <p className="muted">
@@ -382,13 +502,23 @@ export function ProjectPage() {
           onChanged={() => void load()}
         />
       </ProjectTabPanel>
+        </>
+      ) : null}
 
       <ProjectTabPanel
         id="ahorros"
         activeTab={activeTab}
-        description={`Plan de ahorro opcional (informativo). No modifica el presupuesto/tope del proyecto (${budgetLabel}).`}
+        description={
+          isGoalProject
+            ? 'Configura saldo, objetivo, reserva, aportes y movimientos. El tipo meta es fijo.'
+            : `Plan de ahorro opcional (aportes en un periodo). Independiente del presupuesto/tope (${budgetLabel}).`
+        }
       >
-        <ProjectSavingsSection project={project} onChanged={() => void load()} />
+        <ProjectSavingsSection
+          project={project}
+          movements={savingsMovements}
+          onChanged={() => void load()}
+        />
       </ProjectTabPanel>
     </div>
   )

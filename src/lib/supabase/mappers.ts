@@ -1,4 +1,14 @@
-import type { Category, Item, ItemOption, LabelPreset, Profile, Project } from '@/types/domain'
+import type {
+  Category,
+  Item,
+  ItemOption,
+  LabelPreset,
+  Profile,
+  Project,
+  ProjectSavingsMovement,
+  SavingsMode,
+  SavingsMovementType,
+} from '@/types/domain'
 import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
 import { DEFAULT_CURRENCY, isCurrencyCode } from '@/features/profile/currencies'
@@ -13,11 +23,25 @@ type CategoryRow = Database['public']['Tables']['categories']['Row']
 type ItemRow = Database['public']['Tables']['items']['Row']
 type OptionRow = Database['public']['Tables']['item_options']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
+type SavingsMovementRow =
+  Database['public']['Tables']['project_savings_movements']['Row']
 
 function asPreset(value: string): LabelPreset {
   return (LABEL_PRESETS as readonly string[]).includes(value)
     ? (value as LabelPreset)
     : 'default'
+}
+
+function asMovementType(value: string): SavingsMovementType {
+  return value === 'outflow' ? 'outflow' : 'inflow'
+}
+
+function asSavingsMode(
+  value: string | null | undefined,
+  goalEnabled: boolean,
+): SavingsMode {
+  if (value === 'plan' || value === 'goal' || value === 'none') return value
+  return goalEnabled ? 'goal' : 'none'
 }
 
 export function mapProfile(row: ProfileRow): Profile {
@@ -41,11 +65,31 @@ export function mapProject(row: ProjectRow): Project {
     label_preset: asPreset(row.label_preset),
     status_options: parseStatusOptions(row.status_options ?? null),
     priority_options: parsePriorityOptions(row.priority_options ?? null),
+    savings_mode: asSavingsMode(row.savings_mode, row.savings_goal_enabled ?? false),
+    savings_goal_enabled: row.savings_goal_enabled ?? false,
+    savings_initial_balance: parseNumeric(row.savings_initial_balance),
+    savings_target_amount: parseNumeric(row.savings_target_amount),
+    savings_minimum_reserve: parseNumeric(row.savings_minimum_reserve),
+    savings_goal_monthly_amount: parseNumeric(row.savings_goal_monthly_amount),
+    savings_goal_start_date: row.savings_goal_start_date,
     savings_amount: parseNumeric(row.savings_amount),
     savings_accrues_interest: row.savings_accrues_interest,
     savings_interest_rate_annual: parseNumeric(row.savings_interest_rate_annual),
     savings_start_date: row.savings_start_date,
     savings_end_date: row.savings_end_date,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }
+}
+
+export function mapSavingsMovement(row: SavingsMovementRow): ProjectSavingsMovement {
+  return {
+    id: row.id,
+    project_id: row.project_id,
+    name: row.name,
+    movement_date: row.movement_date,
+    amount: parseNumeric(row.amount) ?? 0,
+    movement_type: asMovementType(row.movement_type),
     created_at: row.created_at,
     updated_at: row.updated_at,
   }

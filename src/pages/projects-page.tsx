@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { fetchProjects, type ProjectListEntry } from '@/features/projects/project-api'
 import { ProjectForm } from '@/features/projects/project-form'
+import { isSavingsGoalProject } from '@/features/projects/project-kind'
+import { savingsGoalConfigFromProject } from '@/features/projects/project-savings'
 import { useAuth } from '@/features/auth/auth-context'
 import {
   calculateCompletionPercentage,
   calculatePlannedBudget,
 } from '@/utils/budget/calculations'
 import { resolveProjectBudget } from '@/utils/budget/savings'
+import {
+  formatYearMonthLabel,
+  projectSavingsGoal,
+} from '@/utils/budget/savings-goal'
 import { formatPercent, useFormatMoney } from '@/utils/format'
 
 export function ProjectsPage() {
@@ -62,15 +68,7 @@ export function ProjectsPage() {
       <header className="page-header row-between">
         <div className="stack">
           <h1>Proyectos</h1>
-          <p className="muted">Tus planes con presupuesto y seguimiento.</p>
-        </div>
-        <div className="row">
-          <Link to="/import" className="btn btn-ghost">
-            Importar
-          </Link>
-          <Link to="/settings" className="btn btn-ghost">
-            Cuenta
-          </Link>
+          <p className="muted">Compras con presupuesto o metas de ahorro.</p>
         </div>
       </header>
       {error ? (
@@ -91,30 +89,63 @@ export function ProjectsPage() {
       {projects && projects.length > 0 ? (
         <ul className="card-list">
           {projects.map((project) => {
+            const isGoal = isSavingsGoalProject(project.savings_mode)
+            if (isGoal) {
+              const config = savingsGoalConfigFromProject(project)
+              const projection =
+                config.startDate ? projectSavingsGoal(config, []) : null
+              return (
+                <li key={project.id}>
+                  <Link to={`/projects/${project.id}`} className="card card-link">
+                    <h2>
+                      {project.icon ? `${project.icon} ` : ''}
+                      {project.name}
+                    </h2>
+                    <p className="muted">
+                      Meta de ahorro
+                      {' · '}
+                      Objetivo:{' '}
+                      {config.targetAmount > 0
+                        ? formatMoney(config.targetAmount)
+                        : 'Sin definir'}
+                      {' · '}
+                      Viable:{' '}
+                      {projection
+                        ? formatYearMonthLabel(projection.viableYearMonth)
+                        : '—'}
+                    </p>
+                  </Link>
+                </li>
+              )
+            }
+
             const budget = resolveProjectBudget(project)
             return (
-            <li key={project.id}>
-              <Link to={`/projects/${project.id}`} className="card card-link">
-                <h2>
-                  {project.icon ? `${project.icon} ` : ''}
-                  {project.name}
-                </h2>
-                <p className="muted">
-                  Presupuesto:{' '}
-                  {budget == null ? 'Sin definir' : formatMoney(budget)}
-                  {' · '}
-                  Progreso:{' '}
-                  {formatPercent(
-                    calculateCompletionPercentage(project.items, project.status_options),
-                  )}
-                  {' · '}
-                  Planeado:{' '}
-                  {formatMoney(
-                    calculatePlannedBudget(project.items, project.status_options),
-                  )}
-                </p>
-              </Link>
-            </li>
+              <li key={project.id}>
+                <Link to={`/projects/${project.id}`} className="card card-link">
+                  <h2>
+                    {project.icon ? `${project.icon} ` : ''}
+                    {project.name}
+                  </h2>
+                  <p className="muted">
+                    Presupuesto:{' '}
+                    {budget == null ? 'Sin definir' : formatMoney(budget)}
+                    {' · '}
+                    Progreso:{' '}
+                    {formatPercent(
+                      calculateCompletionPercentage(
+                        project.items,
+                        project.status_options,
+                      ),
+                    )}
+                    {' · '}
+                    Proyectado:{' '}
+                    {formatMoney(
+                      calculatePlannedBudget(project.items, project.status_options),
+                    )}
+                  </p>
+                </Link>
+              </li>
             )
           })}
         </ul>

@@ -53,6 +53,13 @@ export type Database = {
           label_preset: string
           status_options: Json
           priority_options: Json
+          savings_mode: string
+          savings_goal_enabled: boolean
+          savings_initial_balance: string | null
+          savings_target_amount: string | null
+          savings_minimum_reserve: string | null
+          savings_goal_monthly_amount: string | null
+          savings_goal_start_date: string | null
           savings_amount: string | null
           savings_accrues_interest: boolean
           savings_interest_rate_annual: string | null
@@ -71,6 +78,13 @@ export type Database = {
           label_preset?: string
           status_options?: Json
           priority_options?: Json
+          savings_mode?: string
+          savings_goal_enabled?: boolean
+          savings_initial_balance?: number | string | null
+          savings_target_amount?: number | string | null
+          savings_minimum_reserve?: number | string | null
+          savings_goal_monthly_amount?: number | string | null
+          savings_goal_start_date?: string | null
           savings_amount?: number | string | null
           savings_accrues_interest?: boolean
           savings_interest_rate_annual?: number | string | null
@@ -89,6 +103,13 @@ export type Database = {
           label_preset?: string
           status_options?: Json
           priority_options?: Json
+          savings_mode?: string
+          savings_goal_enabled?: boolean
+          savings_initial_balance?: number | string | null
+          savings_target_amount?: number | string | null
+          savings_minimum_reserve?: number | string | null
+          savings_goal_monthly_amount?: number | string | null
+          savings_goal_start_date?: string | null
           savings_amount?: number | string | null
           savings_accrues_interest?: boolean
           savings_interest_rate_annual?: number | string | null
@@ -98,6 +119,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_savings_movements: {
+        Row: {
+          id: string
+          project_id: string
+          name: string
+          movement_date: string
+          amount: string
+          movement_type: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          name: string
+          movement_date: string
+          amount: number | string
+          movement_type: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          movement_date?: string
+          amount?: number | string
+          movement_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'project_savings_movements_project_id_fkey'
+            columns: ['project_id']
+            isOneToOne: false
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          },
+        ]
       }
       categories: {
         Row: {

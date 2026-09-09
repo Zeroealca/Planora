@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
-import { calculateSavingsBreakdown } from '@/utils/budget/savings'
+import {
+  calculateSavingsBreakdown,
+  type SavingsPlanMovement,
+} from '@/utils/budget/savings'
 import { useFormatMoney } from '@/utils/format'
 import { costInputValue } from '@/utils/form'
 import { parseSavingsPlanInput } from './savings-plan-utils'
@@ -10,6 +13,7 @@ export function SavingsPlanFields({
   interestRate,
   startDate,
   endDate,
+  movements = [],
   onAmountChange,
   onAccruesInterestChange,
   onInterestRateChange,
@@ -21,6 +25,7 @@ export function SavingsPlanFields({
   interestRate: string
   startDate: string
   endDate: string
+  movements?: readonly SavingsPlanMovement[]
   onAmountChange: (value: string) => void
   onAccruesInterestChange: (value: boolean) => void
   onInterestRateChange: (value: string) => void
@@ -37,15 +42,15 @@ export function SavingsPlanFields({
       startDate,
       endDate,
     })
-    return calculateSavingsBreakdown(plan)
-  }, [amount, accruesInterest, interestRate, startDate, endDate])
+    return calculateSavingsBreakdown(plan, movements)
+  }, [amount, accruesInterest, interestRate, startDate, endDate, movements])
 
   return (
     <fieldset className="stack savings-fieldset">
       <legend>Plan de ahorro</legend>
       <p className="field-hint">
-        Información secundaria de ahorro. No sustituye el presupuesto/tope del
-        proyecto
+        Aportes mensuales en un periodo, más ingresos/retiros extraordinarios. No sustituye el
+        presupuesto/tope del proyecto
         {accruesInterest ? ' (incluye proyección de intereses)' : ''}.
       </p>
 
@@ -111,6 +116,9 @@ export function SavingsPlanFields({
           </p>
           <p className="muted">
             {preview.months} meses · aportes {formatMoney(preview.contributions)}
+            {preview.extraordinaryNet !== 0
+              ? ` · extras ${formatMoney(preview.extraordinaryNet)}`
+              : ''}
             {preview.interestEarned > 0
               ? ` · intereses ${formatMoney(preview.interestEarned)}`
               : ''}
