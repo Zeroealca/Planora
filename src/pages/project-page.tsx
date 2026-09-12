@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { IconBack } from '@/components/icons'
+import { IconBack, IconClose } from '@/components/icons'
 import { DashboardPanel } from '@/features/dashboard/dashboard-panel'
 import { SavingsGoalDashboardPanel } from '@/features/dashboard/savings-goal-dashboard-panel'
 import { CategorySection } from '@/features/categories/category-section'
@@ -14,6 +14,7 @@ import { ItemForm } from '@/features/items/item-form'
 import {
   ITEM_SORT_OPTIONS,
   sortProjectItems,
+  type ItemSortDirection,
   type ItemSortKey,
 } from '@/features/items/item-sort'
 import {
@@ -82,6 +83,7 @@ export function ProjectPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
   const [productQuery, setProductQuery] = useState('')
   const [itemSort, setItemSort] = useState<ItemSortKey>('name')
+  const [itemSortDirection, setItemSortDirection] = useState<ItemSortDirection>('asc')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [attentionFilter, setAttentionFilter] = useState<AttentionFilter | null>(
     null,
@@ -113,6 +115,15 @@ export function ProjectPage() {
       },
       { replace: true },
     )
+  }
+
+  function changeItemSort(sort: ItemSortKey) {
+    if (sort === itemSort) {
+      setItemSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setItemSort(sort)
+    setItemSortDirection('asc')
   }
 
   const load = useCallback(async () => {
@@ -196,6 +207,7 @@ export function ProjectPage() {
       return matchesPriority && matchesCategory && matchesStatus && matchesSearch
     }),
     itemSort,
+    itemSortDirection,
     project.priority_options,
     project.status_options,
     attentionContext,
@@ -414,7 +426,10 @@ export function ProjectPage() {
               <select
                 id="filter-sort"
                 value={itemSort}
-                onChange={(event) => setItemSort(event.target.value as ItemSortKey)}
+                onChange={(event) => {
+                  setItemSort(event.target.value as ItemSortKey)
+                  setItemSortDirection('asc')
+                }}
               >
                 {ITEM_SORT_OPTIONS.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -423,20 +438,59 @@ export function ProjectPage() {
                 ))}
               </select>
             </div>
+            <div className="field">
+              <label htmlFor="filter-sort-direction">Dirección</label>
+              <select
+                id="filter-sort-direction"
+                value={itemSortDirection}
+                onChange={(event) =>
+                  setItemSortDirection(event.target.value as ItemSortDirection)
+                }
+              >
+                <option value="asc">Ascendente</option>
+                <option value="desc">Descendente</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {creatingItem ? (
-          <ItemForm
-            projectId={project.id}
-            categories={categories}
-            statusOptions={project.status_options}
-            priorityOptions={project.priority_options}
-            onSaved={() => {
-              setCreatingItem(false)
-              void load()
+          <div
+            className="modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setCreatingItem(false)
             }}
-          />
+          >
+            <section
+              className="modal-panel item-form-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="new-item-title"
+            >
+              <div className="modal-head">
+                <h2 id="new-item-title">Nuevo ítem</h2>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => setCreatingItem(false)}
+                  aria-label="Cerrar formulario"
+                >
+                  <IconClose />
+                </button>
+              </div>
+              <ItemForm
+                projectId={project.id}
+                categories={categories}
+                statusOptions={project.status_options}
+                priorityOptions={project.priority_options}
+                onSaved={() => {
+                  setCreatingItem(false)
+                  void load()
+                }}
+              />
+            </section>
+          </div>
         ) : null}
         {items.length === 0 ? (
           <div className="stack empty-state">
@@ -469,6 +523,9 @@ export function ProjectPage() {
             statusOptions={project.status_options}
             priorityOptions={project.priority_options}
             attentionContext={attentionContext}
+            activeSort={itemSort}
+            activeSortDirection={itemSortDirection}
+            onSortChange={changeItemSort}
             onItemUpdated={(updated) => {
               setItems((prev) =>
                 prev.map((item) => (item.id === updated.id ? updated : item)),

@@ -456,6 +456,19 @@ export function OptionList({
                   </a>
                 </p>
               ) : null}
+              <div className="option-price-actions">
+                <button
+                  type="button"
+                  className="btn option-review-btn"
+                  disabled={reviewingId === option.id || !option.product_url}
+                  onClick={() => void onReview(option)}
+                >
+                  <IconRefresh
+                    className={reviewingId === option.id ? 'spin-icon' : undefined}
+                  />
+                  {reviewingId === option.id ? 'Revisando precio' : 'Revisar precio'}
+                </button>
+              </div>
               {option.description ? <p>{option.description}</p> : null}
               {option.specifications ? <p>{option.specifications}</p> : null}
               {option.notes ? <p className="muted">{option.notes}</p> : null}
@@ -469,22 +482,6 @@ export function OptionList({
                 />
               </div>
               <div className="row">
-                <button
-                  type="button"
-                  className="btn-icon"
-                  disabled={reviewingId === option.id || !option.product_url}
-                  onClick={() => void onReview(option)}
-                  title={reviewingId === option.id ? 'Revisando precio' : 'Revisar precio'}
-                  aria-label={
-                    reviewingId === option.id
-                      ? `Revisando precio de ${option.name}`
-                      : `Revisar precio de ${option.name}`
-                  }
-                >
-                  <IconRefresh
-                    className={reviewingId === option.id ? 'spin-icon' : undefined}
-                  />
-                </button>
                 <button
                   type="button"
                   className="btn btn-ghost"

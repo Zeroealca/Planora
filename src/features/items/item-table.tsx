@@ -25,6 +25,8 @@ import {
   type AttentionContext,
 } from './item-attention'
 import { ItemCard } from './item-card'
+import type { ItemSortDirection, ItemSortKey } from './item-sort'
+import { itemToneStyle } from './item-tone'
 import {
   getItemCostSummary,
   getItemPurchaseLink,
@@ -81,6 +83,9 @@ export function ItemTable({
   statusOptions,
   priorityOptions,
   attentionContext,
+  activeSort,
+  activeSortDirection,
+  onSortChange,
   onItemUpdated,
 }: {
   items: readonly ItemWithOptions[]
@@ -89,6 +94,9 @@ export function ItemTable({
   statusOptions: readonly ProjectStatusOption[]
   priorityOptions: readonly ProjectPriorityOption[]
   attentionContext: AttentionContext
+  activeSort: ItemSortKey
+  activeSortDirection: ItemSortDirection
+  onSortChange: (sort: ItemSortKey) => void
   onItemUpdated: (item: ItemWithOptions) => void
 }) {
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -252,6 +260,8 @@ export function ItemTable({
               statusOptions={statusOptions}
               priorityOptions={priorityOptions}
               attentionContext={attentionContext}
+              reviewing={getSelectedOption(item)?.id === reviewingOptionId}
+              onReviewPrice={() => void reviewSelectedOption(item)}
             />
           </li>
         ))}
@@ -262,11 +272,41 @@ export function ItemTable({
           <thead>
             <tr>
               <th scope="col" className="item-table-sticky-col">
-                Producto
+                <SortHeader
+                  label="Producto"
+                  sortKey="name"
+                  activeSort={activeSort}
+                  activeSortDirection={activeSortDirection}
+                  onSortChange={onSortChange}
+                />
               </th>
-              <th scope="col">Estado</th>
-              <th scope="col">Prioridad</th>
-              <th scope="col">Categoría</th>
+              <th scope="col">
+                <SortHeader
+                  label="Estado"
+                  sortKey="status"
+                  activeSort={activeSort}
+                  activeSortDirection={activeSortDirection}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col">
+                <SortHeader
+                  label="Prioridad"
+                  sortKey="priority"
+                  activeSort={activeSort}
+                  activeSortDirection={activeSortDirection}
+                  onSortChange={onSortChange}
+                />
+              </th>
+              <th scope="col">
+                <SortHeader
+                  label="Categoría"
+                  sortKey="category"
+                  activeSort={activeSort}
+                  activeSortDirection={activeSortDirection}
+                  onSortChange={onSortChange}
+                />
+              </th>
               <th scope="col">Cantidad</th>
               <th scope="col">Tope total</th>
               <th scope="col">Precio unit.</th>
@@ -307,6 +347,39 @@ export function ItemTable({
         seleccionada o del seguimiento y se multiplica por cantidad.
       </p>
     </div>
+  )
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  activeSort,
+  activeSortDirection,
+  onSortChange,
+}: {
+  label: string
+  sortKey: ItemSortKey
+  activeSort: ItemSortKey
+  activeSortDirection: ItemSortDirection
+  onSortChange: (sort: ItemSortKey) => void
+}) {
+  const active = activeSort === sortKey
+  const directionLabel = activeSortDirection === 'asc' ? 'ascendente' : 'descendente'
+  return (
+    <button
+      type="button"
+      className={`item-table-sort${active ? ' item-table-sort-active' : ''}`}
+      aria-pressed={active}
+      aria-label={
+        active
+          ? `Ordenando por ${label} en orden ${directionLabel}. Cambiar dirección.`
+          : `Ordenar por ${label}`
+      }
+      onClick={() => onSortChange(sortKey)}
+    >
+      {label}
+      <span aria-hidden="true">{active ? (activeSortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+    </button>
   )
 }
 
@@ -357,11 +430,18 @@ function EditableItemRow({
   return (
     <tr
       className={[
+        'item-tone-row',
         needsAttention ? 'item-table-row-attention' : null,
         !costs.contributesToBudget ? 'item-table-row-owned' : null,
       ]
         .filter(Boolean)
         .join(' ') || undefined}
+      style={itemToneStyle({
+        statusId: item.status,
+        priorityId: item.priority,
+        statusOptions,
+        priorityOptions,
+      })}
       data-busy={busy ? 'true' : undefined}
       title={
         !costs.contributesToBudget

@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { IconRefresh } from '@/components/icons'
 import type { ItemWithOptions, ProjectPriorityOption, ProjectStatusOption } from '@/types/domain'
 import { priorityLabel, statusLabel } from '@/features/projects/project-options'
 import { useFormatMoney } from '@/utils/format'
@@ -7,6 +8,7 @@ import {
   collectItemAttentionIssues,
   type AttentionContext,
 } from './item-attention'
+import { itemToneStyle } from './item-tone'
 import {
   formatItemDate,
   getItemCompletionDate,
@@ -36,6 +38,8 @@ export function ItemCard({
   statusOptions,
   priorityOptions,
   attentionContext,
+  reviewing,
+  onReviewPrice,
 }: {
   item: ItemWithOptions
   projectId: string
@@ -43,6 +47,8 @@ export function ItemCard({
   statusOptions: readonly ProjectStatusOption[]
   priorityOptions: readonly ProjectPriorityOption[]
   attentionContext: AttentionContext
+  reviewing?: boolean
+  onReviewPrice?: () => void
 }) {
   const formatMoney = useFormatMoney()
   const costs = getItemCostSummary(item, statusOptions)
@@ -51,23 +57,34 @@ export function ItemCard({
   const purchaseLink = getItemPurchaseLink(item)
   const completion = getItemCompletionDate(item, statusOptions)
   const attentionIssues = collectItemAttentionIssues(item, attentionContext)
+  const canReviewPrice = selected != null && selected.product_url != null
 
   return (
     <article
       className={`card item-card${attentionIssues.length > 0 ? ' item-card-attention' : ''}${
         !costs.contributesToBudget ? ' item-card-owned' : ''
       }`}
+      style={itemToneStyle({
+        statusId: item.status,
+        priorityId: item.priority,
+        statusOptions,
+        priorityOptions,
+      })}
     >
       <div className="item-card-head">
-        <h3>
-          <Link to={`/projects/${projectId}/items/${item.id}`}>{item.name}</Link>
-        </h3>
-        <p className="muted">
-          {statusLabel(item.status, statusOptions)} ·{' '}
-          {priorityLabel(item.priority, priorityOptions)}
-        </p>
+        <div className="item-card-title">
+          <h3>
+            <Link to={`/projects/${projectId}/items/${item.id}`}>{item.name}</Link>
+          </h3>
+          <p className="muted">{categoryName}</p>
+        </div>
+        <div className="item-card-badges" aria-label="Estado y prioridad">
+          <span className="item-chip">{statusLabel(item.status, statusOptions)}</span>
+          <span className="item-chip item-chip-soft">
+            {priorityLabel(item.priority, priorityOptions)}
+          </span>
+        </div>
       </div>
-      <p className="muted">{categoryName}</p>
       {!costs.contributesToBudget ? (
         <p className="muted">Ya lo tienes: no afecta al presupuesto del proyecto.</p>
       ) : null}
@@ -104,21 +121,33 @@ export function ItemCard({
       </dl>
 
       {selected ? (
-        <p>
-          Opción: {selectedOptionLabel(selected)}
-          {selected.price != null ? ` · ${formatMoney(selected.price)}` : ''}
-        </p>
+        <div className="item-card-selected-option">
+          <span className="muted">Opción</span>
+          <strong>{selectedOptionLabel(selected)}</strong>
+          {selected.price != null ? <span>{formatMoney(selected.price)}</span> : null}
+        </div>
       ) : (
         <p className="muted">Sin opción seleccionada</p>
       )}
       {store ? <p className="muted">Tienda: {store}</p> : null}
-      {purchaseLink ? (
-        <p>
+      <div className="item-card-actions">
+        {purchaseLink ? (
           <a href={purchaseLink.href} target="_blank" rel="noopener noreferrer">
             {purchaseLink.source === 'option' ? 'Ver producto' : 'Ver enlace del ítem'}
           </a>
-        </p>
-      ) : null}
+        ) : null}
+        {onReviewPrice ? (
+          <button
+            type="button"
+            className="btn btn-ghost item-card-review-btn"
+            disabled={!canReviewPrice || reviewing}
+            onClick={onReviewPrice}
+          >
+            <IconRefresh className={reviewing ? 'spin-icon' : undefined} />
+            {reviewing ? 'Revisando' : 'Revisar precio'}
+          </button>
+        ) : null}
+      </div>
       {completion ? (
         <p className="muted">
           {completion.label}: {formatItemDate(completion.iso)}
