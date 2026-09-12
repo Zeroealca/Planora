@@ -6,15 +6,20 @@
 
 import type { ProjectStatusOption } from '@/features/projects/project-options'
 import { getStatusBehavior } from '@/features/projects/project-options'
-import { plannedPrice, type BudgetItem } from './calculations'
+import type { BudgetItem } from './calculations'
 
 function isFiniteCost(value: number | null | undefined): value is number {
   return value != null && Number.isFinite(value)
 }
 
+function quantityOrOne(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value) || value <= 0) return 1
+  return value
+}
+
 /**
  * Ahorro esperado for one item.
- * Only pending with estimated_cost: estimated_cost − plannedPrice.
+ * Only pending with estimated_cost: estimated total − projected option total.
  * Positive = ahorro esperado; negative = sobrecosto esperado.
  * null = no aplica (faltan datos o status distinto).
  */
@@ -24,12 +29,16 @@ export function expectedSavingsForItem(
 ): number | null {
   if (getStatusBehavior(item.status, statusOptions) !== 'pending') return null
   if (!isFiniteCost(item.estimated_cost)) return null
-  return item.estimated_cost - plannedPrice(item)
+  const projected =
+    item.selected_option_price != null && Number.isFinite(item.selected_option_price)
+      ? item.selected_option_price * quantityOrOne(item.quantity)
+      : item.estimated_cost
+  return item.estimated_cost - projected
 }
 
 /**
  * Ahorro real for one item.
- * Only purchased with estimated_cost and actual_cost: estimated − actual.
+ * Only purchased with estimated_cost and actual_cost: estimated total − actual total.
  * Positive = ahorro real; negative = sobrecosto real.
  * null = no aplica.
  */

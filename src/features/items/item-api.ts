@@ -19,6 +19,7 @@ export type ItemInput = {
   category_id: string | null
   status: string
   priority: string
+  quantity: number
   estimated_cost: number | null
   actual_cost: number | null
   purchase_url: string | null
@@ -39,6 +40,7 @@ export async function createItem(
       category_id: input.category_id,
       status: input.status,
       priority: input.priority,
+      quantity: input.quantity,
       estimated_cost: input.estimated_cost,
       actual_cost: input.actual_cost,
       purchase_url: input.purchase_url,
@@ -66,6 +68,7 @@ export async function updateItem(
       category_id: input.category_id,
       status: input.status,
       priority: input.priority,
+      quantity: input.quantity,
       estimated_cost: input.estimated_cost,
       actual_cost: input.actual_cost,
       purchase_url: input.purchase_url,

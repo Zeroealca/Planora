@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  RefreshCw,
   Menu,
   Moon,
   Sun,
@@ -17,6 +18,10 @@ export function IconMenu({ className, size = 20 }: { className?: string; size?: 
 
 export function IconClose({ className, size = 20 }: { className?: string; size?: number }) {
   return <X className={className} size={size} aria-hidden="true" />
+}
+
+export function IconRefresh({ className, size = 18 }: { className?: string; size?: number }) {
+  return <RefreshCw className={className} size={size} aria-hidden="true" />
 }
 
 export function IconSun({ className, size = 22 }: { className?: string; size?: number }) {

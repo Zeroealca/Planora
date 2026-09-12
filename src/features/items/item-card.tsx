@@ -82,11 +82,19 @@ export function ItemCard({
 
       <dl className="item-cost-summary">
         <div>
-          <dt>Presupuesto</dt>
+          <dt>Tope total</dt>
           <dd>{moneyOrDash(costs.budget, formatMoney)}</dd>
         </div>
         <div>
-          <dt>Precio pagado</dt>
+          <dt>Cantidad</dt>
+          <dd>{costs.quantity}</dd>
+        </div>
+        <div>
+          <dt>Total proyectado</dt>
+          <dd>{costs.contributesToBudget ? formatMoney(costs.planned) : 'No suma'}</dd>
+        </div>
+        <div>
+          <dt>Total pagado</dt>
           <dd>
             {costs.contributesToBudget
               ? moneyOrDash(costs.paid, formatMoney)

@@ -30,6 +30,7 @@ export function ItemForm({
   const [categoryId, setCategoryId] = useState(item?.category_id ?? '')
   const [status, setStatus] = useState(item?.status ?? defaultStatusId(statusOptions))
   const [priority, setPriority] = useState(item?.priority ?? defaultPriorityId(priorityOptions))
+  const [quantity, setQuantity] = useState(costInputValue(item?.quantity ?? 1))
   const [estimated, setEstimated] = useState(costInputValue(item?.estimated_cost ?? null))
   const [actual, setActual] = useState(costInputValue(item?.actual_cost ?? null))
   const [notes, setNotes] = useState(item?.notes ?? '')
@@ -47,8 +48,17 @@ export function ItemForm({
 
     const estimated_cost = parseCost(estimated)
     const actual_cost = parseCost(actual)
+    const parsedQuantity = parseCost(quantity)
+    if (
+      Number.isNaN(parsedQuantity) ||
+      parsedQuantity == null ||
+      parsedQuantity <= 0
+    ) {
+      setError('La cantidad debe ser mayor a 0.')
+      return
+    }
     if (Number.isNaN(estimated_cost) || (estimated_cost != null && estimated_cost < 0)) {
-      setError('El presupuesto no es válido.')
+      setError('El tope total presupuestado no es válido.')
       return
     }
     if (Number.isNaN(actual_cost) || (actual_cost != null && actual_cost < 0)) {
@@ -69,6 +79,7 @@ export function ItemForm({
       category_id: categoryId === '' ? null : categoryId,
       status,
       priority,
+      quantity: parsedQuantity,
       estimated_cost,
       actual_cost,
       purchase_url,
@@ -171,26 +182,45 @@ export function ItemForm({
         </select>
       </div>
       <div className="field">
-        <label htmlFor="item-estimated">Presupuesto (opcional)</label>
+        <label htmlFor="item-quantity">Cantidad</label>
+        <input
+          id="item-quantity"
+          type="number"
+          step="0.01"
+          value={quantity}
+          onChange={(event) => setQuantity(event.target.value)}
+          required
+        />
+        <p className="field-hint">
+          La cantidad multiplica el precio unitario de la opción para calcular el total proyectado.
+        </p>
+      </div>
+      <div className="field">
+        <label htmlFor="item-estimated">Tope total presupuestado (opcional)</label>
         <input
           id="item-estimated"
-          inputMode="decimal"
+          type="number"
+          step="0.01"
           value={estimated}
           onChange={(event) => setEstimated(event.target.value)}
         />
         <p className="field-hint">
-          Puedes dejarlo vacío y completarlo después. No cambia al elegir una opción.
+          Es lo máximo que planeas gastar en este ítem. No cambia al elegir una opción
+          ni al revisar precios.
         </p>
       </div>
       <div className="field">
-        <label htmlFor="item-actual">Precio pagado</label>
+        <label htmlFor="item-actual">Total pagado</label>
         <input
           id="item-actual"
-          inputMode="decimal"
+          type="number"
+          step="0.01"
           value={actual}
           onChange={(event) => setActual(event.target.value)}
         />
-        <p className="field-hint">Precio realmente pagado cuando el ítem está comprado.</p>
+        <p className="field-hint">
+          Importe total realmente pagado cuando el ítem está comprado.
+        </p>
       </div>
       <div className="field">
         <label htmlFor="item-notes">Notas</label>

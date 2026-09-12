@@ -10,6 +10,10 @@ import {
   getStatusBehavior,
   isCompletedBehavior,
 } from '@/features/projects/project-options'
+import type {
+  PriceTrackingStatus,
+  TrackedPriceType,
+} from '@/features/price-tracking/types'
 
 export type { CurrencyCode } from '@/features/profile/currencies'
 export { DEFAULT_CURRENCY } from '@/features/profile/currencies'
@@ -102,6 +106,7 @@ export interface Item {
   description: string | null
   status: string
   priority: string
+  quantity: number
   estimated_cost: number | null
   actual_cost: number | null
   purchase_url: string | null
@@ -125,6 +130,14 @@ export interface ItemOption {
   specifications: string | null
   notes: string | null
   selected: boolean
+  tracking_enabled: boolean
+  tracked_price_type: TrackedPriceType
+  target_price: number | null
+  alert_on_drop: boolean
+  alert_on_increase: boolean
+  alert_drop_percentage: number | null
+  last_checked_at: string | null
+  tracking_status: PriceTrackingStatus
   created_at: string
   updated_at: string
 }

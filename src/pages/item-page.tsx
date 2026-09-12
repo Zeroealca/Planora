@@ -177,11 +177,19 @@ export function ItemPage() {
           <dd>{categoryName}</dd>
         </div>
         <div>
-          <dt>Presupuesto</dt>
+          <dt>Cantidad</dt>
+          <dd>{costs.quantity}</dd>
+        </div>
+        <div>
+          <dt>Tope total presupuestado</dt>
           <dd>{moneyOrDash(costs.budget, formatMoney)}</dd>
         </div>
         <div>
-          <dt>Precio pagado</dt>
+          <dt>Total proyectado</dt>
+          <dd>{formatMoney(costs.planned)}</dd>
+        </div>
+        <div>
+          <dt>Total pagado</dt>
           <dd>
             {costs.contributesToBudget
               ? moneyOrDash(costs.paid, formatMoney)

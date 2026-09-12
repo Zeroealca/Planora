@@ -1,13 +1,18 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { IconRefresh } from '@/components/icons'
 import type { ItemOption } from '@/types/domain'
 import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
+import { normalizeProductUrl } from '@/features/price-tracking/url-normalization'
+import type { TrackedPriceType } from '@/features/price-tracking/types'
 import {
   createOption,
   deleteOption,
+  reviewOptionPrice,
   selectOption,
   signedImageUrl,
   updateOption,
+  updateOptionTracking,
   uploadOptionImage,
   optionImagePath,
   validateOptionImage,
@@ -49,6 +54,22 @@ function OptionForm({
   const [description, setDescription] = useState(option?.description ?? '')
   const [specifications, setSpecifications] = useState(option?.specifications ?? '')
   const [notes, setNotes] = useState(option?.notes ?? '')
+  const [trackingEnabled, setTrackingEnabled] = useState(
+    option?.tracking_enabled ?? false,
+  )
+  const [trackedPriceType, setTrackedPriceType] = useState<TrackedPriceType>(
+    option?.tracked_price_type ?? 'primary',
+  )
+  const [targetPrice, setTargetPrice] = useState(
+    costInputValue(option?.target_price ?? null),
+  )
+  const [alertOnDrop, setAlertOnDrop] = useState(option?.alert_on_drop ?? false)
+  const [alertOnIncrease, setAlertOnIncrease] = useState(
+    option?.alert_on_increase ?? false,
+  )
+  const [alertDropPercentage, setAlertDropPercentage] = useState(
+    costInputValue(option?.alert_drop_percentage ?? null),
+  )
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -64,6 +85,29 @@ function OptionForm({
       setError('El precio no es válido.')
       return
     }
+    const normalizedProductUrl =
+      productUrl.trim() === '' ? null : normalizeProductUrl(productUrl)
+    if (productUrl.trim() !== '' && normalizedProductUrl == null) {
+      setError('La URL del producto no es válida.')
+      return
+    }
+    const parsedTargetPrice = parseCost(targetPrice)
+    if (
+      Number.isNaN(parsedTargetPrice) ||
+      (parsedTargetPrice != null && parsedTargetPrice <= 0)
+    ) {
+      setError('El precio objetivo debe ser mayor a 0.')
+      return
+    }
+    const parsedDropPercentage = parseCost(alertDropPercentage)
+    if (
+      Number.isNaN(parsedDropPercentage) ||
+      (parsedDropPercentage != null &&
+        (parsedDropPercentage <= 0 || parsedDropPercentage > 100))
+    ) {
+      setError('El porcentaje de bajada debe estar entre 0 y 100.')
+      return
+    }
 
     const input: OptionInput = {
       name,
@@ -71,7 +115,7 @@ function OptionForm({
       model: emptyToNull(model),
       price: parsedPrice,
       store: emptyToNull(store),
-      product_url: emptyToNull(productUrl),
+      product_url: normalizedProductUrl,
       description: emptyToNull(description),
       specifications: emptyToNull(specifications),
       notes: emptyToNull(notes),
@@ -79,10 +123,27 @@ function OptionForm({
 
     setSubmitting(true)
     try {
+      let optionId = option?.id
       if (option) {
         await updateOption(option.id, input)
       } else {
-        await createOption(itemId, input)
+        const created = await createOption(itemId, input)
+        optionId = created.id
+      }
+      if (optionId) {
+        await updateOptionTracking(optionId, {
+          tracking_enabled: trackingEnabled,
+          tracked_price_type: trackedPriceType,
+          target_price: parsedTargetPrice,
+          alert_on_drop: alertOnDrop,
+          alert_on_increase: alertOnIncrease,
+          alert_drop_percentage: parsedDropPercentage,
+          tracking_status: trackingEnabled
+            ? option?.tracking_status === 'inactive' || !option
+              ? 'active'
+              : option.tracking_status
+            : 'inactive',
+        })
       }
       onSaved()
     } catch (err) {
@@ -124,7 +185,8 @@ function OptionForm({
         <label htmlFor={`opt-price-${option?.id ?? 'new'}`}>Precio</label>
         <input
           id={`opt-price-${option?.id ?? 'new'}`}
-          inputMode="decimal"
+          type="number"
+          step="0.01"
           value={price}
           onChange={(event) => setPrice(event.target.value)}
         />
@@ -144,6 +206,74 @@ function OptionForm({
           type="url"
           value={productUrl}
           onChange={(event) => setProductUrl(event.target.value)}
+        />
+      </div>
+      <fieldset className="field">
+        <legend>Seguimiento de precio</legend>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={trackingEnabled}
+            onChange={(event) => setTrackingEnabled(event.target.checked)}
+          />
+          Seguimiento activo
+        </label>
+      </fieldset>
+      <div className="field">
+        <label htmlFor={`opt-tracked-type-${option?.id ?? 'new'}`}>
+          Precio a seguir
+        </label>
+        <select
+          id={`opt-tracked-type-${option?.id ?? 'new'}`}
+          value={trackedPriceType}
+          onChange={(event) =>
+            setTrackedPriceType(event.target.value as TrackedPriceType)
+          }
+        >
+          <option value="primary">Principal</option>
+          <option value="promotional">Promocional</option>
+          <option value="regular">Regular</option>
+          <option value="cash">Efectivo</option>
+          <option value="card">Tarjeta</option>
+        </select>
+      </div>
+      <div className="field">
+        <label htmlFor={`opt-target-${option?.id ?? 'new'}`}>Precio objetivo</label>
+        <input
+          id={`opt-target-${option?.id ?? 'new'}`}
+          type="number"
+          step="0.01"
+          value={targetPrice}
+          onChange={(event) => setTargetPrice(event.target.value)}
+        />
+      </div>
+      <fieldset className="field">
+        <legend>Alertas futuras</legend>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={alertOnDrop}
+            onChange={(event) => setAlertOnDrop(event.target.checked)}
+          />
+          Avisar bajadas
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={alertOnIncrease}
+            onChange={(event) => setAlertOnIncrease(event.target.checked)}
+          />
+          Avisar subidas
+        </label>
+      </fieldset>
+      <div className="field">
+        <label htmlFor={`opt-drop-${option?.id ?? 'new'}`}>Bajada mínima (%)</label>
+        <input
+          id={`opt-drop-${option?.id ?? 'new'}`}
+          type="number"
+          step="0.01"
+          value={alertDropPercentage}
+          onChange={(event) => setAlertDropPercentage(event.target.value)}
         />
       </div>
       <div className="field">
@@ -202,6 +332,8 @@ export function OptionList({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null)
 
   async function onSelect(optionId: string) {
     try {
@@ -221,6 +353,32 @@ export function OptionList({
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'No se pudo eliminar.')
+    }
+  }
+
+  async function onReview(option: ItemOption) {
+    setReviewingId(option.id)
+    setError(null)
+    setReviewMessage(null)
+    try {
+      const result = await reviewOptionPrice(option.id)
+      if (result.updatedPrice != null) {
+        setReviewMessage(
+          `Precio actualizado: ${formatMoney(result.updatedPrice)}.`,
+        )
+      } else if (result.detectedPrice != null) {
+        setReviewMessage(
+          `Precio detectado: ${formatMoney(result.detectedPrice)}. Requiere revisión.`,
+        )
+      } else {
+        setReviewMessage('No se encontró un precio para actualizar.')
+      }
+      onChanged()
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : 'No se pudo revisar el precio.')
+    } finally {
+      setReviewingId(null)
     }
   }
 
@@ -247,6 +405,11 @@ export function OptionList({
       {error ? (
         <p className="field-error" role="alert">
           {error}
+        </p>
+      ) : null}
+      {reviewMessage ? (
+        <p className="alert alert-success" role="status">
+          {reviewMessage}
         </p>
       ) : null}
       {options.length === 0 ? (
@@ -277,6 +440,14 @@ export function OptionList({
                 {[option.brand, option.model].filter(Boolean).join(' · ') || 'Sin marca'}
               </p>
               <p>Precio: {option.price == null ? '—' : formatMoney(option.price)}</p>
+              <p className="muted">
+                Seguimiento:{' '}
+                {option.tracking_enabled ? 'activo' : 'inactivo'} · Estado:{' '}
+                {option.tracking_status}
+                {option.last_checked_at
+                  ? ` · Última revisión: ${new Date(option.last_checked_at).toLocaleString()}`
+                  : ''}
+              </p>
               {option.store ? <p>Tienda: {option.store}</p> : null}
               {option.product_url ? (
                 <p>
@@ -298,6 +469,22 @@ export function OptionList({
                 />
               </div>
               <div className="row">
+                <button
+                  type="button"
+                  className="btn-icon"
+                  disabled={reviewingId === option.id || !option.product_url}
+                  onClick={() => void onReview(option)}
+                  title={reviewingId === option.id ? 'Revisando precio' : 'Revisar precio'}
+                  aria-label={
+                    reviewingId === option.id
+                      ? `Revisando precio de ${option.name}`
+                      : `Revisar precio de ${option.name}`
+                  }
+                >
+                  <IconRefresh
+                    className={reviewingId === option.id ? 'spin-icon' : undefined}
+                  />
+                </button>
                 <button
                   type="button"
                   className="btn btn-ghost"

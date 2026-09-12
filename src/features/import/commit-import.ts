@@ -235,6 +235,7 @@ export async function commitImport(input: {
           category_id: categoryId,
           status: planned.status,
           priority: planned.priority,
+          quantity: planned.quantity,
           estimated_cost: planned.estimated_cost,
           actual_cost: planned.actual_cost,
           purchase_url: planned.purchase_url,

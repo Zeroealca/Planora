@@ -26,6 +26,7 @@ function item(partial: Partial<BudgetItem> & Pick<BudgetItem, 'status'>): Budget
   return {
     priority: 'Medium',
     category_id: null,
+    quantity: 1,
     estimated_cost: null,
     actual_cost: null,
     selected_option_price: null,
@@ -70,6 +71,17 @@ describe('plannedPrice / plannedCost', () => {
     })
     expect(plannedPrice(fridge)).toBe(723)
     expect(plannedCost(fridge, statusOptions)).toBe(723)
+  })
+
+  it('Pending: selected unit option 100, quantity 3 → plannedCost 300', () => {
+    const entry = item({
+      status: 'Pending',
+      quantity: 3,
+      estimated_cost: 120,
+      selected_option_price: 100,
+    })
+    expect(plannedPrice(entry)).toBe(100)
+    expect(plannedCost(entry, statusOptions)).toBe(300)
   })
 
   it('Purchased: estimated 800, option 723, actual 699 → plannedCost 699', () => {
@@ -216,6 +228,15 @@ describe('budget calculations', () => {
         statusOptions,
       ),
     ).toBe(0)
+  })
+
+  it('does not multiply original total budget by quantity', () => {
+    expect(
+      calculateOriginalBudget(
+        [item({ status: 'Pending', estimated_cost: 100, quantity: 4 })],
+        statusOptions,
+      ),
+    ).toBe(100)
   })
 
   it('counts items by status behavior', () => {

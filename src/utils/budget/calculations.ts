@@ -16,6 +16,7 @@ export type BudgetItem = {
   status: string
   priority: string
   category_id: string | null
+  quantity: number
   estimated_cost: number | null
   actual_cost: number | null
   /** Price of the selected option, if any (derived; not a DB column). */
@@ -36,6 +37,7 @@ export type BudgetItemInput = {
   status: string
   priority: string
   category_id: string | null
+  quantity?: number | null
   estimated_cost: number | null
   actual_cost: number | null
   selected_option_price?: number | null
@@ -44,6 +46,11 @@ export type BudgetItemInput = {
 
 function costOrZero(value: number | null | undefined): number {
   if (value == null || !Number.isFinite(value)) return 0
+  return value
+}
+
+function quantityOrOne(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value) || value <= 0) return 1
   return value
 }
 
@@ -67,6 +74,7 @@ export function toBudgetItem(item: BudgetItemInput): BudgetItem {
     status: item.status,
     priority: item.priority,
     category_id: item.category_id,
+    quantity: quantityOrOne(item.quantity),
     estimated_cost: item.estimated_cost,
     actual_cost: item.actual_cost,
     selected_option_price: fromField ?? getSelectedOptionPrice(item.options),
@@ -75,7 +83,8 @@ export function toBudgetItem(item: BudgetItemInput): BudgetItem {
 
 /**
  * Derived expected purchase price (ignores status).
- * selected option with price → else estimated_cost → else 0.
+ * selected option unit price → else estimated total budget → else 0.
+ * When this comes from an option, plannedCost applies quantity.
  */
 export function plannedPrice(
   item: Pick<BudgetItem, 'estimated_cost' | 'selected_option_price'>,
@@ -89,14 +98,15 @@ export function plannedPrice(
 /**
  * Derived cost contribution of an item according to status behavior.
  * already_owned → 0
- * purchased → actual ?? selected option price ?? estimated ?? 0
- * pending → plannedPrice
+ * purchased → actual total ?? selected option unit price × quantity ?? estimated total ?? 0
+ * pending → selected option unit price × quantity ?? estimated total ?? 0
  */
 export function plannedCost(
   item: BudgetItem,
   statusOptions: readonly ProjectStatusOption[],
 ): number {
   const behavior = getStatusBehavior(item.status, statusOptions)
+  const quantity = quantityOrOne(item.quantity)
   switch (behavior) {
     case 'owned':
       return 0
@@ -105,12 +115,15 @@ export function plannedCost(
         return item.actual_cost
       }
       if (item.selected_option_price != null && Number.isFinite(item.selected_option_price)) {
-        return item.selected_option_price
+        return item.selected_option_price * quantity
       }
       return costOrZero(item.estimated_cost)
     }
     case 'pending':
-      return plannedPrice(item)
+      if (item.selected_option_price != null && Number.isFinite(item.selected_option_price)) {
+        return item.selected_option_price * quantity
+      }
+      return costOrZero(item.estimated_cost)
     default: {
       const exhaustive: never = behavior
       throw new Error(`Unexpected status behavior: ${exhaustive}`)

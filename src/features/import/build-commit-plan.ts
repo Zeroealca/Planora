@@ -26,6 +26,7 @@ export type PlannedItemCreate = {
   categoryRef: { type: 'id'; id: string } | { type: 'key'; key: string } | { type: 'none' }
   status: string
   priority: string
+  quantity: number
   estimated_cost: number | null
   actual_cost: number | null
   purchase_url: string | null
@@ -97,6 +98,7 @@ function existingToInput(item: ItemWithOptions): ItemInput {
     category_id: item.category_id,
     status: item.status,
     priority: item.priority,
+    quantity: item.quantity,
     estimated_cost: item.estimated_cost,
     actual_cost: item.actual_cost,
     purchase_url: item.purchase_url,
@@ -251,6 +253,7 @@ export function buildCommitPlan(input: {
       status: statusIdOf(row),
       priority: row.priority.id,
       estimated_cost: row.draft.estimatedCost,
+      quantity: 1,
       actual_cost: row.draft.actualCost,
       purchase_url: row.draft.purchaseUrl,
       notes: row.draft.notes,

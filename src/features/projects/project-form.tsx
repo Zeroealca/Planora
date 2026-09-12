@@ -163,7 +163,8 @@ export function ProjectForm({
           <label htmlFor="project-budget">Presupuesto del proyecto</label>
           <input
             id="project-budget"
-            inputMode="decimal"
+            type="number"
+            step="0.01"
             value={budget}
             onChange={(event) => setBudget(event.target.value)}
             placeholder="Tope que puedes o quieres gastar"

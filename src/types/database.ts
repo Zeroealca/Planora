@@ -197,6 +197,7 @@ export type Database = {
           description: string | null
           status: string
           priority: string
+          quantity: string
           estimated_cost: string | null
           actual_cost: string | null
           purchase_url: string | null
@@ -213,6 +214,7 @@ export type Database = {
           description?: string | null
           status?: string
           priority?: string
+          quantity?: number | string
           estimated_cost?: number | string | null
           actual_cost?: number | string | null
           purchase_url?: string | null
@@ -229,6 +231,7 @@ export type Database = {
           description?: string | null
           status?: string
           priority?: string
+          quantity?: number | string
           estimated_cost?: number | string | null
           actual_cost?: number | string | null
           purchase_url?: string | null
@@ -254,6 +257,14 @@ export type Database = {
           specifications: string | null
           notes: string | null
           selected: boolean
+          tracking_enabled: boolean
+          tracked_price_type: string
+          target_price: string | null
+          alert_on_drop: boolean
+          alert_on_increase: boolean
+          alert_drop_percentage: string | null
+          last_checked_at: string | null
+          tracking_status: string
           created_at: string
           updated_at: string
         }
@@ -271,6 +282,14 @@ export type Database = {
           specifications?: string | null
           notes?: string | null
           selected?: boolean
+          tracking_enabled?: boolean
+          tracked_price_type?: string
+          target_price?: number | string | null
+          alert_on_drop?: boolean
+          alert_on_increase?: boolean
+          alert_drop_percentage?: number | string | null
+          last_checked_at?: string | null
+          tracking_status?: string
           created_at?: string
           updated_at?: string
         }
@@ -288,10 +307,74 @@ export type Database = {
           specifications?: string | null
           notes?: string | null
           selected?: boolean
+          tracking_enabled?: boolean
+          tracked_price_type?: string
+          target_price?: number | string | null
+          alert_on_drop?: boolean
+          alert_on_increase?: boolean
+          alert_drop_percentage?: number | string | null
+          last_checked_at?: string | null
+          tracking_status?: string
           created_at?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      item_option_price_observations: {
+        Row: {
+          id: string
+          option_id: string
+          price: string | null
+          checked_at: string
+          status: string
+          availability: string
+          source: string
+          price_type: string | null
+          origin: string
+          currency: string | null
+          detected_prices: Json
+          message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          option_id: string
+          price?: number | string | null
+          checked_at?: string
+          status: string
+          availability?: string
+          source: string
+          price_type?: string | null
+          origin?: string
+          currency?: string | null
+          detected_prices?: Json
+          message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          option_id?: string
+          price?: number | string | null
+          checked_at?: string
+          status?: string
+          availability?: string
+          source?: string
+          price_type?: string | null
+          origin?: string
+          currency?: string | null
+          detected_prices?: Json
+          message?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'item_option_price_observations_option_id_fkey'
+            columns: ['option_id']
+            isOneToOne: false
+            referencedRelation: 'item_options'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Views: {

@@ -579,7 +579,8 @@ export function ProjectSavingsSection({
                 <label htmlFor="savings-initial">Saldo inicial</label>
                 <input
                   id="savings-initial"
-                  inputMode="decimal"
+                  type="number"
+                  step="0.01"
                   value={draft.initialBalance}
                   onChange={(event) => patchDraft({ initialBalance: event.target.value })}
                 />
@@ -588,7 +589,8 @@ export function ProjectSavingsSection({
                 <label htmlFor="savings-target">Cantidad objetivo</label>
                 <input
                   id="savings-target"
-                  inputMode="decimal"
+                  type="number"
+                  step="0.01"
                   value={draft.targetAmount}
                   onChange={(event) => patchDraft({ targetAmount: event.target.value })}
                 />
@@ -597,7 +599,8 @@ export function ProjectSavingsSection({
                 <label htmlFor="savings-reserve">Reserva mínima</label>
                 <input
                   id="savings-reserve"
-                  inputMode="decimal"
+                  type="number"
+                  step="0.01"
                   value={draft.minimumReserve}
                   onChange={(event) => patchDraft({ minimumReserve: event.target.value })}
                 />
@@ -606,7 +609,8 @@ export function ProjectSavingsSection({
                 <label htmlFor="savings-monthly">Aporte mensual</label>
                 <input
                   id="savings-monthly"
-                  inputMode="decimal"
+                  type="number"
+                  step="0.01"
                   value={draft.monthlyContribution}
                   onChange={(event) =>
                     patchDraft({ monthlyContribution: event.target.value })
@@ -744,7 +748,8 @@ export function ProjectSavingsSection({
                 <label htmlFor="movement-amount">Monto</label>
                 <input
                   id="movement-amount"
-                  inputMode="decimal"
+                  type="number"
+                  step="0.01"
                   value={movementAmount}
                   onChange={(event) => setMovementAmount(event.target.value)}
                   required
