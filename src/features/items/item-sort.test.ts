@@ -96,9 +96,14 @@ describe('sortProjectItems', () => {
 
   it('sorts by name', () => {
     expect(
-      sortProjectItems(list, 'name', DEFAULT_PRIORITY_OPTIONS, DEFAULT_STATUS_OPTIONS, context).map(
-        (entry) => entry.name,
-      ),
+      sortProjectItems(
+        list,
+        'name',
+        'asc',
+        DEFAULT_PRIORITY_OPTIONS,
+        DEFAULT_STATUS_OPTIONS,
+        context,
+      ).map((entry) => entry.name),
     ).toEqual(['Lámpara', 'Mesa', 'Sofá'])
   })
 
@@ -107,11 +112,71 @@ describe('sortProjectItems', () => {
       sortProjectItems(
         list,
         'priority',
+        'asc',
         DEFAULT_PRIORITY_OPTIONS,
         DEFAULT_STATUS_OPTIONS,
         context,
       ).map((entry) => entry.priority),
     ).toEqual(['Critical', 'High', 'Optional'])
+  })
+
+  it('sorts by category display order and leaves uncategorized items last', () => {
+    const sorted = sortProjectItems(
+      [
+        item({
+          id: '1',
+          name: 'Sin categoría',
+          status: 'Pending',
+          priority: 'Optional',
+          category_id: null,
+        }),
+        item({
+          id: '2',
+          name: 'Mesa',
+          status: 'Pending',
+          priority: 'Optional',
+          category_id: 'c2',
+        }),
+        item({
+          id: '3',
+          name: 'Silla',
+          status: 'Pending',
+          priority: 'Optional',
+          category_id: 'c1',
+        }),
+      ],
+      'category',
+      'asc',
+      DEFAULT_PRIORITY_OPTIONS,
+      DEFAULT_STATUS_OPTIONS,
+      {
+        ...context,
+        categories: [
+          {
+            id: 'c1',
+            project_id: 'p1',
+            name: 'Sala',
+            display_order: 1,
+            created_at: '',
+            updated_at: '',
+          },
+          {
+            id: 'c2',
+            project_id: 'p1',
+            name: 'Cocina',
+            display_order: 0,
+            created_at: '',
+            updated_at: '',
+          },
+        ],
+      },
+    )
+
+    expect(sorted.map((entry) => entry.name)).toEqual([
+      'Mesa',
+      'Silla',
+      'Sin categoría',
+    ])
   })
 
   it('sorts by selected option store and leaves missing stores last', () => {
@@ -155,6 +220,7 @@ describe('sortProjectItems', () => {
         }),
       ],
       'store',
+      'asc',
       DEFAULT_PRIORITY_OPTIONS,
       DEFAULT_STATUS_OPTIONS,
       context,
@@ -172,10 +238,24 @@ describe('sortProjectItems', () => {
     const sorted = sortProjectItems(
       list,
       'attention',
+      'asc',
       DEFAULT_PRIORITY_OPTIONS,
       DEFAULT_STATUS_OPTIONS,
       context,
     )
     expect(sorted[0]?.id).toBe('1')
+  })
+
+  it('sorts in descending direction', () => {
+    expect(
+      sortProjectItems(
+        list,
+        'name',
+        'desc',
+        DEFAULT_PRIORITY_OPTIONS,
+        DEFAULT_STATUS_OPTIONS,
+        context,
+      ).map((entry) => entry.name),
+    ).toEqual(['Sofá', 'Mesa', 'Lámpara'])
   })
 })
