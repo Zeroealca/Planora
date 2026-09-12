@@ -41,6 +41,7 @@ export function getItemCostSummary(
   statusOptions: readonly ProjectStatusOption[] = [],
 ): {
   budget: number | null
+  quantity: number
   planned: number
   paid: number | null
   /** False when status behavior is owned — amounts are informational only. */
@@ -55,7 +56,11 @@ export function getItemCostSummary(
         : null
   return {
     budget: item.estimated_cost,
-    planned: plannedPrice(budgetItem),
+    quantity: budgetItem.quantity,
+    planned:
+      budgetItem.selected_option_price != null
+        ? budgetItem.selected_option_price * budgetItem.quantity
+        : plannedPrice(budgetItem),
     paid: item.actual_cost,
     contributesToBudget: behavior !== 'owned',
   }

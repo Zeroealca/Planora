@@ -153,6 +153,7 @@ export function buildPreviewRows(input: {
         status:
           status.kind === 'ok' || status.kind === 'default' ? status.id : 'Pending',
         priority: priority.id,
+        quantity: 1,
         estimated_cost: draft.estimatedCost,
         actual_cost: draft.actualCost,
         purchase_url: draft.purchaseUrl,

@@ -22,6 +22,14 @@ function option(partial: Partial<ItemOption> & Pick<ItemOption, 'id' | 'name'>):
     specifications: null,
     notes: null,
     selected: false,
+    tracking_enabled: false,
+    tracked_price_type: 'primary',
+    target_price: null,
+    alert_on_drop: false,
+    alert_on_increase: false,
+    alert_drop_percentage: null,
+    last_checked_at: null,
+    tracking_status: 'inactive',
     created_at: '',
     updated_at: '',
     ...partial,
@@ -38,6 +46,7 @@ function item(
     name: 'Refrigeradora',
     description: null,
     priority: 'Critical',
+    quantity: 1,
     estimated_cost: 800,
     actual_cost: null,
     purchase_url: null,
@@ -77,6 +86,7 @@ describe('item-summary', () => {
     })
     expect(getItemCostSummary(entry, DEFAULT_STATUS_OPTIONS)).toEqual({
       budget: 800,
+      quantity: 1,
       planned: 723,
       paid: null,
       contributesToBudget: true,
@@ -91,6 +101,7 @@ describe('item-summary', () => {
     })
     expect(getItemCostSummary(owned, DEFAULT_STATUS_OPTIONS)).toEqual({
       budget: 800,
+      quantity: 1,
       planned: 723,
       paid: null,
       contributesToBudget: false,
@@ -106,6 +117,20 @@ describe('item-summary', () => {
     expect(getItemPurchaseLink(entry)).toEqual({
       href: 'https://notes.example/generic',
       source: 'item',
+    })
+  })
+
+  it('keeps budget as total cap while multiplying option unit price by quantity', () => {
+    const entry = item({
+      status: 'Pending',
+      quantity: 3,
+      estimated_cost: 120,
+      options: [option({ id: 'o1', name: 'Hisense', price: 100, selected: true })],
+    })
+    expect(getItemCostSummary(entry, DEFAULT_STATUS_OPTIONS)).toMatchObject({
+      budget: 120,
+      quantity: 3,
+      planned: 300,
     })
   })
 

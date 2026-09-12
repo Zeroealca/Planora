@@ -52,7 +52,7 @@ export async function fetchProjects(): Promise<ProjectListEntry[]> {
   const { data, error } = await supabase
     .from('projects')
     .select(
-      '*, items(status, priority, category_id, estimated_cost, actual_cost, item_options(price, selected))',
+      '*, items(status, priority, category_id, quantity, estimated_cost, actual_cost, item_options(price, selected))',
     )
     .order('created_at', { ascending: false })
 
@@ -64,6 +64,7 @@ export async function fetchProjects(): Promise<ProjectListEntry[]> {
         status: string
         priority: string
         category_id: string | null
+        quantity: string | null
         estimated_cost: string | null
         actual_cost: string | null
         item_options: Array<{
@@ -458,6 +459,7 @@ export async function duplicateProject(
               : null,
             status: item.status,
             priority: item.priority,
+            quantity: item.quantity,
             estimated_cost: item.estimated_cost,
             actual_cost: item.actual_cost,
             purchase_url: item.purchase_url,

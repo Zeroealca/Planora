@@ -3,8 +3,35 @@ import {
   DEFAULT_PRIORITY_OPTIONS,
   DEFAULT_STATUS_OPTIONS,
 } from '@/features/projects/project-options'
-import type { ItemWithOptions } from '@/types/domain'
+import type { ItemOption, ItemWithOptions } from '@/types/domain'
 import { sortProjectItems } from './item-sort'
+
+function option(partial: Partial<ItemOption> & Pick<ItemOption, 'id' | 'name'>): ItemOption {
+  return {
+    item_id: 'item',
+    brand: null,
+    model: null,
+    price: null,
+    store: null,
+    product_url: null,
+    image_url: null,
+    description: null,
+    specifications: null,
+    notes: null,
+    selected: false,
+    tracking_enabled: false,
+    tracked_price_type: 'primary',
+    target_price: null,
+    alert_on_drop: false,
+    alert_on_increase: false,
+    alert_drop_percentage: null,
+    last_checked_at: null,
+    tracking_status: 'inactive',
+    created_at: '',
+    updated_at: '',
+    ...partial,
+  }
+}
 
 function item(
   partial: Partial<ItemWithOptions> & Pick<ItemWithOptions, 'id' | 'name' | 'status' | 'priority'>,
@@ -13,6 +40,7 @@ function item(
     project_id: 'p1',
     category_id: null,
     description: null,
+    quantity: 1,
     estimated_cost: 10,
     actual_cost: null,
     purchase_url: null,
@@ -84,6 +112,60 @@ describe('sortProjectItems', () => {
         context,
       ).map((entry) => entry.priority),
     ).toEqual(['Critical', 'High', 'Optional'])
+  })
+
+  it('sorts by selected option store and leaves missing stores last', () => {
+    const sorted = sortProjectItems(
+      [
+        item({
+          id: '1',
+          name: 'Sin tienda',
+          status: 'Pending',
+          priority: 'Optional',
+        }),
+        item({
+          id: '2',
+          name: 'Aspiradora',
+          status: 'Pending',
+          priority: 'Optional',
+          options: [
+            option({ id: 'o2', name: 'Aspiradora', store: 'Kywi', selected: true }),
+          ],
+        }),
+        item({
+          id: '3',
+          name: 'Refrigeradora',
+          status: 'Pending',
+          priority: 'Optional',
+          options: [
+            option({
+              id: 'o3',
+              name: 'Refrigeradora',
+              store: 'Marcimex',
+              selected: true,
+            }),
+          ],
+        }),
+        item({
+          id: '4',
+          name: 'Cocina',
+          status: 'Pending',
+          priority: 'Optional',
+          options: [option({ id: 'o4', name: 'Cocina', store: 'kywi', selected: true })],
+        }),
+      ],
+      'store',
+      DEFAULT_PRIORITY_OPTIONS,
+      DEFAULT_STATUS_OPTIONS,
+      context,
+    )
+
+    expect(sorted.map((entry) => entry.name)).toEqual([
+      'Aspiradora',
+      'Cocina',
+      'Refrigeradora',
+      'Sin tienda',
+    ])
   })
 
   it('puts attention items first', () => {

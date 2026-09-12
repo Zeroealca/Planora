@@ -2,6 +2,10 @@ import { supabase } from '@/lib/supabase/client'
 import { supabaseErrorMessage } from '@/lib/supabase/errors'
 import { mapOption } from '@/lib/supabase/mappers'
 import type { ItemOption } from '@/types/domain'
+import type {
+  PriceTrackingStatus,
+  TrackedPriceType,
+} from '@/features/price-tracking/types'
 
 export const OPTION_IMAGE_BUCKET = 'item-option-images'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -17,6 +21,32 @@ export type OptionInput = {
   description: string | null
   specifications: string | null
   notes: string | null
+}
+
+export type OptionTrackingInput = {
+  tracking_enabled: boolean
+  tracked_price_type: TrackedPriceType
+  target_price: number | null
+  alert_on_drop: boolean
+  alert_on_increase: boolean
+  alert_drop_percentage: number | null
+  tracking_status?: PriceTrackingStatus
+}
+
+export type PriceReviewResult = {
+  status:
+    | 'success'
+    | 'price_not_found'
+    | 'unavailable'
+    | 'error'
+    | 'needs_review'
+  updatedPrice: number | null
+  detectedPrice: number | null
+  detectedPrices: Array<{ type: TrackedPriceType; value: number }>
+  trackedPriceType: TrackedPriceType
+  availability: 'available' | 'unavailable' | 'unknown'
+  source: string
+  checkedAt: string
 }
 
 export async function createOption(
@@ -65,6 +95,39 @@ export async function updateOption(
     .eq('id', optionId)
 
   if (error) throw new Error(supabaseErrorMessage(error))
+}
+
+export async function updateOptionTracking(
+  optionId: string,
+  input: OptionTrackingInput,
+): Promise<void> {
+  const { error } = await supabase
+    .from('item_options')
+    .update({
+      tracking_enabled: input.tracking_enabled,
+      tracked_price_type: input.tracked_price_type,
+      target_price: input.target_price,
+      alert_on_drop: input.alert_on_drop,
+      alert_on_increase: input.alert_on_increase,
+      alert_drop_percentage: input.alert_drop_percentage,
+      tracking_status:
+        input.tracking_status ?? (input.tracking_enabled ? 'active' : 'inactive'),
+    })
+    .eq('id', optionId)
+
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
+
+export async function reviewOptionPrice(
+  optionId: string,
+): Promise<PriceReviewResult> {
+  const { data, error } = await supabase.functions.invoke<PriceReviewResult>(
+    'review-option-price',
+    { body: { optionId } },
+  )
+  if (error) throw new Error(supabaseErrorMessage(error))
+  if (!data) throw new Error('No se recibió respuesta de la revisión.')
+  return data
 }
 
 export async function deleteOption(option: ItemOption): Promise<void> {

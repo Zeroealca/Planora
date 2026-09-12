@@ -58,7 +58,8 @@ export function SavingsPlanFields({
         <label htmlFor="savings-amount">Ahorro mensual</label>
         <input
           id="savings-amount"
-          inputMode="decimal"
+          type="number"
+          step="0.01"
           value={amount}
           onChange={(event) => onAmountChange(event.target.value)}
           placeholder={costInputValue(null)}
@@ -101,7 +102,8 @@ export function SavingsPlanFields({
           <label htmlFor="savings-rate">Tasa anual (%)</label>
           <input
             id="savings-rate"
-            inputMode="decimal"
+            type="number"
+            step="0.01"
             value={interestRate}
             onChange={(event) => onInterestRateChange(event.target.value)}
             placeholder="4.5"

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { IconRefresh } from '@/components/icons'
 import type {
   Category,
   ItemOption,
@@ -10,11 +11,14 @@ import type {
 import { updateItem, type ItemInput } from '@/features/items/item-api'
 import {
   createOption,
+  reviewOptionPrice,
   selectOption,
   updateOption,
   type OptionInput,
 } from '@/features/item-options/option-api'
-import { costInputValue, normalizeUrl, parseCost } from '@/utils/form'
+import { normalizeProductUrl } from '@/features/price-tracking/url-normalization'
+import { costInputValue, parseCost } from '@/utils/form'
+import { useFormatMoney } from '@/utils/format'
 import {
   ATTENTION_ISSUE_LABELS,
   collectItemAttentionIssues,
@@ -48,6 +52,7 @@ function itemToInput(item: ItemWithOptions): ItemInput {
     category_id: item.category_id,
     status: item.status,
     priority: item.priority,
+    quantity: item.quantity,
     estimated_cost: item.estimated_cost,
     actual_cost: item.actual_cost,
     purchase_url: item.purchase_url,
@@ -87,6 +92,9 @@ export function ItemTable({
   onItemUpdated: (item: ItemWithOptions) => void
 }) {
   const [savingId, setSavingId] = useState<string | null>(null)
+  const formatMoney = useFormatMoney()
+  const [reviewingOptionId, setReviewingOptionId] = useState<string | null>(null)
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function saveItemFields(
@@ -181,11 +189,53 @@ export function ItemTable({
     }
   }
 
+  async function reviewSelectedOption(item: ItemWithOptions) {
+    const selected = getSelectedOption(item)
+    if (!selected) {
+      setError('Selecciona o crea una opción antes de revisar el precio.')
+      return
+    }
+    if (!selected.product_url) {
+      setError('La opción seleccionada no tiene enlace de producto.')
+      return
+    }
+
+    setReviewingOptionId(selected.id)
+    setError(null)
+    setReviewMessage(null)
+    try {
+      const result = await reviewOptionPrice(selected.id)
+      const patch: Partial<ItemOption> = {
+        last_checked_at: result.checkedAt,
+        tracking_status: result.status,
+      }
+      if (result.updatedPrice != null) {
+        patch.price = result.updatedPrice
+      }
+      onItemUpdated(withUpdatedOption(item, selected.id, patch))
+      setReviewMessage(
+        result.updatedPrice != null
+          ? `Precio actualizado para ${item.name}.`
+          : `Precio revisado para ${item.name}; requiere atención.`,
+      )
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : 'No se pudo revisar el precio.')
+    } finally {
+      setReviewingOptionId(null)
+    }
+  }
+
   return (
     <div className="stack">
       {error ? (
         <p className="field-error" role="alert">
           {error}
+        </p>
+      ) : null}
+      {reviewMessage ? (
+        <p className="alert alert-success" role="status">
+          {reviewMessage}
         </p>
       ) : null}
 
@@ -217,8 +267,11 @@ export function ItemTable({
               <th scope="col">Estado</th>
               <th scope="col">Prioridad</th>
               <th scope="col">Categoría</th>
-              <th scope="col">Presupuesto</th>
-              <th scope="col">Precio pagado</th>
+              <th scope="col">Cantidad</th>
+              <th scope="col">Tope total</th>
+              <th scope="col">Precio unit.</th>
+              <th scope="col">Total proyect.</th>
+              <th scope="col">Total pagado</th>
               <th scope="col">Tienda</th>
               <th scope="col">Enlace</th>
               <th scope="col">Atención</th>
@@ -237,8 +290,11 @@ export function ItemTable({
                   priorityOptions={priorityOptions}
                   attentionContext={attentionContext}
                   busy={savingId === item.id}
+                  reviewingOptionId={reviewingOptionId}
+                  formatMoney={formatMoney}
                   onSaveItem={(patch) => void saveItemFields(item, patch)}
                   onSaveOption={(patch) => void saveOptionFields(item, patch)}
+                  onReviewPrice={() => void reviewSelectedOption(item)}
                 />
               )
             })}
@@ -246,9 +302,9 @@ export function ItemTable({
         </table>
       </div>
       <p className="field-hint item-table-hint">
-        En pantalla grande puedes editar las celdas directo. Presupuesto es lo que
-        planeas gastar; precio pagado es lo que realmente pagaste. En el móvil abre el
-        detalle del ítem para editar.
+        En pantalla grande puedes editar las celdas directo. Tope total es lo
+        máximo que planeas gastar en ese ítem; precio unitario sale de la opción
+        seleccionada o del seguimiento y se multiplica por cantidad.
       </p>
     </div>
   )
@@ -262,8 +318,11 @@ function EditableItemRow({
   priorityOptions,
   attentionContext,
   busy,
+  reviewingOptionId,
+  formatMoney,
   onSaveItem,
   onSaveOption,
+  onReviewPrice,
 }: {
   item: ItemWithOptions
   projectId: string
@@ -272,20 +331,26 @@ function EditableItemRow({
   priorityOptions: readonly ProjectPriorityOption[]
   attentionContext: AttentionContext
   busy: boolean
+  reviewingOptionId: string | null
+  formatMoney: (value: number) => string
   onSaveItem: (patch: Partial<ItemInput>) => void
   onSaveOption: (
     patch: Partial<Pick<ItemOption, 'price' | 'store' | 'product_url'>>,
   ) => void
+  onReviewPrice: () => void
 }) {
   const costs = getItemCostSummary(item, statusOptions)
   const selected = getSelectedOption(item)
   const purchaseLink = getItemPurchaseLink(item)
+  const reviewing = selected != null && reviewingOptionId === selected.id
   const attentionIssues = collectItemAttentionIssues(item, attentionContext)
   const needsAttention = attentionIssues.length > 0
 
   const [name, setName] = useState(item.name)
   const [estimated, setEstimated] = useState(costInputValue(item.estimated_cost))
+  const [quantity, setQuantity] = useState(costInputValue(item.quantity))
   const [paid, setPaid] = useState(costInputValue(item.actual_cost))
+  const [unitPrice, setUnitPrice] = useState(costInputValue(selected?.price ?? null))
   const [store, setStore] = useState(selected?.store ?? '')
   const [link, setLink] = useState(selected?.product_url ?? item.purchase_url ?? '')
 
@@ -378,12 +443,34 @@ function EditableItemRow({
       <td>
         <input
           className="item-table-input item-table-input-num"
-          inputMode="decimal"
-          aria-label={`Presupuesto ${item.name}`}
+          type="number"
+          step="0.01"
+          aria-label={`Cantidad ${item.name}`}
+          title="Cantidad"
+          value={quantity}
+          disabled={busy}
+          onChange={(e) => setQuantity(e.target.value)}
+          onBlur={() => {
+            const value = parseCost(quantity)
+            if (Number.isNaN(value) || value == null || value <= 0) {
+              setQuantity(costInputValue(item.quantity))
+              return
+            }
+            if (value === item.quantity) return
+            onSaveItem({ quantity: value })
+          }}
+        />
+      </td>
+      <td>
+        <input
+          className="item-table-input item-table-input-num"
+          type="number"
+          step="0.01"
+          aria-label={`Tope total ${item.name}`}
           title={
             !costs.contributesToBudget
               ? 'Informativo: no suma al presupuesto del proyecto'
-              : 'Presupuesto del ítem'
+              : 'Tope total presupuestado'
           }
           value={estimated}
           disabled={busy}
@@ -400,11 +487,52 @@ function EditableItemRow({
         />
       </td>
       <td>
+        <div className="item-table-price-review">
+          <input
+            className="item-table-input item-table-input-num"
+            type="number"
+            step="0.01"
+            aria-label={`Precio unitario ${item.name}`}
+            value={unitPrice}
+            disabled={busy || !selected}
+            placeholder="—"
+            onChange={(e) => setUnitPrice(e.target.value)}
+            onBlur={() => {
+              const value = parseCost(unitPrice)
+              if (Number.isNaN(value) || (value != null && value < 0)) {
+                setUnitPrice(costInputValue(selected?.price ?? null))
+                return
+              }
+              if (value === (selected?.price ?? null)) return
+              onSaveOption({ price: value })
+            }}
+          />
+          {selected ? (
+            <button
+              type="button"
+              className="btn-icon item-table-review-btn"
+              disabled={busy || reviewing || !selected.product_url}
+              onClick={onReviewPrice}
+              title={reviewing ? 'Revisando precio' : 'Revisar precio'}
+              aria-label={
+                reviewing
+                  ? `Revisando precio de ${item.name}`
+                  : `Revisar precio de ${item.name}`
+              }
+            >
+              <IconRefresh className={reviewing ? 'spin-icon' : undefined} />
+            </button>
+          ) : null}
+        </div>
+      </td>
+      <td>{costs.contributesToBudget ? formatMoney(costs.planned) : 'No suma'}</td>
+      <td>
         {costs.contributesToBudget ? (
           <input
             className="item-table-input item-table-input-num"
-            inputMode="decimal"
-            aria-label={`Precio pagado ${item.name}`}
+            type="number"
+            step="0.01"
+            aria-label={`Total pagado ${item.name}`}
             value={paid}
             disabled={busy}
             onChange={(e) => setPaid(e.target.value)}
@@ -419,7 +547,7 @@ function EditableItemRow({
             }}
           />
         ) : (
-          <span className="item-table-owned-badge" aria-label={`Precio pagado ${item.name}`}>
+          <span className="item-table-owned-badge" aria-label={`Total pagado ${item.name}`}>
             No suma
           </span>
         )}
@@ -442,6 +570,9 @@ function EditableItemRow({
         <div className="item-table-link-edit">
           <input
             className="item-table-input"
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
             aria-label={`Enlace ${item.name}`}
             value={link}
             disabled={busy}
@@ -454,7 +585,7 @@ function EditableItemRow({
                 onSaveOption({ product_url: null })
                 return
               }
-              const normalized = normalizeUrl(trimmed)
+              const normalized = normalizeProductUrl(trimmed)
               if (normalized == null) {
                 setLink(selected?.product_url ?? item.purchase_url ?? '')
                 return

@@ -16,6 +16,12 @@ import {
   parsePriorityOptions,
   parseStatusOptions,
 } from '@/features/projects/project-options'
+import {
+  PRICE_TRACKING_STATUSES,
+  TRACKED_PRICE_TYPES,
+  type PriceTrackingStatus,
+  type TrackedPriceType,
+} from '@/features/price-tracking/types'
 import { parseNumeric } from './errors'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
@@ -42,6 +48,18 @@ function asSavingsMode(
 ): SavingsMode {
   if (value === 'plan' || value === 'goal' || value === 'none') return value
   return goalEnabled ? 'goal' : 'none'
+}
+
+function asTrackedPriceType(value: string): TrackedPriceType {
+  return (TRACKED_PRICE_TYPES as readonly string[]).includes(value)
+    ? (value as TrackedPriceType)
+    : 'primary'
+}
+
+function asPriceTrackingStatus(value: string): PriceTrackingStatus {
+  return (PRICE_TRACKING_STATUSES as readonly string[]).includes(value)
+    ? (value as PriceTrackingStatus)
+    : 'inactive'
 }
 
 export function mapProfile(row: ProfileRow): Profile {
@@ -110,6 +128,7 @@ export function mapBudgetItem(row: {
   status: string
   priority: string
   category_id: string | null
+  quantity?: string | number | null
   estimated_cost: string | number | null
   actual_cost: string | number | null
   selected_option_price?: number | null
@@ -123,6 +142,7 @@ export function mapBudgetItem(row: {
     status: row.status,
     priority: row.priority,
     category_id: row.category_id,
+    quantity: parseNumeric(row.quantity ?? null) ?? 1,
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
     selected_option_price:
@@ -141,6 +161,7 @@ export function mapItem(row: ItemRow): Item {
     description: row.description,
     status: row.status,
     priority: row.priority,
+    quantity: parseNumeric(row.quantity) ?? 1,
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
     purchase_url: row.purchase_url,
@@ -166,6 +187,14 @@ export function mapOption(row: OptionRow): ItemOption {
     specifications: row.specifications,
     notes: row.notes,
     selected: row.selected,
+    tracking_enabled: row.tracking_enabled,
+    tracked_price_type: asTrackedPriceType(row.tracked_price_type),
+    target_price: parseNumeric(row.target_price),
+    alert_on_drop: row.alert_on_drop,
+    alert_on_increase: row.alert_on_increase,
+    alert_drop_percentage: parseNumeric(row.alert_drop_percentage),
+    last_checked_at: row.last_checked_at,
+    tracking_status: asPriceTrackingStatus(row.tracking_status),
     created_at: row.created_at,
     updated_at: row.updated_at,
   }

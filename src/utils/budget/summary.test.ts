@@ -21,6 +21,7 @@ function item(partial: Partial<BudgetItem> & Pick<BudgetItem, 'status'>): Budget
   return {
     priority: 'Medium',
     category_id: null,
+    quantity: 1,
     estimated_cost: null,
     actual_cost: null,
     selected_option_price: null,

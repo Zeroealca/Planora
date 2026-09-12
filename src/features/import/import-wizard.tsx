@@ -317,7 +317,8 @@ export function ImportWizard({
                 <label htmlFor="import-project-budget">Presupuesto disponible</label>
                 <input
                   id="import-project-budget"
-                  inputMode="decimal"
+                  type="number"
+                  step="0.01"
                   value={newBudget}
                   onChange={(e) => setNewBudget(e.target.value)}
                 />
@@ -645,7 +646,8 @@ function PreviewTableRow(props: {
         <td>
           <input
             className="import-cell-input import-cell-input-num"
-            inputMode="decimal"
+            type="number"
+            step="0.01"
             aria-label={`Presupuesto ${label}`}
             value={moneyInputValue(row.draft.estimatedCost)}
             onChange={(e) => onFieldChange('estimatedCost', e.target.value)}
@@ -654,7 +656,8 @@ function PreviewTableRow(props: {
         <td>
           <input
             className="import-cell-input import-cell-input-num"
-            inputMode="decimal"
+            type="number"
+            step="0.01"
             aria-label={`Precio planeado ${label}`}
             value={moneyInputValue(row.draft.plannedPrice)}
             onChange={(e) => onFieldChange('plannedPrice', e.target.value)}
@@ -663,7 +666,8 @@ function PreviewTableRow(props: {
         <td>
           <input
             className="import-cell-input import-cell-input-num"
-            inputMode="decimal"
+            type="number"
+            step="0.01"
             aria-label={`Precio pagado ${label}`}
             value={moneyInputValue(row.draft.actualCost)}
             onChange={(e) => onFieldChange('actualCost', e.target.value)}
