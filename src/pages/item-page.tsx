@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { IconBack } from '@/components/icons'
 import { ItemForm } from '@/features/items/item-form'
 import { deleteItem } from '@/features/items/item-api'
@@ -34,6 +34,7 @@ export function ItemPage() {
   const { projectId, itemId } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const formatMoney = useFormatMoney()
   const [project, setProject] = useState<Project | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
@@ -86,7 +87,7 @@ export function ItemPage() {
     if (!window.confirm(`¿Eliminar “${item.name}” y sus opciones?`)) return
     try {
       await deleteItem(item.id)
-      void navigate(`/projects/${projectId}`)
+      void navigate(`/projects/${projectId}${location.search}`)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'No se pudo eliminar.')
@@ -112,7 +113,7 @@ export function ItemPage() {
       <div className="page">
         <p>Ítem no encontrado.</p>
         <Link
-          to={projectId ? `/projects/${projectId}` : '/projects'}
+          to={projectId ? `/projects/${projectId}${location.search}` : '/projects'}
           className="back-link"
         >
           <IconBack />
@@ -145,9 +146,9 @@ export function ItemPage() {
   return (
     <div className="page">
       <p>
-        <Link to={`/projects/${project.id}`} className="back-link">
+        <Link to={`/projects/${project.id}${location.search}`} className="back-link">
           <IconBack />
-          {project.name}
+          Volver
         </Link>
       </p>
       <h1>{item.name}</h1>

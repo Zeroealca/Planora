@@ -38,6 +38,7 @@ export function ItemCard({
   statusOptions,
   priorityOptions,
   attentionContext,
+  itemDetailSearch,
   reviewing,
   onReviewPrice,
 }: {
@@ -47,6 +48,7 @@ export function ItemCard({
   statusOptions: readonly ProjectStatusOption[]
   priorityOptions: readonly ProjectPriorityOption[]
   attentionContext: AttentionContext
+  itemDetailSearch: string
   reviewing?: boolean
   onReviewPrice?: () => void
 }) {
@@ -74,7 +76,9 @@ export function ItemCard({
       <div className="item-card-head">
         <div className="item-card-title">
           <h3>
-            <Link to={`/projects/${projectId}/items/${item.id}`}>{item.name}</Link>
+            <Link to={`/projects/${projectId}/items/${item.id}${itemDetailSearch}`}>
+              {item.name}
+            </Link>
           </h3>
           <p className="muted">{categoryName}</p>
         </div>

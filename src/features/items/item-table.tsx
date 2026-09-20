@@ -85,6 +85,7 @@ export function ItemTable({
   attentionContext,
   activeSort,
   activeSortDirection,
+  itemDetailSearch,
   onSortChange,
   onItemUpdated,
 }: {
@@ -96,6 +97,7 @@ export function ItemTable({
   attentionContext: AttentionContext
   activeSort: ItemSortKey
   activeSortDirection: ItemSortDirection
+  itemDetailSearch: string
   onSortChange: (sort: ItemSortKey) => void
   onItemUpdated: (item: ItemWithOptions) => void
 }) {
@@ -260,6 +262,7 @@ export function ItemTable({
               statusOptions={statusOptions}
               priorityOptions={priorityOptions}
               attentionContext={attentionContext}
+              itemDetailSearch={itemDetailSearch}
               reviewing={getSelectedOption(item)?.id === reviewingOptionId}
               onReviewPrice={() => void reviewSelectedOption(item)}
             />
@@ -329,6 +332,7 @@ export function ItemTable({
                   statusOptions={statusOptions}
                   priorityOptions={priorityOptions}
                   attentionContext={attentionContext}
+                  itemDetailSearch={itemDetailSearch}
                   busy={savingId === item.id}
                   reviewingOptionId={reviewingOptionId}
                   formatMoney={formatMoney}
@@ -390,6 +394,7 @@ function EditableItemRow({
   statusOptions,
   priorityOptions,
   attentionContext,
+  itemDetailSearch,
   busy,
   reviewingOptionId,
   formatMoney,
@@ -403,6 +408,7 @@ function EditableItemRow({
   statusOptions: readonly ProjectStatusOption[]
   priorityOptions: readonly ProjectPriorityOption[]
   attentionContext: AttentionContext
+  itemDetailSearch: string
   busy: boolean
   reviewingOptionId: string | null
   formatMoney: (value: number) => string
@@ -463,7 +469,7 @@ function EditableItemRow({
             }}
           />
           <Link
-            to={`/projects/${projectId}/items/${item.id}`}
+            to={`/projects/${projectId}/items/${item.id}${itemDetailSearch}`}
             className="item-table-detail-link"
             title="Abrir detalle"
             aria-label={`Abrir detalle de ${item.name}`}

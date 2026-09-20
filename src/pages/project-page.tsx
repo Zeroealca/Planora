@@ -78,23 +78,32 @@ export function ProjectPage() {
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [creatingItem, setCreatingItem] = useState(false)
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All')
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
-  const [productQuery, setProductQuery] = useState('')
-  const [itemSort, setItemSort] = useState<ItemSortKey>('name')
-  const [itemSortDirection, setItemSortDirection] = useState<ItemSortDirection>('asc')
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [attentionFilter, setAttentionFilter] = useState<AttentionFilter | null>(
-    null,
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>(
+    () => (searchParams.get('priority') as PriorityFilter | null) ?? 'All',
+  )
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(
+    () => (searchParams.get('category') as CategoryFilter | null) ?? 'All',
+  )
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    () => (searchParams.get('status') as StatusFilter | null) ?? 'All',
+  )
+  const [productQuery, setProductQuery] = useState(() => searchParams.get('query') ?? '')
+  const [itemSort, setItemSort] = useState<ItemSortKey>(
+    () => (searchParams.get('sort') as ItemSortKey | null) ?? 'name',
+  )
+  const [itemSortDirection, setItemSortDirection] = useState<ItemSortDirection>(
+    () => (searchParams.get('direction') as ItemSortDirection | null) ?? 'asc',
+  )
+  const [filtersOpen, setFiltersOpen] = useState(() =>
+    ['priority', 'category', 'status', 'query', 'attention', 'sort', 'direction'].some(
+      (key) => searchParams.has(key),
+    ),
+  )
+  const [attentionFilter, setAttentionFilter] = useState<AttentionFilter>(
+    () => (searchParams.get('attention') as AttentionFilter | null) ?? 'All',
   )
 
-  const attentionFromUrl =
-    searchParams.get('attention') === 'needs_attention'
-      ? 'needs_attention'
-      : 'All'
-  const activeAttentionFilter: AttentionFilter =
-    attentionFilter ?? attentionFromUrl
+  const activeAttentionFilter = attentionFilter
   const requestedTab = resolveInitialTab(
     searchParams.get('tab'),
     searchParams.get('attention'),
@@ -117,13 +126,43 @@ export function ProjectPage() {
     )
   }
 
+  function setListFilters(
+    filters: readonly [key: string, value: string, defaultValue: string][],
+  ) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('tab', 'items')
+        for (const [key, value, defaultValue] of filters) {
+          if (value === defaultValue) {
+            next.delete(key)
+          } else {
+            next.set(key, value)
+          }
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  function setListFilter(key: string, value: string, defaultValue: string) {
+    setListFilters([[key, value, defaultValue]])
+  }
+
   function changeItemSort(sort: ItemSortKey) {
     if (sort === itemSort) {
-      setItemSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'))
+      const nextDirection = itemSortDirection === 'asc' ? 'desc' : 'asc'
+      setItemSortDirection(nextDirection)
+      setListFilter('direction', nextDirection, 'asc')
       return
     }
     setItemSort(sort)
     setItemSortDirection('asc')
+    setListFilters([
+      ['sort', sort, 'name'],
+      ['direction', 'asc', 'asc'],
+    ])
   }
 
   const load = useCallback(async () => {
@@ -219,6 +258,7 @@ export function ProjectPage() {
     statusFilter !== 'All' ||
     productQuery.trim() !== '' ||
     activeAttentionFilter !== 'All'
+  const itemDetailSearch = `?${searchParams.toString() || 'tab=items'}`
 
   const budgetLabel =
     project.budget == null ? 'sin definir' : formatMoney(project.budget)
@@ -342,7 +382,10 @@ export function ProjectPage() {
               value={productQuery}
               placeholder="Nombre del producto…"
               autoComplete="off"
-              onChange={(event) => setProductQuery(event.target.value)}
+              onChange={(event) => {
+                setProductQuery(event.target.value)
+                setListFilter('query', event.target.value, '')
+              }}
             />
           </div>
           <button
@@ -364,7 +407,10 @@ export function ProjectPage() {
               <select
                 id="filter-status"
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value)
+                  setListFilter('status', event.target.value, 'All')
+                }}
               >
                 <option value="All">Todos</option>
                 {project.status_options.map((option) => (
@@ -379,7 +425,10 @@ export function ProjectPage() {
               <select
                 id="filter-priority"
                 value={priorityFilter}
-                onChange={(event) => setPriorityFilter(event.target.value)}
+                onChange={(event) => {
+                  setPriorityFilter(event.target.value)
+                  setListFilter('priority', event.target.value, 'All')
+                }}
               >
                 <option value="All">Todas</option>
                 {project.priority_options.map((option) => (
@@ -394,7 +443,10 @@ export function ProjectPage() {
               <select
                 id="filter-category"
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) => {
+                  setCategoryFilter(event.target.value)
+                  setListFilter('category', event.target.value, 'All')
+                }}
               >
                 <option value="All">Todas</option>
                 {categories.map((category) => (
@@ -409,9 +461,11 @@ export function ProjectPage() {
               <select
                 id="filter-attention"
                 value={activeAttentionFilter}
-                onChange={(event) =>
-                  setAttentionFilter(event.target.value as AttentionFilter)
-                }
+                onChange={(event) => {
+                  const next = event.target.value as AttentionFilter
+                  setAttentionFilter(next)
+                  setListFilter('attention', next, 'All')
+                }}
               >
                 <option value="All">Todos</option>
                 <option value="needs_attention">Necesita atención</option>
@@ -427,8 +481,13 @@ export function ProjectPage() {
                 id="filter-sort"
                 value={itemSort}
                 onChange={(event) => {
-                  setItemSort(event.target.value as ItemSortKey)
+                  const next = event.target.value as ItemSortKey
+                  setItemSort(next)
                   setItemSortDirection('asc')
+                  setListFilters([
+                    ['sort', next, 'name'],
+                    ['direction', 'asc', 'asc'],
+                  ])
                 }}
               >
                 {ITEM_SORT_OPTIONS.map((option) => (
@@ -443,9 +502,11 @@ export function ProjectPage() {
               <select
                 id="filter-sort-direction"
                 value={itemSortDirection}
-                onChange={(event) =>
-                  setItemSortDirection(event.target.value as ItemSortDirection)
-                }
+                onChange={(event) => {
+                  const next = event.target.value as ItemSortDirection
+                  setItemSortDirection(next)
+                  setListFilter('direction', next, 'asc')
+                }}
               >
                 <option value="asc">Ascendente</option>
                 <option value="desc">Descendente</option>
@@ -525,6 +586,7 @@ export function ProjectPage() {
             attentionContext={attentionContext}
             activeSort={itemSort}
             activeSortDirection={itemSortDirection}
+            itemDetailSearch={itemDetailSearch}
             onSortChange={changeItemSort}
             onItemUpdated={(updated) => {
               setItems((prev) =>
