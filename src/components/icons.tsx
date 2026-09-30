@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  Pencil,
   RefreshCw,
   Menu,
   Moon,
@@ -30,4 +31,8 @@ export function IconSun({ className, size = 22 }: { className?: string; size?: n
 
 export function IconMoon({ className, size = 22 }: { className?: string; size?: number }) {
   return <Moon className={className} size={size} aria-hidden="true" />
+}
+
+export function IconPencil({ className, size = 16 }: { className?: string; size?: number }) {
+  return <Pencil className={className} size={size} aria-hidden="true" />
 }
