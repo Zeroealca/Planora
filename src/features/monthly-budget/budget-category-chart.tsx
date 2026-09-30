@@ -154,7 +154,7 @@ export function BudgetCategoryChart({ categories, categoryName }: Props) {
   }
 
   return (
-    <section className="card stack budget-category-chart" aria-labelledby="budget-category-chart-title">
+    <section className="stack budget-category-chart" aria-labelledby="budget-category-chart-title">
       <h2 id="budget-category-chart-title">{title}</h2>
 
       <div className="budget-category-chart__layout">

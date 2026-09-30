@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { IconCheck, IconPencil, IconTrash } from '@/components/icons'
 import { createCategory, deleteCategory, updateCategory } from './category-api'
 import type { Category } from '@/types/domain'
 
@@ -74,11 +75,11 @@ export function CategorySection({
       {categories.length === 0 ? (
         <p className="muted">Todavía no hay categorías.</p>
       ) : (
-        <ul className="plain-list">
+        <ul className="category-card-grid">
           {categories.map((category) => (
-            <li key={category.id} className="row-between">
+            <li key={category.id} className="category-card">
               {editingId === category.id ? (
-                <div className="row">
+                <div className="category-card-edit">
                   <label className="sr-only" htmlFor={`edit-cat-${category.id}`}>
                     Nombre de categoría
                   </label>
@@ -86,59 +87,87 @@ export function CategorySection({
                     id={`edit-cat-${category.id}`}
                     value={editingName}
                     onChange={(event) => setEditingName(event.target.value)}
+                    autoFocus
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        void onSaveEdit(category.id)
+                      }
+                      if (event.key === 'Escape') setEditingId(null)
+                    }}
                   />
                   <button
                     type="button"
-                    className="btn"
+                    className="btn-icon"
+                    disabled={editingName.trim() === ''}
                     onClick={() => void onSaveEdit(category.id)}
+                    aria-label={`Guardar ${category.name}`}
+                    title="Guardar"
                   >
-                    Guardar
+                    <IconCheck />
                   </button>
                 </div>
               ) : (
-                <span>{category.name}</span>
+                <>
+                  <span className="category-card-name">{category.name}</span>
+                  <div className="category-card-actions">
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => {
+                        setEditingId(category.id)
+                        setEditingName(category.name)
+                        setError(null)
+                      }}
+                      aria-label={`Editar ${category.name}`}
+                      title="Editar"
+                    >
+                      <IconPencil />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon btn-icon-danger"
+                      onClick={() => void onDelete(category)}
+                      aria-label={`Eliminar ${category.name}`}
+                      title="Eliminar"
+                    >
+                      <IconTrash />
+                    </button>
+                  </div>
+                </>
               )}
-              <span className="row">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setEditingId(category.id)
-                    setEditingName(category.name)
-                  }}
-                >
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => void onDelete(category)}
-                >
-                  Eliminar
-                </button>
-              </span>
             </li>
           ))}
         </ul>
       )}
-      <form className="stack" onSubmit={onCreate}>
+
+      <form className="budget-form-compact category-add-form" onSubmit={onCreate}>
         <div className="field">
           <label htmlFor="new-category">Nueva categoría</label>
           <input
             id="new-category"
             value={name}
             onChange={(event) => setName(event.target.value)}
+            placeholder="Ej. Cocina"
+            autoComplete="off"
           />
         </div>
-        {error ? (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <button className="btn" type="submit" disabled={submitting}>
-          {submitting ? 'Añadiendo…' : 'Añadir categoría'}
-        </button>
+        <div className="budget-form-compact-actions">
+          <button
+            className="btn"
+            type="submit"
+            disabled={submitting || name.trim() === ''}
+          >
+            {submitting ? 'Añadiendo…' : 'Añadir'}
+          </button>
+        </div>
       </form>
+
+      {error ? (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   )
 }

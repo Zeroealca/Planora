@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
-import { IconPencil } from '@/components/icons'
+import { IconEye, IconPencil, IconPlusCircle, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
 import { BudgetCategoryChart } from '@/features/monthly-budget/budget-category-chart'
 import { BudgetReusePanel } from '@/features/monthly-budget/budget-reuse-panel'
@@ -144,6 +144,11 @@ export function BudgetPage() {
   const editingCategoryName = editAllocation
     ? categoryLabel(editAllocation.financialCategoryId)
     : null
+  const allocationAmount = parseCost(amount)
+  const canSubmitAllocation =
+    (editAllocation != null || categoryName.trim() !== '') &&
+    allocationAmount != null &&
+    allocationAmount >= 0
 
   return (
     <div className="page">
@@ -196,6 +201,7 @@ export function BudgetPage() {
                   type="button"
                   className="btn-icon"
                   aria-label={editing ? 'Cerrar edición de disponible' : 'Editar disponible inicial'}
+                  title={editing ? 'Cerrar edición' : 'Editar'}
                   aria-pressed={editing}
                   onClick={() => setEditing(!editing)}
                 >
@@ -272,21 +278,25 @@ export function BudgetPage() {
                     </div>
                     <div className="budget-category-item__actions">
                       <Link
-                        className="btn btn-ghost"
+                        className="btn-icon"
                         to={`/budget/transactions?period=${period}&category=${c.financialCategoryId}`}
+                        aria-label={`Ver gastos de ${categoryLabel(c.financialCategoryId)}`}
+                        title="Ver gastos"
                       >
-                        Ver gastos
+                        <IconEye />
                       </Link>
                       <Link
-                        className="btn btn-ghost"
+                        className="btn-icon"
                         to={`/budget/transactions?period=${period}&create=1&category=${c.financialCategoryId}`}
+                        aria-label={`Registrar gasto en ${categoryLabel(c.financialCategoryId)}`}
+                        title="Registrar gasto"
                       >
-                        Registrar gasto
+                        <IconPlusCircle />
                       </Link>
                       {a ? (
                         <>
                           <button
-                            className="btn btn-ghost"
+                            className="btn-icon"
                             type="button"
                             onClick={() => {
                               setEditAllocation(a)
@@ -294,11 +304,13 @@ export function BudgetPage() {
                               setAmount(costInputValue(a.amount))
                               setError(null)
                             }}
+                            aria-label={`Editar asignación de ${categoryLabel(a.financialCategoryId)}`}
+                            title="Editar"
                           >
-                            Editar
+                            <IconPencil />
                           </button>
                           <button
-                            className="btn btn-ghost btn-danger-ghost"
+                            className="btn-icon btn-icon-danger"
                             type="button"
                             onClick={() => {
                               if (window.confirm("¿Eliminar asignación?")) {
@@ -311,8 +323,10 @@ export function BudgetPage() {
                                   )
                               }
                             }}
+                            aria-label={`Eliminar asignación de ${categoryLabel(a.financialCategoryId)}`}
+                            title="Eliminar"
                           >
-                            Eliminar
+                            <IconTrash />
                           </button>
                         </>
                       ) : null}
@@ -322,7 +336,7 @@ export function BudgetPage() {
               })}
             </ul>
 
-            <form className="card stack" onSubmit={saveAllocation}>
+            <form className="budget-form-compact" onSubmit={saveAllocation}>
               <div className="field">
                 <label htmlFor="budget-category-name">
                   {editAllocation ? 'Categoría' : 'Nombre de categoría'}
@@ -349,8 +363,10 @@ export function BudgetPage() {
                   placeholder="0"
                 />
               </div>
-              <div className="row">
-                <button className="btn">{editAllocation ? 'Guardar' : 'Añadir'}</button>
+              <div className="budget-form-compact-actions">
+                <button className="btn" disabled={!canSubmitAllocation}>
+                  {editAllocation ? 'Guardar' : 'Añadir'}
+                </button>
                 {editAllocation ? (
                   <button type="button" className="btn btn-ghost" onClick={resetAllocationForm}>
                     Cancelar

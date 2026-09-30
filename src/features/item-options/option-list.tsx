@@ -1,10 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { IconRefresh } from '@/components/icons'
+import { IconClose, IconPencil, IconRefresh, IconTrash } from '@/components/icons'
 import type { ItemOption } from '@/types/domain'
 import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
 import { normalizeProductUrl } from '@/features/price-tracking/url-normalization'
-import type { TrackedPriceType } from '@/features/price-tracking/types'
+import type {
+  PriceTrackingStatus,
+  TrackedPriceType,
+} from '@/features/price-tracking/types'
 import {
   createOption,
   deleteOption,
@@ -18,6 +21,28 @@ import {
   validateOptionImage,
   type OptionInput,
 } from './option-api'
+
+const TRACKING_STATUS_LABELS: Record<PriceTrackingStatus, string> = {
+  inactive: 'Inactivo',
+  active: 'Activo',
+  success: 'Actualizado',
+  price_not_found: 'Precio no encontrado',
+  unavailable: 'No disponible',
+  error: 'Error',
+  needs_review: 'Requiere revisión',
+}
+
+function trackingStatusLabel(status: PriceTrackingStatus): string {
+  return TRACKING_STATUS_LABELS[status] ?? status
+}
+
+function trackingSummary(option: ItemOption): string {
+  const enabled = option.tracking_enabled ? 'Activo' : 'Inactivo'
+  if (!option.tracking_enabled && option.tracking_status === 'inactive') {
+    return enabled
+  }
+  return `${enabled} · ${trackingStatusLabel(option.tracking_status)}`
+}
 
 function OptionImage({ path, alt }: { path: string | null; alt: string }) {
   const [url, setUrl] = useState<string | null>(null)
@@ -416,101 +441,158 @@ export function OptionList({
         <p className="muted">Este ítem no tiene opciones todavía.</p>
       ) : (
         <ul className="card-list">
-          {options.map((option) => (
-            <li key={option.id} className="card">
-              <div className="row-between">
-                <h3>
-                  {option.name}
-                  {option.selected ? ' · seleccionada' : ''}
-                </h3>
-                {option.selected ? (
-                  <span className="badge">Preferida</span>
-                ) : (
+          {options.map((option) => {
+            const brandModel =
+              [option.brand, option.model].filter(Boolean).join(' · ') || 'Sin marca'
+            const isEditing = editingId === option.id
+            const isReviewing = reviewingId === option.id
+
+            return (
+              <li
+                key={option.id}
+                className={`card option-card${option.selected ? ' option-card-selected' : ''}`}
+              >
+                <div className="option-card-head">
+                  <div className="option-card-title">
+                    <h3>{option.name}</h3>
+                    {option.selected ? (
+                      <span className="badge">Preferida</span>
+                    ) : null}
+                  </div>
+                  <div className="option-card-toolbar">
+                    {!option.selected ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => void onSelect(option.id)}
+                      >
+                        Seleccionar
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => setEditingId(isEditing ? null : option.id)}
+                      aria-label={
+                        isEditing
+                          ? `Cerrar edición de ${option.name}`
+                          : `Editar ${option.name}`
+                      }
+                      title={isEditing ? 'Cerrar' : 'Editar'}
+                      aria-pressed={isEditing}
+                    >
+                      {isEditing ? <IconClose size={16} /> : <IconPencil />}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon btn-icon-danger"
+                      onClick={() => void onDelete(option)}
+                      aria-label={`Eliminar ${option.name}`}
+                      title="Eliminar"
+                    >
+                      <IconTrash />
+                    </button>
+                  </div>
+                </div>
+
+                <OptionImage path={option.image_url} alt={option.name} />
+
+                <dl className="option-card-meta">
+                  <div>
+                    <dt>Marca</dt>
+                    <dd>{brandModel}</dd>
+                  </div>
+                  <div>
+                    <dt>Precio</dt>
+                    <dd>{option.price == null ? '—' : formatMoney(option.price)}</dd>
+                  </div>
+                  <div>
+                    <dt>Tienda</dt>
+                    <dd>{option.store || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Seguimiento</dt>
+                    <dd>{trackingSummary(option)}</dd>
+                  </div>
+                  {option.last_checked_at ? (
+                    <div className="option-card-meta-wide">
+                      <dt>Última revisión</dt>
+                      <dd>{new Date(option.last_checked_at).toLocaleString()}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+
+                <div className="option-card-actions">
+                  {option.product_url ? (
+                    <a
+                      href={option.product_url}
+                      rel="noreferrer"
+                      target="_blank"
+                      className="btn btn-ghost"
+                    >
+                      Ver producto
+                    </a>
+                  ) : (
+                    <span className="muted">Sin enlace de producto</span>
+                  )}
                   <button
                     type="button"
-                    className="btn"
-                    onClick={() => void onSelect(option.id)}
+                    className="btn option-review-btn"
+                    disabled={isReviewing || !option.product_url}
+                    onClick={() => void onReview(option)}
                   >
-                    Seleccionar
+                    <IconRefresh className={isReviewing ? 'spin-icon' : undefined} />
+                    {isReviewing ? 'Revisando precio' : 'Revisar precio'}
                   </button>
-                )}
-              </div>
-              <OptionImage path={option.image_url} alt={option.name} />
-              <p className="muted">
-                {[option.brand, option.model].filter(Boolean).join(' · ') || 'Sin marca'}
-              </p>
-              <p>Precio: {option.price == null ? '—' : formatMoney(option.price)}</p>
-              <p className="muted">
-                Seguimiento:{' '}
-                {option.tracking_enabled ? 'activo' : 'inactivo'} · Estado:{' '}
-                {option.tracking_status}
-                {option.last_checked_at
-                  ? ` · Última revisión: ${new Date(option.last_checked_at).toLocaleString()}`
-                  : ''}
-              </p>
-              {option.store ? <p>Tienda: {option.store}</p> : null}
-              {option.product_url ? (
-                <p>
-                  <a href={option.product_url} rel="noreferrer" target="_blank">
-                    Ver producto
-                  </a>
-                </p>
-              ) : null}
-              <div className="option-price-actions">
-                <button
-                  type="button"
-                  className="btn option-review-btn"
-                  disabled={reviewingId === option.id || !option.product_url}
-                  onClick={() => void onReview(option)}
-                >
-                  <IconRefresh
-                    className={reviewingId === option.id ? 'spin-icon' : undefined}
+                </div>
+
+                {option.description ? <p>{option.description}</p> : null}
+                {option.specifications ? <p>{option.specifications}</p> : null}
+                {option.notes ? <p className="muted">{option.notes}</p> : null}
+
+                <div className="file-picker">
+                  <span className="file-picker-label" id={`img-label-${option.id}`}>
+                    Imagen
+                  </span>
+                  <p className="muted file-picker-hint">
+                    JPG, PNG o WebP · máx. 5 MB
+                  </p>
+                  <div className="file-picker-row">
+                    <input
+                      id={`img-${option.id}`}
+                      className="sr-only"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      aria-labelledby={`img-label-${option.id}`}
+                      onChange={(event) => {
+                        void onImage(option, event.target.files?.[0])
+                        event.target.value = ''
+                      }}
+                    />
+                    <label htmlFor={`img-${option.id}`} className="btn">
+                      {option.image_url ? 'Cambiar imagen' : 'Subir imagen'}
+                    </label>
+                    <span className="muted file-picker-name">
+                      {option.image_url
+                        ? 'Imagen cargada'
+                        : 'Ningún archivo seleccionado'}
+                    </span>
+                  </div>
+                </div>
+
+                {isEditing ? (
+                  <OptionForm
+                    option={option}
+                    itemId={itemId}
+                    onSaved={() => {
+                      setEditingId(null)
+                      onChanged()
+                    }}
                   />
-                  {reviewingId === option.id ? 'Revisando precio' : 'Revisar precio'}
-                </button>
-              </div>
-              {option.description ? <p>{option.description}</p> : null}
-              {option.specifications ? <p>{option.specifications}</p> : null}
-              {option.notes ? <p className="muted">{option.notes}</p> : null}
-              <div className="field">
-                <label htmlFor={`img-${option.id}`}>Imagen (JPG, PNG o WebP, máx. 5 MB)</label>
-                <input
-                  id={`img-${option.id}`}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => void onImage(option, event.target.files?.[0])}
-                />
-              </div>
-              <div className="row">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() =>
-                    setEditingId(editingId === option.id ? null : option.id)
-                  }
-                >
-                  {editingId === option.id ? 'Cerrar' : 'Editar'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => void onDelete(option)}
-                >
-                  Eliminar
-                </button>
-              </div>
-              {editingId === option.id ? (
-                <OptionForm
-                  option={option}
-                  itemId={itemId}
-                  onSaved={() => {
-                    setEditingId(null)
-                    onChanged()
-                  }}
-                />
-              ) : null}
-            </li>
-          ))}
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       )}
       {creating ? (

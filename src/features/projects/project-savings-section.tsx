@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { IconPencil, IconTrash } from '@/components/icons'
 import type {
   Project,
   ProjectSavingsMovement,
@@ -818,17 +819,21 @@ export function ProjectSavingsSection({
                     </strong>
                     <button
                       type="button"
-                      className="btn btn-ghost"
+                      className="btn-icon"
                       onClick={() => onEditMovement(movement)}
+                      aria-label={`Editar ${movement.name}`}
+                      title="Editar"
                     >
-                      Editar
+                      <IconPencil />
                     </button>
                     <button
                       type="button"
-                      className="btn btn-ghost"
+                      className="btn-icon btn-icon-danger"
                       onClick={() => void onDeleteMovement(movement.id)}
+                      aria-label={`Eliminar ${movement.name}`}
+                      title="Eliminar"
                     >
-                      Eliminar
+                      <IconTrash />
                     </button>
                   </div>
                 </li>
