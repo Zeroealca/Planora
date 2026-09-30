@@ -9,6 +9,14 @@ import type {
   SavingsMode,
   SavingsMovementType,
 } from '@/types/domain'
+import type {
+  FinancialCategory,
+  PersistedMonthlyBudget,
+  PersistedMonthlyBudgetAllocation,
+  BudgetTemplate,
+  BudgetTemplateAllocation,
+} from '@/features/monthly-budget/domain'
+import type { FinancialTransaction, TransactionType } from '@/features/transactions/domain'
 import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
 import { DEFAULT_CURRENCY, isCurrencyCode } from '@/features/profile/currencies'
@@ -31,6 +39,13 @@ type OptionRow = Database['public']['Tables']['item_options']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type SavingsMovementRow =
   Database['public']['Tables']['project_savings_movements']['Row']
+type FinancialCategoryRow = Database['public']['Tables']['financial_categories']['Row']
+type MonthlyBudgetRow = Database['public']['Tables']['monthly_budgets']['Row']
+type MonthlyBudgetAllocationRow =
+  Database['public']['Tables']['monthly_budget_allocations']['Row']
+type TransactionRow = Database['public']['Tables']['transactions']['Row']
+type BudgetTemplateRow = Database['public']['Tables']['budget_templates']['Row']
+type BudgetTemplateAllocationRow = Database['public']['Tables']['budget_template_allocations']['Row']
 
 function asPreset(value: string): LabelPreset {
   return (LABEL_PRESETS as readonly string[]).includes(value)
@@ -197,5 +212,58 @@ export function mapOption(row: OptionRow): ItemOption {
     tracking_status: asPriceTrackingStatus(row.tracking_status),
     created_at: row.created_at,
     updated_at: row.updated_at,
+  }
+}
+
+export function mapFinancialCategory(row: FinancialCategoryRow): FinancialCategory {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    archivedAt: row.archived_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+export function mapMonthlyBudget(row: MonthlyBudgetRow): PersistedMonthlyBudget {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    period: row.period,
+    availableAmount: parseNumeric(row.available_amount) ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+export function mapMonthlyBudgetAllocation(
+  row: MonthlyBudgetAllocationRow,
+): PersistedMonthlyBudgetAllocation {
+  return {
+    id: row.id,
+    monthlyBudgetId: row.monthly_budget_id,
+    financialCategoryId: row.financial_category_id,
+    amount: parseNumeric(row.amount) ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+export function mapBudgetTemplate(row: BudgetTemplateRow): BudgetTemplate { return { id: row.id, userId: row.user_id, name: row.name, suggestedAvailableAmount: parseNumeric(row.suggested_available_amount), createdAt: row.created_at, updatedAt: row.updated_at } }
+export function mapBudgetTemplateAllocation(row: BudgetTemplateAllocationRow): BudgetTemplateAllocation { return { id: row.id, budgetTemplateId: row.budget_template_id, financialCategoryId: row.financial_category_id, amount: parseNumeric(row.amount) ?? 0, createdAt: row.created_at, updatedAt: row.updated_at } }
+
+export function mapFinancialTransaction(row: TransactionRow): FinancialTransaction {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    occurredOn: row.occurred_on,
+    amount: parseNumeric(row.amount) ?? 0,
+    type: row.transaction_type === 'income' ? 'income' : ('expense' as TransactionType),
+    financialCategoryId: row.financial_category_id,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }

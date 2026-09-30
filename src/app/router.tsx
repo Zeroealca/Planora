@@ -9,6 +9,8 @@ import { ItemPage } from '@/pages/item-page'
 import { ImportPage } from '@/pages/import-page'
 import { SettingsPage } from '@/pages/settings-page'
 import { NotFoundPage } from '@/pages/not-found-page'
+import { BudgetPage } from '@/pages/budget-page'
+import { TransactionsPage } from '@/pages/transactions-page'
 import { RequireSession } from '@/features/auth/require-session'
 
 /**
@@ -26,6 +28,8 @@ export function AppRoutes() {
         <Route path="auth/callback" element={<AuthCallbackPage />} />
         <Route element={<RequireSession />}>
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="budget" element={<BudgetPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="projects/:projectId" element={<ProjectPage />} />
           <Route path="projects/:projectId/items/:itemId" element={<ItemPage />} />

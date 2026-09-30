@@ -8,6 +8,29 @@ El dominio es **genérico** (no acoplado a casas ni muebles). El primer caso de 
 
 React · Vite · TypeScript · Supabase (Auth, PostgreSQL, Storage) · PWA · GitHub Pages
 
+## Presupuesto mensual — estado actual
+
+El módulo de presupuesto mensual es independiente de Projects. En esta fase se
+persisten categorías financieras por usuario, presupuestos identificados por
+`YYYY-MM` y asignaciones por categoría. `availableAmount` es una decisión
+manual; las asignaciones son planificación y pueden superar el disponible.
+
+No se persisten agregados como asignado, sin asignar, gastado o restante: se
+derivan en el dominio. Las categorías financieras no son las categorías de
+Projects y se archivan para preservar el historial.
+
+Las transacciones son la fuente de movimientos reales y no pertenecen a un
+presupuesto mensual: el mes se deriva de `occurred_on` como fecha civil. Un
+`expense` requiere categoría y suma a `spent`; un `income` puede no tenerla y
+no cambia `spent` ni `availableAmount`. Los gastos sin asignación siguen
+formando parte del gasto mensual. Refunds, transfers, cuentas, recurrencia y
+vínculos con Projects todavía no están implementados.
+
+La navegación incluye **Presupuesto** y **Transacciones**. Desde Presupuesto
+puedes crear el disponible del mes, añadir o editar asignaciones y registrar
+gastos; las métricas se actualizan desde los movimientos reales. Transacciones
+permite registrar, editar y eliminar gastos e ingresos por mes.
+
 ## Para agentes y contribuidores
 
 - Instrucciones del proyecto: [`agent.md`](./agent.md)
@@ -42,7 +65,7 @@ La app estará en `http://localhost:5173`.
 ## Supabase
 
 1. Crea un proyecto en [Supabase](https://supabase.com).
-2. Aplica la migración `supabase/migrations/20260830120000_initial_schema.sql` (SQL Editor o CLI).
+2. Aplica las migraciones de `supabase/migrations/` en orden (SQL Editor o CLI).
 3. Copia URL y anon key a `.env`.
 4. En Authentication, habilita email/password.
 5. En **Authentication → URL Configuration**, configura:

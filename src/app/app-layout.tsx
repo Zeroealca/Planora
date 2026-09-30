@@ -43,6 +43,12 @@ export function AppLayout() {
             className={menuOpen ? 'app-nav app-nav-open' : 'app-nav'}
             aria-label="Principal"
           >
+            <Link to="/budget" onClick={() => setMenuOpen(false)}>
+              Presupuesto
+            </Link>
+            <Link to="/transactions" onClick={() => setMenuOpen(false)}>
+              Transacciones
+            </Link>
             <Link to="/projects" onClick={() => setMenuOpen(false)}>
               Proyectos
             </Link>

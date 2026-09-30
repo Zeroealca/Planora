@@ -376,11 +376,171 @@ export type Database = {
           },
         ]
       }
+      financial_categories: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          archived_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          archived_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          archived_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monthly_budgets: {
+        Row: {
+          id: string
+          user_id: string
+          period: string
+          available_amount: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          period: string
+          available_amount: number | string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          period?: string
+          available_amount?: number | string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monthly_budget_allocations: {
+        Row: {
+          id: string
+          monthly_budget_id: string
+          financial_category_id: string
+          amount: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          monthly_budget_id: string
+          financial_category_id: string
+          amount: number | string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          monthly_budget_id?: string
+          financial_category_id?: string
+          amount?: number | string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'monthly_budget_allocations_monthly_budget_id_fkey'
+            columns: ['monthly_budget_id']
+            isOneToOne: false
+            referencedRelation: 'monthly_budgets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'monthly_budget_allocations_financial_category_id_fkey'
+            columns: ['financial_category_id']
+            isOneToOne: false
+            referencedRelation: 'financial_categories'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      budget_templates: {
+        Row: { id: string; user_id: string; name: string; suggested_available_amount: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; name: string; suggested_available_amount?: number | string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; name?: string; suggested_available_amount?: number | string | null; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      budget_template_allocations: {
+        Row: { id: string; budget_template_id: string; financial_category_id: string; amount: string; created_at: string; updated_at: string }
+        Insert: { id?: string; budget_template_id: string; financial_category_id: string; amount: number | string; created_at?: string; updated_at?: string }
+        Update: { id?: string; budget_template_id?: string; financial_category_id?: string; amount?: number | string; created_at?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: 'budget_template_allocations_budget_template_id_fkey'; columns: ['budget_template_id']; isOneToOne: false; referencedRelation: 'budget_templates'; referencedColumns: ['id'] },
+          { foreignKeyName: 'budget_template_allocations_financial_category_id_fkey'; columns: ['financial_category_id']; isOneToOne: false; referencedRelation: 'financial_categories'; referencedColumns: ['id'] },
+        ]
+      }
+      transactions: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          occurred_on: string
+          amount: string
+          transaction_type: string
+          financial_category_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          occurred_on: string
+          amount: number | string
+          transaction_type: string
+          financial_category_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          occurred_on?: string
+          amount?: number | string
+          transaction_type?: string
+          financial_category_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'transactions_financial_category_id_fkey'
+            columns: ['financial_category_id']
+            isOneToOne: false
+            referencedRelation: 'financial_categories'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_monthly_budget_snapshot: { Args: { p_period: string; p_available_amount: number; p_source_budget_id?: string | null; p_source_template_id?: string | null }; Returns: string }
+      create_budget_template_from_monthly_budget: { Args: { p_source_budget_id: string; p_name: string }; Returns: string }
       select_item_option: {
         Args: { p_option_id: string }
         Returns: undefined
