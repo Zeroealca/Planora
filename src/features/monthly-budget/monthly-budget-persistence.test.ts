@@ -31,12 +31,12 @@ describe('monthly-budget persistence boundary', () => {
     ).toMatchObject({ id: 'category', userId: 'user', archivedAt: '2027-10-01T00:00:00Z' })
     expect(
       mapMonthlyBudget({
-        id: 'budget', user_id: 'user', period: '2027-09', available_amount: '869.67', created_at: 'created', updated_at: 'updated',
+        id: 'budget', user_id: 'user', period: '2027-09', available_amount: 869.67, created_at: 'created', updated_at: 'updated',
       }),
     ).toMatchObject({ id: 'budget', period: '2027-09', availableAmount: 869.67 })
     expect(
       mapMonthlyBudgetAllocation({
-        id: 'allocation', monthly_budget_id: 'budget', financial_category_id: 'category', amount: '250.00', created_at: 'created', updated_at: 'updated',
+        id: 'allocation', monthly_budget_id: 'budget', financial_category_id: 'category', amount: 250, created_at: 'created', updated_at: 'updated',
       }),
     ).toMatchObject({ monthlyBudgetId: 'budget', financialCategoryId: 'category', amount: 250 })
   })

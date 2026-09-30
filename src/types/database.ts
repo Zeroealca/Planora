@@ -1,12 +1,3 @@
-/**
- * Supabase generated-style types. After applying migrations, regenerate with:
- *
- *   npx supabase gen types typescript --project-id <project-id> > src/types/database.ts
- *
- * Domain types in `domain.ts` stay the source of truth for the UI; mappers
- * convert numeric strings from Postgres into numbers.
- */
-
 export type Json =
   | string
   | number
@@ -16,521 +7,611 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      profiles: {
+      budget_template_allocations: {
         Row: {
-          id: string
-          display_name: string | null
-          currency_code: string
+          amount: number
+          budget_template_id: string
           created_at: string
+          financial_category_id: string
+          id: string
           updated_at: string
         }
         Insert: {
-          id: string
-          display_name?: string | null
-          currency_code?: string
+          amount: number
+          budget_template_id: string
           created_at?: string
+          financial_category_id: string
+          id?: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          display_name?: string | null
-          currency_code?: string
+          amount?: number
+          budget_template_id?: string
           created_at?: string
+          financial_category_id?: string
+          id?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_template_allocations_budget_template_id_fkey"
+            columns: ["budget_template_id"]
+            isOneToOne: false
+            referencedRelation: "budget_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_template_allocations_financial_category_id_fkey"
+            columns: ["financial_category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_templates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          suggested_available_amount: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          suggested_available_amount?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          suggested_available_amount?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
-      projects: {
+      categories: {
         Row: {
-          id: string
-          user_id: string
-          name: string
-          description: string | null
-          budget: string | null
-          icon: string | null
-          label_preset: string
-          status_options: Json
-          priority_options: Json
-          savings_mode: string
-          savings_goal_enabled: boolean
-          savings_initial_balance: string | null
-          savings_target_amount: string | null
-          savings_minimum_reserve: string | null
-          savings_goal_monthly_amount: string | null
-          savings_goal_start_date: string | null
-          savings_amount: string | null
-          savings_accrues_interest: boolean
-          savings_interest_rate_annual: string | null
-          savings_start_date: string | null
-          savings_end_date: string | null
           created_at: string
+          display_order: number
+          id: string
+          name: string
+          project_id: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          name: string
-          description?: string | null
-          budget?: number | string | null
-          icon?: string | null
-          label_preset?: string
-          status_options?: Json
-          priority_options?: Json
-          savings_mode?: string
-          savings_goal_enabled?: boolean
-          savings_initial_balance?: number | string | null
-          savings_target_amount?: number | string | null
-          savings_minimum_reserve?: number | string | null
-          savings_goal_monthly_amount?: number | string | null
-          savings_goal_start_date?: string | null
-          savings_amount?: number | string | null
-          savings_accrues_interest?: boolean
-          savings_interest_rate_annual?: number | string | null
-          savings_start_date?: string | null
-          savings_end_date?: string | null
           created_at?: string
+          display_order?: number
+          id?: string
+          name: string
+          project_id: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          description?: string | null
-          budget?: number | string | null
-          icon?: string | null
-          label_preset?: string
-          status_options?: Json
-          priority_options?: Json
-          savings_mode?: string
-          savings_goal_enabled?: boolean
-          savings_initial_balance?: number | string | null
-          savings_target_amount?: number | string | null
-          savings_minimum_reserve?: number | string | null
-          savings_goal_monthly_amount?: number | string | null
-          savings_goal_start_date?: string | null
-          savings_amount?: number | string | null
-          savings_accrues_interest?: boolean
-          savings_interest_rate_annual?: number | string | null
-          savings_start_date?: string | null
-          savings_end_date?: string | null
           created_at?: string
+          display_order?: number
+          id?: string
+          name?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_categories: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      item_option_price_observations: {
+        Row: {
+          availability: string
+          checked_at: string
+          created_at: string
+          currency: string | null
+          detected_prices: Json
+          id: string
+          message: string | null
+          option_id: string
+          origin: string
+          price: number | null
+          price_type: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          availability?: string
+          checked_at?: string
+          created_at?: string
+          currency?: string | null
+          detected_prices?: Json
+          id?: string
+          message?: string | null
+          option_id: string
+          origin?: string
+          price?: number | null
+          price_type?: string | null
+          source: string
+          status: string
+        }
+        Update: {
+          availability?: string
+          checked_at?: string
+          created_at?: string
+          currency?: string | null
+          detected_prices?: Json
+          id?: string
+          message?: string | null
+          option_id?: string
+          origin?: string
+          price?: number | null
+          price_type?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_option_price_observations_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "item_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_options: {
+        Row: {
+          alert_drop_percentage: number | null
+          alert_on_drop: boolean
+          alert_on_increase: boolean
+          brand: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          item_id: string
+          last_checked_at: string | null
+          model: string | null
+          name: string
+          notes: string | null
+          price: number | null
+          product_url: string | null
+          selected: boolean
+          specifications: string | null
+          store: string | null
+          target_price: number | null
+          tracked_price_type: string
+          tracking_enabled: boolean
+          tracking_status: string
+          updated_at: string
+        }
+        Insert: {
+          alert_drop_percentage?: number | null
+          alert_on_drop?: boolean
+          alert_on_increase?: boolean
+          brand?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          item_id: string
+          last_checked_at?: string | null
+          model?: string | null
+          name: string
+          notes?: string | null
+          price?: number | null
+          product_url?: string | null
+          selected?: boolean
+          specifications?: string | null
+          store?: string | null
+          target_price?: number | null
+          tracked_price_type?: string
+          tracking_enabled?: boolean
+          tracking_status?: string
+          updated_at?: string
+        }
+        Update: {
+          alert_drop_percentage?: number | null
+          alert_on_drop?: boolean
+          alert_on_increase?: boolean
+          brand?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          item_id?: string
+          last_checked_at?: string | null
+          model?: string | null
+          name?: string
+          notes?: string | null
+          price?: number | null
+          product_url?: string | null
+          selected?: boolean
+          specifications?: string | null
+          store?: string | null
+          target_price?: number | null
+          tracked_price_type?: string
+          tracking_enabled?: boolean
+          tracking_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_options_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          actual_cost: number | null
+          category_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          estimated_cost: number | null
+          id: string
+          name: string
+          notes: string | null
+          priority: string
+          project_id: string
+          purchase_url: string | null
+          quantity: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          category_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          priority?: string
+          project_id: string
+          purchase_url?: string | null
+          quantity?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          category_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          priority?: string
+          project_id?: string
+          purchase_url?: string | null
+          quantity?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_budget_allocations: {
+        Row: {
+          amount: number
+          created_at: string
+          financial_category_id: string
+          id: string
+          monthly_budget_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          financial_category_id: string
+          id?: string
+          monthly_budget_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          financial_category_id?: string
+          id?: string
+          monthly_budget_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_budget_allocations_financial_category_id_fkey"
+            columns: ["financial_category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_budget_allocations_monthly_budget_id_fkey"
+            columns: ["monthly_budget_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_budgets: {
+        Row: {
+          available_amount: number
+          created_at: string
+          id: string
+          period: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_amount: number
+          created_at?: string
+          id?: string
+          period: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_amount?: number
+          created_at?: string
+          id?: string
+          period?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          currency_code: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          display_name?: string | null
+          id?: string
           updated_at?: string
         }
         Relationships: []
       }
       project_savings_movements: {
         Row: {
-          id: string
-          project_id: string
-          name: string
-          movement_date: string
-          amount: string
-          movement_type: string
+          amount: number
           created_at: string
+          id: string
+          movement_date: string
+          movement_type: string
+          name: string
+          project_id: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          project_id: string
-          name: string
-          movement_date: string
-          amount: number | string
-          movement_type: string
+          amount: number
           created_at?: string
+          id?: string
+          movement_date: string
+          movement_type: string
+          name: string
+          project_id: string
           updated_at?: string
         }
         Update: {
+          amount?: number
+          created_at?: string
           id?: string
-          project_id?: string
-          name?: string
           movement_date?: string
-          amount?: number | string
           movement_type?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'project_savings_movements_project_id_fkey'
-            columns: ['project_id']
-            isOneToOne: false
-            referencedRelation: 'projects'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      categories: {
-        Row: {
-          id: string
-          project_id: string
-          name: string
-          display_order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          name: string
-          display_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
+          name?: string
           project_id?: string
-          name?: string
-          display_order?: number
-          created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_savings_movements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      items: {
+      projects: {
         Row: {
-          id: string
-          project_id: string
-          category_id: string | null
-          name: string
+          budget: number | null
+          created_at: string
           description: string | null
-          status: string
-          priority: string
-          quantity: string
-          estimated_cost: string | null
-          actual_cost: string | null
-          purchase_url: string | null
-          notes: string | null
-          completed_at: string | null
-          created_at: string
+          icon: string | null
+          id: string
+          label_preset: string
+          name: string
+          priority_options: Json
+          savings_accrues_interest: boolean
+          savings_amount: number | null
+          savings_end_date: string | null
+          savings_goal_enabled: boolean
+          savings_goal_monthly_amount: number | null
+          savings_goal_start_date: string | null
+          savings_initial_balance: number | null
+          savings_interest_rate_annual: number | null
+          savings_minimum_reserve: number | null
+          savings_mode: string
+          savings_start_date: string | null
+          savings_target_amount: number | null
+          status_options: Json
           updated_at: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          category_id?: string | null
-          name: string
-          description?: string | null
-          status?: string
-          priority?: string
-          quantity?: number | string
-          estimated_cost?: number | string | null
-          actual_cost?: number | string | null
-          purchase_url?: string | null
-          notes?: string | null
-          completed_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          project_id?: string
-          category_id?: string | null
-          name?: string
-          description?: string | null
-          status?: string
-          priority?: string
-          quantity?: number | string
-          estimated_cost?: number | string | null
-          actual_cost?: number | string | null
-          purchase_url?: string | null
-          notes?: string | null
-          completed_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      item_options: {
-        Row: {
-          id: string
-          item_id: string
-          name: string
-          brand: string | null
-          model: string | null
-          price: string | null
-          store: string | null
-          product_url: string | null
-          image_url: string | null
-          description: string | null
-          specifications: string | null
-          notes: string | null
-          selected: boolean
-          tracking_enabled: boolean
-          tracked_price_type: string
-          target_price: string | null
-          alert_on_drop: boolean
-          alert_on_increase: boolean
-          alert_drop_percentage: string | null
-          last_checked_at: string | null
-          tracking_status: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          item_id: string
-          name: string
-          brand?: string | null
-          model?: string | null
-          price?: number | string | null
-          store?: string | null
-          product_url?: string | null
-          image_url?: string | null
-          description?: string | null
-          specifications?: string | null
-          notes?: string | null
-          selected?: boolean
-          tracking_enabled?: boolean
-          tracked_price_type?: string
-          target_price?: number | string | null
-          alert_on_drop?: boolean
-          alert_on_increase?: boolean
-          alert_drop_percentage?: number | string | null
-          last_checked_at?: string | null
-          tracking_status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          item_id?: string
-          name?: string
-          brand?: string | null
-          model?: string | null
-          price?: number | string | null
-          store?: string | null
-          product_url?: string | null
-          image_url?: string | null
-          description?: string | null
-          specifications?: string | null
-          notes?: string | null
-          selected?: boolean
-          tracking_enabled?: boolean
-          tracked_price_type?: string
-          target_price?: number | string | null
-          alert_on_drop?: boolean
-          alert_on_increase?: boolean
-          alert_drop_percentage?: number | string | null
-          last_checked_at?: string | null
-          tracking_status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      item_option_price_observations: {
-        Row: {
-          id: string
-          option_id: string
-          price: string | null
-          checked_at: string
-          status: string
-          availability: string
-          source: string
-          price_type: string | null
-          origin: string
-          currency: string | null
-          detected_prices: Json
-          message: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          option_id: string
-          price?: number | string | null
-          checked_at?: string
-          status: string
-          availability?: string
-          source: string
-          price_type?: string | null
-          origin?: string
-          currency?: string | null
-          detected_prices?: Json
-          message?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          option_id?: string
-          price?: number | string | null
-          checked_at?: string
-          status?: string
-          availability?: string
-          source?: string
-          price_type?: string | null
-          origin?: string
-          currency?: string | null
-          detected_prices?: Json
-          message?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'item_option_price_observations_option_id_fkey'
-            columns: ['option_id']
-            isOneToOne: false
-            referencedRelation: 'item_options'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      financial_categories: {
-        Row: {
-          id: string
           user_id: string
-          name: string
-          archived_at: string | null
-          created_at: string
-          updated_at: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          name: string
-          archived_at?: string | null
+          budget?: number | null
           created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          label_preset?: string
+          name: string
+          priority_options?: Json
+          savings_accrues_interest?: boolean
+          savings_amount?: number | null
+          savings_end_date?: string | null
+          savings_goal_enabled?: boolean
+          savings_goal_monthly_amount?: number | null
+          savings_goal_start_date?: string | null
+          savings_initial_balance?: number | null
+          savings_interest_rate_annual?: number | null
+          savings_minimum_reserve?: number | null
+          savings_mode?: string
+          savings_start_date?: string | null
+          savings_target_amount?: number | null
+          status_options?: Json
           updated_at?: string
+          user_id: string
         }
         Update: {
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
           id?: string
+          label_preset?: string
+          name?: string
+          priority_options?: Json
+          savings_accrues_interest?: boolean
+          savings_amount?: number | null
+          savings_end_date?: string | null
+          savings_goal_enabled?: boolean
+          savings_goal_monthly_amount?: number | null
+          savings_goal_start_date?: string | null
+          savings_initial_balance?: number | null
+          savings_interest_rate_annual?: number | null
+          savings_minimum_reserve?: number | null
+          savings_mode?: string
+          savings_start_date?: string | null
+          savings_target_amount?: number | null
+          status_options?: Json
+          updated_at?: string
           user_id?: string
-          name?: string
-          archived_at?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Relationships: []
-      }
-      monthly_budgets: {
-        Row: {
-          id: string
-          user_id: string
-          period: string
-          available_amount: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          period: string
-          available_amount: number | string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          period?: string
-          available_amount?: number | string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      monthly_budget_allocations: {
-        Row: {
-          id: string
-          monthly_budget_id: string
-          financial_category_id: string
-          amount: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          monthly_budget_id: string
-          financial_category_id: string
-          amount: number | string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          monthly_budget_id?: string
-          financial_category_id?: string
-          amount?: number | string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'monthly_budget_allocations_monthly_budget_id_fkey'
-            columns: ['monthly_budget_id']
-            isOneToOne: false
-            referencedRelation: 'monthly_budgets'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'monthly_budget_allocations_financial_category_id_fkey'
-            columns: ['financial_category_id']
-            isOneToOne: false
-            referencedRelation: 'financial_categories'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      budget_templates: {
-        Row: { id: string; user_id: string; name: string; suggested_available_amount: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; user_id: string; name: string; suggested_available_amount?: number | string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; user_id?: string; name?: string; suggested_available_amount?: number | string | null; created_at?: string; updated_at?: string }
-        Relationships: []
-      }
-      budget_template_allocations: {
-        Row: { id: string; budget_template_id: string; financial_category_id: string; amount: string; created_at: string; updated_at: string }
-        Insert: { id?: string; budget_template_id: string; financial_category_id: string; amount: number | string; created_at?: string; updated_at?: string }
-        Update: { id?: string; budget_template_id?: string; financial_category_id?: string; amount?: number | string; created_at?: string; updated_at?: string }
-        Relationships: [
-          { foreignKeyName: 'budget_template_allocations_budget_template_id_fkey'; columns: ['budget_template_id']; isOneToOne: false; referencedRelation: 'budget_templates'; referencedColumns: ['id'] },
-          { foreignKeyName: 'budget_template_allocations_financial_category_id_fkey'; columns: ['financial_category_id']; isOneToOne: false; referencedRelation: 'financial_categories'; referencedColumns: ['id'] },
-        ]
       }
       transactions: {
         Row: {
-          id: string
-          user_id: string
-          name: string
-          occurred_on: string
-          amount: string
-          transaction_type: string
-          financial_category_id: string | null
-          notes: string | null
+          amount: number
           created_at: string
+          financial_category_id: string | null
+          id: string
+          name: string
+          notes: string | null
+          occurred_on: string
+          transaction_type: string
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          name: string
-          occurred_on: string
-          amount: number | string
-          transaction_type: string
-          financial_category_id?: string | null
-          notes?: string | null
+          amount: number
           created_at?: string
+          financial_category_id?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          occurred_on: string
+          transaction_type: string
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          occurred_on?: string
-          amount?: number | string
-          transaction_type?: string
-          financial_category_id?: string | null
-          notes?: string | null
+          amount?: number
           created_at?: string
+          financial_category_id?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          occurred_on?: string
+          transaction_type?: string
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'transactions_financial_category_id_fkey'
-            columns: ['financial_category_id']
+            foreignKeyName: "transactions_financial_category_id_fkey"
+            columns: ["financial_category_id"]
             isOneToOne: false
-            referencedRelation: 'financial_categories'
-            referencedColumns: ['id']
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -539,12 +620,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_monthly_budget_snapshot: { Args: { p_period: string; p_available_amount: number; p_source_budget_id?: string | null; p_source_template_id?: string | null }; Returns: string }
-      create_budget_template_from_monthly_budget: { Args: { p_source_budget_id: string; p_name: string }; Returns: string }
-      select_item_option: {
-        Args: { p_option_id: string }
-        Returns: undefined
+      create_budget_template_from_monthly_budget: {
+        Args: { p_name: string; p_source_budget_id: string }
+        Returns: string
       }
+      create_monthly_budget_snapshot: {
+        Args: {
+          p_available_amount: number
+          p_period: string
+          p_source_budget_id?: string
+          p_source_template_id?: string
+        }
+        Returns: string
+      }
+      select_item_option: { Args: { p_option_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
@@ -554,3 +643,126 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
