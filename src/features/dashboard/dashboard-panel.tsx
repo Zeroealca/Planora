@@ -9,6 +9,8 @@ import {
   calculateBudgetSliceMetrics,
   calculateMetricsByCategory,
   calculateMetricsByPriority,
+  type CategorySliceMetrics,
+  type PrioritySliceMetrics,
 } from '@/utils/budget/summary'
 import { formatPercent, useFormatMoney } from '@/utils/format'
 import {
@@ -16,7 +18,38 @@ import {
   type ProjectPriorityOption,
   type ProjectStatusOption,
 } from '@/features/projects/project-options'
-import type { Category } from '@/types/domain'
+import type { Category, SavingsMode } from '@/types/domain'
+import {
+  DashboardBreakdownChart,
+  type DashboardChartSlice,
+} from './dashboard-breakdown-chart'
+
+/**
+ * Pie slices use projectedCost (spent + pending) — same “Proyectado” metric as
+ * the detailed breakdown cards. Matches the budget chart’s preference for a
+ * planned/allocated total over spent-only when available.
+ */
+function priorityChartSlices(
+  byPriority: readonly PrioritySliceMetrics[],
+  priorityOptions: readonly ProjectPriorityOption[],
+): DashboardChartSlice[] {
+  return byPriority.map((slice) => ({
+    id: slice.priority,
+    name: priorityLabel(slice.priority, priorityOptions),
+    value: slice.projectedCost,
+  }))
+}
+
+function categoryChartSlices(
+  byCategory: readonly CategorySliceMetrics[],
+  categoryName: (id: string | null) => string,
+): DashboardChartSlice[] {
+  return byCategory.map((slice) => ({
+    id: slice.category_id ?? 'none',
+    name: categoryName(slice.category_id),
+    value: slice.projectedCost,
+  }))
+}
 
 function formatSavingsDelta(
   amount: number,
@@ -101,6 +134,7 @@ export function DashboardPanel({
   categories,
   statusOptions,
   priorityOptions,
+  savingsMode = 'none',
   attentionCount = 0,
 }: {
   budget: number | null
@@ -108,6 +142,8 @@ export function DashboardPanel({
   categories: readonly Category[]
   statusOptions: readonly ProjectStatusOption[]
   priorityOptions: readonly ProjectPriorityOption[]
+  /** Charts only for savings plan projects (not goal, not purchase-only). */
+  savingsMode?: SavingsMode
   /** Project-wide count of items needing attention (not a status). */
   attentionCount?: number
 }) {
@@ -121,10 +157,15 @@ export function DashboardPanel({
     statusOptions,
     priorityOptions.map((option) => option.id),
   )
-  const byCategory = calculateMetricsByCategory(items, statusOptions)
+  const byCategory = calculateMetricsByCategory(
+    items,
+    statusOptions,
+    categories.map((category) => category.id),
+  )
   const overBudget = projectedBalance != null && projectedBalance < 0
   const expectedDisplay = formatSavingsDelta(totals.expectedSavings, formatMoney, 'expected')
   const actualDisplay = formatSavingsDelta(totals.actualSavings, formatMoney, 'actual')
+  const showPlanCharts = savingsMode === 'plan'
   const categoryName = (id: string | null) => {
     if (!id) return 'Sin categoría'
     return categories.find((category) => category.id === id)?.name ?? 'Categoría'
@@ -235,6 +276,21 @@ export function DashboardPanel({
           </li>
         </ul>
       </section>
+
+      {showPlanCharts ? (
+        <div className="breakdown-grid" aria-label="Distribución proyectada">
+          <DashboardBreakdownChart
+            title="Proyectado por prioridad"
+            titleId="dashboard-priority-chart-heading"
+            slices={priorityChartSlices(byPriority, priorityOptions)}
+          />
+          <DashboardBreakdownChart
+            title="Proyectado por categoría"
+            titleId="dashboard-category-chart-heading"
+            slices={categoryChartSlices(byCategory, categoryName)}
+          />
+        </div>
+      ) : null}
 
       <div className="breakdown-grid">
         <section className="breakdown-panel" aria-labelledby="dashboard-priority-heading">

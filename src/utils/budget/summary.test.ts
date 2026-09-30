@@ -125,4 +125,20 @@ describe('breakdown sums', () => {
       calculateBudgetSliceMetrics(withUncategorized, statusOptions),
     )
   })
+
+  it('includes empty project categories listed in categoryIds', () => {
+    const byCategory = calculateMetricsByCategory(catalog, statusOptions, [
+      'kitchen',
+      'living',
+      'office',
+      'empty-room',
+    ])
+    expect(byCategory.find((slice) => slice.category_id === 'empty-room')).toMatchObject({
+      itemCount: 0,
+      projectedCost: 0,
+    })
+    expect(sumBudgetSliceMetrics(byCategory)).toEqual(
+      calculateBudgetSliceMetrics(catalog, statusOptions),
+    )
+  })
 })

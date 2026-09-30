@@ -79,28 +79,39 @@ export function sumBudgetSliceMetrics(
   return total
 }
 
-/** Partition by category_id, then apply calculateBudgetSliceMetrics per group. */
+/**
+ * Partition by category_id. Always includes `categoryIds` (e.g. project categories)
+ * even when empty; also any category_id present on items but missing from that list
+ * (including the uncategorized `null` bucket when needed).
+ */
 export function calculateMetricsByCategory(
   items: readonly BudgetItem[],
   statusOptions: readonly ProjectStatusOption[],
+  categoryIds: readonly (string | null)[] = [],
 ): CategorySliceMetrics[] {
-  const ids = new Set<string | null>()
+  const ids: (string | null)[] = []
+  const seen = new Set<string | null>()
+  for (const id of categoryIds) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    ids.push(id)
+  }
   for (const item of items) {
-    ids.add(item.category_id)
+    if (seen.has(item.category_id)) continue
+    seen.add(item.category_id)
+    ids.push(item.category_id)
   }
 
-  const result: CategorySliceMetrics[] = []
-  for (const category_id of ids) {
+  return ids.map((category_id) => {
     const sliceItems =
       category_id == null
         ? items.filter((item) => item.category_id == null)
         : filterItems(items, { categoryId: category_id })
-    result.push({
+    return {
       category_id,
       ...calculateBudgetSliceMetrics(sliceItems, statusOptions),
-    })
-  }
-  return result
+    }
+  })
 }
 
 /**

@@ -348,6 +348,7 @@ export function ProjectPage() {
             categories={categories}
             statusOptions={project.status_options}
             priorityOptions={project.priority_options}
+            savingsMode={project.savings_mode}
             attentionCount={attentionCount}
           />
         )}
