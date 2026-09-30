@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router'
+import { Navigate, Route, Routes } from 'react-router'
 import { AppLayout } from './app-layout'
 import { HomePage } from '@/pages/home-page'
 import { AuthCallbackPage } from '@/pages/auth-callback-page'
@@ -29,7 +29,8 @@ export function AppRoutes() {
         <Route element={<RequireSession />}>
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="budget" element={<BudgetPage />} />
-          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="budget/transactions" element={<TransactionsPage />} />
+          <Route path="transactions" element={<Navigate to="/budget/transactions" replace />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="projects/:projectId" element={<ProjectPage />} />
           <Route path="projects/:projectId/items/:itemId" element={<ItemPage />} />

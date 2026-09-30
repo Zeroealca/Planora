@@ -46,9 +46,6 @@ export function AppLayout() {
             <Link to="/budget" onClick={() => setMenuOpen(false)}>
               Presupuesto
             </Link>
-            <Link to="/transactions" onClick={() => setMenuOpen(false)}>
-              Transacciones
-            </Link>
             <Link to="/projects" onClick={() => setMenuOpen(false)}>
               Proyectos
             </Link>
