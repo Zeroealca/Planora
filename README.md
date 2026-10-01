@@ -31,7 +31,7 @@ puedes crear el disponible del mes, añadir o editar asignaciones y registrar
 gastos; las métricas se actualizan desde los movimientos reales. Transacciones
 permite registrar, editar y eliminar gastos e ingresos por mes.
 
-## Pagos programados — Fase 6A
+## Pagos programados — Fase 6A / 6B / 6C
 
 Un **Scheduled Payment** es una regla de vencimiento por categoría financiera;
 una **Occurrence** es una obligación concreta y persistida para una fecha. No
@@ -57,6 +57,45 @@ mes de `Occurrence.due_date`; por ello las métricas mensuales siguen leyendo
 solamente Transactions. Si se elimina una Transaction vinculada, una operación
 atómica devuelve la occurrence a `pending` y elimina el vínculo. Las reglas,
 los vencimientos y las transacciones siguen siendo conceptos separados.
+
+### Recordatorios por correo (Fase 6C)
+
+Cada regla puede activar **un** recordatorio por correo (`reminder_enabled`,
+apagado por defecto) con `reminder_days_before` días civiles antes del
+vencimiento (`0` = el mismo día). El destinatario es el email de la cuenta
+Supabase Auth del propietario.
+
+`reminderDate = dueDate − daysBeforeDue` (fechas civiles). El envío se asocia a
+una **occurrence**, no solo a la regla: September y October son independientes.
+Solo se envía si la regla está activa, el reminder está enabled, la categoría no
+está archivada, la occurrence sigue `pending`, `reminderDate <= today` y no
+existe un delivery `sent` para esa occurrence. Paid/skipped no reciben correo.
+Cambiar `daysBeforeDue` antes del envío usa la config actual; si ya se envió,
+no se reenvía.
+
+Ventana del job: occurrences `pending` con `due_date` en el **mes civil
+anterior, actual o siguiente** respecto de `today`. Así se cubren recordatorios
+que cruzan de mes (p. ej. due 3 ene, 7 días → 27 dic) y un atraso breve, sin
+reabrir historial antiguo al activar reminders hoy.
+
+Persistencia: tabla `scheduled_payment_reminder_deliveries` con unicidad por
+`occurrence_id` y estados `pending | processing | sent | failed`. El claim
+atómico (`claim_scheduled_payment_reminder`) evita duplicados bajo concurrencia;
+un `processing` stale (>15 min) puede reclamarse. Si Resend falla, queda
+`failed` y el job diario reintenta mientras siga elegible (tope blando
+`REMINDER_MAX_ATTEMPTS = 10`). El correo no crea Transaction ni cambia el status
+de la occurrence.
+
+Infraestructura de ejecución (hosting en Vercel, backend Supabase):
+
+- **Scheduler:** Vercel Cron (`0 13 * * *` → 13:00 UTC ≈ 08:00 Ecuador continental)
+- **Proxy:** Vercel Function `/api/cron/scheduled-payment-reminders` (solo auth + forward)
+- **Procesador:** Edge Function `process-scheduled-payment-reminders`
+- **Email:** Resend (secretos solo en Supabase)
+- **Auth del proxy:** `Authorization: Bearer <CRON_SECRET>` (Vercel)
+- **Auth del processor:** header `x-reminder-job-secret: <REMINDER_JOB_SECRET>`
+
+Ver sección «Recordatorios — despliegue» más abajo.
 
 ## Para agentes y contribuidores
 
@@ -130,12 +169,75 @@ El build genera manifest + service worker. Cachea el app shell y assets estátic
 
 ## Variables de entorno
 
-- `VITE_SUPABASE_URL` — URL del proyecto Supabase
+Públicas (cliente / build):
+
+- `VITE_SUPABASE_URL` — URL del proyecto Supabase (no es secreta; también usable server-side en el cron proxy)
 - `VITE_SUPABASE_ANON_KEY` — clave anónima (pública en el cliente)
 - `VITE_SITE_URL` — (opcional) URL pública del sitio para redirects de auth
 
+Solo server-side en **Vercel** (cron proxy; nunca `VITE_*` para secretos):
+
+- `CRON_SECRET` — Bearer que Vercel Cron envía al endpoint; solo en Vercel
+- `REMINDER_JOB_SECRET` — mismo valor que en Supabase; el proxy lo reenvía a la Edge Function
+
+Solo server-side en **Supabase** Edge Function secrets:
+
+- `REMINDER_JOB_SECRET` — autentica el processor
+- `RESEND_API_KEY` — API key de Resend
+- `REMINDER_FROM_EMAIL` — remitente verificado en Resend
+- `PLANORA_SITE_URL` — (opcional) enlace “Abrir Planora” en el correo
+- `SUPABASE_SERVICE_ROLE_KEY` — inyectada automáticamente en Edge Functions; nunca en el cliente
+
 Nunca commitear `.env` con secretos reales. No usar `service_role` en el frontend.
 
+## Recordatorios — despliegue
+
+Arquitectura:
+
+```text
+Vercel Cron (0 13 * * *)
+  → Vercel Function /api/cron/scheduled-payment-reminders
+  → Supabase Edge Function process-scheduled-payment-reminders
+  → Resend
+```
+
+Horario: **13:00 UTC** ≈ **08:00 Ecuador continental (UTC−5)**. Una pequeña
+variación de horario no afecta el producto (`reminderDate <= today`).
+
+1. Aplica la migración `20260930140000_scheduled_payment_reminders.sql` (si aún no).
+2. Edge Function ya desplegada + secrets Supabase (`REMINDER_JOB_SECRET`,
+   `RESEND_API_KEY`, `REMINDER_FROM_EMAIL`, `PLANORA_SITE_URL` opcional).
+3. En **Vercel → Project → Settings → Environment Variables** (Production), añade:
+
+| Variable | Notas |
+|----------|--------|
+| `CRON_SECRET` | Genera un valor aleatorio largo; solo Vercel |
+| `REMINDER_JOB_SECRET` | **Exactamente** el mismo valor que en Supabase |
+| `VITE_SUPABASE_URL` | Ya debería existir en el proyecto |
+
+4. Despliega a Production para que `vercel.json` registre el cron
+   (`crons[0].path` = `/api/cron/scheduled-payment-reminders`).
+5. Comprueba en **Vercel → Settings → Cron Jobs** que el job aparece
+   (`0 13 * * *`).
+
+Prueba manual del proxy (local o contra el deployment; no loguees secretos):
+
+```bash
+curl -i -X GET "$VERCEL_URL/api/cron/scheduled-payment-reminders" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Prueba directa del processor (bypass Vercel; útil para aislar fallos):
+
+```bash
+curl -X POST "$VITE_SUPABASE_URL/functions/v1/process-scheduled-payment-reminders" \
+  -H "Content-Type: application/json" \
+  -H "x-reminder-job-secret: $REMINDER_JOB_SECRET" \
+  -d "{\"today\":\"2027-01-08\"}"
+```
+
+La lógica de elegibilidad, claim, concurrencia, retry, delivery y email
+**permanece en Supabase**. Vercel solo autentica el cron y reenvía la petición.
 ## Estructura
 
 ```text
@@ -148,12 +250,16 @@ src/
     categories/
     items/
     item-options/
+    scheduled-payments/
   lib/supabase/
   pages/
   types/
   utils/budget/
   styles/
+api/
+  cron/                # Vercel Functions (proxy de cron; sin lógica de dominio)
 supabase/migrations/
+supabase/functions/
 ```
 
 ## Alias de importación
