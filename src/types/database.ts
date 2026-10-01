@@ -807,6 +807,10 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
+      delete_scheduled_payment: {
+        Args: { p_scheduled_payment_id: string }
+        Returns: undefined
+      }
       materialize_scheduled_payment_occurrence: {
         Args: { p_period: string; p_scheduled_payment_id: string }
         Returns: Database['public']['Tables']['scheduled_payment_occurrences']['Row'] | null

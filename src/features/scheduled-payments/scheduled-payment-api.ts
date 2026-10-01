@@ -50,6 +50,13 @@ export async function updateScheduledPayment(id: string, input: ScheduledPayment
   if (error) throw new Error(supabaseErrorMessage(error))
 }
 
+export async function deleteScheduledPayment(id: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_scheduled_payment', {
+    p_scheduled_payment_id: id,
+  })
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
+
 export async function listScheduledPaymentOccurrences(
   scheduledPaymentId: string,
 ): Promise<ScheduledPaymentOccurrence[]> {
@@ -66,11 +73,19 @@ export async function listScheduledPaymentOccurrencesForPeriod(
   period: MonthlyPeriod,
 ): Promise<ScheduledPaymentOccurrence[]> {
   const bounds = monthlyPeriodBounds(period)
+  return listScheduledPaymentOccurrencesInRange(bounds.start, bounds.endExclusive)
+}
+
+/** Inclusive start / exclusive end civil dates. Used by forecast without materializing. */
+export async function listScheduledPaymentOccurrencesInRange(
+  startDate: string,
+  endDateExclusive: string,
+): Promise<ScheduledPaymentOccurrence[]> {
   const { data, error } = await supabase
     .from('scheduled_payment_occurrences')
     .select('*')
-    .gte('due_date', bounds.start)
-    .lt('due_date', bounds.endExclusive)
+    .gte('due_date', startDate)
+    .lt('due_date', endDateExclusive)
     .order('due_date')
   if (error) throw new Error(supabaseErrorMessage(error))
   return (data ?? []).map(mapScheduledPaymentOccurrence)

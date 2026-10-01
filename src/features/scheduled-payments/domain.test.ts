@@ -8,6 +8,7 @@ import {
   getOccurrenceDueDateForPeriod,
   isOccurrenceOverdue,
   monthlyDueDate,
+  oneTimeDueDate,
   summarizeOccurrences,
   validateOccurrencePayment,
   validateScheduledPayment,
@@ -55,6 +56,24 @@ describe('scheduled payment recurrence', () => {
     expect(getOccurrenceDueDateForPeriod(rule, '2027-05')).toBe('2027-05-05')
     expect(getOccurrenceDueDateForPeriod(rule, '2027-06')).toBeNull()
   })
+
+  it('produces exactly one one_time due date in its month', () => {
+    expect(oneTimeDueDate('2027-06-15', '2027-06')).toBe('2027-06-15')
+    expect(oneTimeDueDate('2027-06-15', '2027-05')).toBeNull()
+    expect(oneTimeDueDate('2027-06-15', '2027-07')).toBeNull()
+    expect(getOccurrenceDueDateForPeriod(payment({
+      frequency: 'one_time', startDate: '2027-06-15', endDate: null, expectedAmount: 500,
+    }), '2027-06')).toBe('2027-06-15')
+    expect(createOccurrenceSnapshot(payment({
+      frequency: 'one_time', startDate: '2027-06-15', endDate: null, expectedAmount: 500,
+    }), activeCategory, '2027-06')).toMatchObject({ dueDate: '2027-06-15', expectedAmount: 500 })
+    expect(createOccurrenceSnapshot(payment({
+      frequency: 'one_time', startDate: '2027-06-15', endDate: null, expectedAmount: 500,
+    }), activeCategory, '2027-05')).toBeNull()
+    expect(createOccurrenceSnapshot(payment({
+      frequency: 'one_time', startDate: '2027-06-15', endDate: null, active: false, expectedAmount: 500,
+    }), activeCategory, '2027-06')).toBeNull()
+  })
 })
 
 describe('scheduled payment validation and occurrences', () => {
@@ -64,6 +83,15 @@ describe('scheduled payment validation and occurrences', () => {
     expect(validateScheduledPayment(payment({ amountType: 'variable', expectedAmount: 60 }))).toMatchObject({ expectedAmount: 60 })
     expect(() => validateScheduledPayment(payment({ expectedAmount: 0 }))).toThrow(/mayor a cero/i)
     expect(() => validateScheduledPayment(payment({ endDate: '2026-12-31' }))).toThrow(/fin no puede/i)
+    expect(() => validateScheduledPayment(payment({
+      frequency: 'one_time', startDate: '2027-06-15', endDate: '2027-06-20', expectedAmount: 500,
+    }))).toThrow(/una sola vez no admite fecha final/i)
+    expect(validateScheduledPayment(payment({
+      frequency: 'one_time', startDate: '2027-06-15', endDate: null, expectedAmount: 500,
+    }))).toMatchObject({ frequency: 'one_time', endDate: null, expectedAmount: 500 })
+    expect(validateScheduledPayment(payment({
+      frequency: 'one_time', amountType: 'variable', startDate: '2027-03-20', endDate: null, expectedAmount: null,
+    }))).toMatchObject({ expectedAmount: null })
   })
 
   it('does not materialize inactive or archived-category rules', () => {

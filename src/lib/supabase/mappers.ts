@@ -277,7 +277,12 @@ export function mapFinancialTransaction(row: TransactionRow): FinancialTransacti
 export function mapScheduledPayment(row: ScheduledPaymentRow): ScheduledPayment {
   return {
     id: row.id, userId: row.user_id, name: row.name, financialCategoryId: row.financial_category_id,
-    frequency: row.frequency === 'annual' ? 'annual' : 'monthly',
+    frequency:
+      row.frequency === 'annual'
+        ? 'annual'
+        : row.frequency === 'one_time'
+          ? 'one_time'
+          : 'monthly',
     amountType: row.amount_type === 'variable' ? 'variable' : 'fixed',
     expectedAmount: parseNumeric(row.expected_amount), startDate: row.start_date, endDate: row.end_date,
     active: row.active,

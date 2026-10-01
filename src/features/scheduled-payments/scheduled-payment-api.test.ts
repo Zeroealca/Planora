@@ -5,6 +5,7 @@ vi.mock('@/lib/supabase/client', () => ({ supabase: { from, rpc } }))
 
 import {
   createScheduledPayment,
+  deleteScheduledPayment,
   markScheduledPaymentOccurrencePaid,
   materializeScheduledPaymentOccurrence,
   skipScheduledPaymentOccurrence,
@@ -68,5 +69,13 @@ describe('scheduled payment persistence boundary', () => {
     await skipScheduledPaymentOccurrence(occurrence)
     expect(rpc).toHaveBeenNthCalledWith(1, 'mark_scheduled_payment_occurrence_paid', { p_occurrence_id: 'occurrence', p_amount: 310, p_occurred_on: '2027-10-03', p_notes: null })
     expect(rpc).toHaveBeenNthCalledWith(2, 'skip_scheduled_payment_occurrence', { p_occurrence_id: 'occurrence' })
+  })
+
+  it('deletes a scheduled payment through the ownership-checked RPC', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: null })
+    await deleteScheduledPayment('payment')
+    expect(rpc).toHaveBeenCalledWith('delete_scheduled_payment', {
+      p_scheduled_payment_id: 'payment',
+    })
   })
 })

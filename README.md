@@ -31,7 +31,7 @@ puedes crear el disponible del mes, añadir o editar asignaciones y registrar
 gastos; las métricas se actualizan desde los movimientos reales. Transacciones
 permite registrar, editar y eliminar gastos e ingresos por mes.
 
-## Pagos programados — Fase 6A / 6B / 6C
+## Pagos programados — Fase 6A / 6B / 6C / 6D
 
 Un **Scheduled Payment** es una regla de vencimiento por categoría financiera;
 una **Occurrence** es una obligación concreta y persistida para una fecha. No
@@ -39,24 +39,49 @@ son transacciones ni asignaciones de presupuesto mensual. Las occurrences se
 materializan de forma idempotente por regla y fecha, conservan el importe
 esperado como snapshot y nacen en `pending`.
 
-Por ahora solo existen recurrencias `monthly` y `annual`, con fechas civiles
-`YYYY-MM-DD`. La regla conserva el día base: el 31 usa el último día de los
-meses cortos, y una regla anual del 29 de febrero vuelve al 29 cuando el año es
-bisiesto. `overdue` se deriva de `pending` y `dueDate < today`; no se persiste.
+Frecuencias: `monthly`, `annual` y `one_time`. Las fechas son civiles
+`YYYY-MM-DD`. La regla mensual/anual conserva el día base: el 31 usa el último
+día de los meses cortos, y una regla anual del 29 de febrero vuelve al 29 cuando
+el año es bisiesto. Un pago `one_time` usa `startDate` como única fecha de
+vencimiento (`endDate` debe ser `null`) y produce como máximo una occurrence.
+`overdue` se deriva de `pending` y `dueDate < today`; no se persiste.
 
 Una categoría financiera archivada conserva la regla y su historial, pero hace
 que la regla deje de ser elegible para crear occurrences nuevas. Desactivar una
-regla tiene el mismo efecto y nunca borra su historial. Una occurrence `paid`
+regla tiene el mismo efecto y nunca borra su historial. También puedes
+**eliminar** una regla: se borran sus occurrences y deliveries de recordatorio;
+las Transactions ya registradas se conservan. Una occurrence `paid`
 se confirma mediante una operación atómica: crea una Transaction `expense` y
 vincula la occurrence como `paid`, o no cambia nada. El usuario puede ajustar
 importe, fecha real y notas antes de confirmar; llegar al vencimiento nunca
 crea una Transaction automáticamente. Omitir una occurrence no crea gasto.
+
+Editar una regla **no reescribe** occurrences ya materializadas (fecha e importe
+siguen siendo snapshot). Si aún no hay occurrence, la próxima materialización
+usa la configuración actual.
 
 El gasto pertenece al mes de `Transaction.occurred_on`, no necesariamente al
 mes de `Occurrence.due_date`; por ello las métricas mensuales siguen leyendo
 solamente Transactions. Si se elimina una Transaction vinculada, una operación
 atómica devuelve la occurrence a `pending` y elimina el vínculo. Las reglas,
 los vencimientos y las transacciones siguen siendo conceptos separados.
+
+### Próximos gastos (proyección)
+
+La sección **Próximos gastos** en Pagos programados calcula un forecast
+derivado (no persistido) a 3 / 6 / 12 meses a partir del mes visible:
+
+- Incluye reglas `active` con categoría no archivada (`monthly`, `annual`,
+  `one_time`).
+- **No materializa** occurrences futuras solo para proyectar: usa la lógica
+  pura de recurrencia más las occurrences ya existentes en el rango.
+- Si ya existe occurrence para un vencimiento, su snapshot (`expectedAmount`,
+  status) tiene prioridad sobre el importe actual de la regla.
+- Solo `pending` suma a “esperado conocido”. `paid` y `skipped` no inflan el
+  pendiente. Variables sin importe incrementan el contador de variables; **no**
+  se tratan como $0.
+- El forecast **no** crea Transactions, allocations ni altera spent / metas de
+  ahorro.
 
 ### Recordatorios por correo (Fase 6C)
 

@@ -2,7 +2,7 @@ import { fromCents, toCents } from '@/features/monthly-budget/money'
 import type { FinancialCategory, MonthlyPeriod } from '@/features/monthly-budget/domain'
 import { validateReminderConfig } from './reminders'
 
-export type ScheduledPaymentFrequency = 'monthly' | 'annual'
+export type ScheduledPaymentFrequency = 'monthly' | 'annual' | 'one_time'
 export type ScheduledPaymentAmountType = 'fixed' | 'variable'
 export type ScheduledPaymentOccurrenceStatus = 'pending' | 'paid' | 'skipped'
 
@@ -89,17 +89,22 @@ export function validateScheduledPayment(input: ScheduledPaymentInput): Schedule
   const name = input.name.trim()
   if (name === '') throw new Error('El nombre del pago programado es obligatorio.')
   if (!input.financialCategoryId) throw new Error('El pago programado requiere una categoría financiera.')
-  if (input.frequency !== 'monthly' && input.frequency !== 'annual') {
+  if (input.frequency !== 'monthly' && input.frequency !== 'annual' && input.frequency !== 'one_time') {
     throw new Error('La frecuencia del pago programado no es válida.')
   }
   if (input.amountType !== 'fixed' && input.amountType !== 'variable') {
     throw new Error('El tipo de importe no es válido.')
   }
   if (!isCivilDate(input.startDate)) throw new Error('La fecha de inicio debe tener el formato YYYY-MM-DD.')
-  if (input.endDate !== null && !isCivilDate(input.endDate)) {
+
+  const endDate = input.frequency === 'one_time' ? null : input.endDate
+  if (input.frequency === 'one_time' && input.endDate !== null) {
+    throw new Error('Un pago de una sola vez no admite fecha final.')
+  }
+  if (endDate !== null && !isCivilDate(endDate)) {
     throw new Error('La fecha de fin debe tener el formato YYYY-MM-DD.')
   }
-  if (input.endDate !== null && input.endDate < input.startDate) {
+  if (endDate !== null && endDate < input.startDate) {
     throw new Error('La fecha de fin no puede ser anterior a la fecha de inicio.')
   }
   if (input.expectedAmount !== null && (!Number.isFinite(input.expectedAmount) || input.expectedAmount <= 0)) {
@@ -117,6 +122,7 @@ export function validateScheduledPayment(input: ScheduledPaymentInput): Schedule
   return {
     ...input,
     name,
+    endDate,
     expectedAmount: input.expectedAmount === null ? null : fromCents(toCents(input.expectedAmount)),
     reminderEnabled: reminder.reminderEnabled,
     reminderDaysBefore: reminder.reminderDaysBefore,
@@ -139,14 +145,28 @@ export function annualDueDate(startDate: string, period: MonthlyPeriod): string 
   return dateOnly(target.year, target.month, Math.min(start.day, daysInMonth(target.year, target.month)))
 }
 
+/** one_time uses startDate as the exact due date and only matches that civil month. */
+export function oneTimeDueDate(startDate: string, period: MonthlyPeriod): string | null {
+  const start = parseDate(startDate)
+  const target = parsePeriod(period)
+  if (!start || !target) return null
+  if (start.year !== target.year || start.month !== target.month) return null
+  return startDate
+}
+
 export function getOccurrenceDueDateForPeriod(
   payment: Pick<ScheduledPayment, 'frequency' | 'startDate' | 'endDate'>,
   period: MonthlyPeriod,
 ): string | null {
-  const dueDate = payment.frequency === 'monthly'
-    ? monthlyDueDate(payment.startDate, period)
-    : annualDueDate(payment.startDate, period)
-  if (!dueDate || dueDate < payment.startDate || (payment.endDate !== null && dueDate > payment.endDate)) {
+  const dueDate =
+    payment.frequency === 'monthly'
+      ? monthlyDueDate(payment.startDate, period)
+      : payment.frequency === 'annual'
+        ? annualDueDate(payment.startDate, period)
+        : oneTimeDueDate(payment.startDate, period)
+  if (!dueDate) return null
+  if (payment.frequency === 'one_time') return dueDate
+  if (dueDate < payment.startDate || (payment.endDate !== null && dueDate > payment.endDate)) {
     return null
   }
   return dueDate

@@ -1,19 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
-import { IconBack, IconClose, IconPencil } from '@/components/icons'
+import { IconBack, IconClose, IconPencil, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
 import { listFinancialCategories } from '@/features/monthly-budget/monthly-budget-api'
 import type { FinancialCategory, MonthlyPeriod } from '@/features/monthly-budget/domain'
-import { currentMonthlyPeriod, nextMonthlyPeriod, previousMonthlyPeriod } from '@/features/monthly-budget/period'
+import { currentMonthlyPeriod, monthlyPeriodBounds, nextMonthlyPeriod, previousMonthlyPeriod } from '@/features/monthly-budget/period'
 import {
   listScheduledPaymentOccurrences,
   listScheduledPaymentOccurrencesForPeriod,
+  listScheduledPaymentOccurrencesInRange,
   listScheduledPaymentReminderDeliveries,
   listScheduledPayments,
   markScheduledPaymentOccurrencePaid,
   materializeScheduledPaymentsForPeriod,
   skipScheduledPaymentOccurrence,
   createScheduledPayment,
+  deleteScheduledPayment,
   updateScheduledPayment,
 } from '@/features/scheduled-payments/scheduled-payment-api'
 import {
@@ -23,6 +25,13 @@ import {
   type ScheduledPaymentInput,
   type ScheduledPaymentOccurrence,
 } from '@/features/scheduled-payments/domain'
+import {
+  calculateExpenseProjection,
+  periodsForHorizon,
+  type ExpenseProjection,
+  type ForecastHorizonMonths,
+  type ProjectedPaymentLine,
+} from '@/features/scheduled-payments/forecast'
 import {
   defaultReminderConfig,
   formatReminderSummary,
@@ -35,6 +44,22 @@ import { useFormatMoney } from '@/utils/format'
 function todayCivil(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function frequencyLabel(frequency: ScheduledPayment['frequency']): string {
+  if (frequency === 'one_time') return 'Una sola vez'
+  if (frequency === 'annual') return 'Anual'
+  return 'Mensual'
+}
+
+/** Plain amount, soft estimate (~), or unknown variable — no technical jargon. */
+function formatProjectedAmount(
+  line: ProjectedPaymentLine,
+  money: (value: number) => string,
+): string {
+  if (line.expectedAmount == null) return 'Importe variable'
+  if (line.amountType === 'variable' && line.source === 'rule') return `~${money(line.expectedAmount)}`
+  return money(line.expectedAmount)
 }
 
 function inputFromPayment(payment: ScheduledPayment): ScheduledPaymentInput {
@@ -83,6 +108,9 @@ export function ScheduledPaymentsPage() {
   const [showRuleForm, setShowRuleForm] = useState(false)
   const [paying, setPaying] = useState<ScheduledPaymentOccurrence | null>(null)
   const [history, setHistory] = useState<{ payment: ScheduledPayment; rows: ScheduledPaymentOccurrence[] } | null>(null)
+  const [horizonMonths, setHorizonMonths] = useState<ForecastHorizonMonths>(3)
+  const [projection, setProjection] = useState<ExpenseProjection | null>(null)
+  const [expandedForecastPeriod, setExpandedForecastPeriod] = useState<MonthlyPeriod | null>(null)
 
   async function load() {
     setError(null)
@@ -95,15 +123,37 @@ export function ScheduledPaymentsPage() {
       const periodOccurrences = await listScheduledPaymentOccurrencesForPeriod(period)
       setOccurrences(periodOccurrences)
       setDeliveries(await listScheduledPaymentReminderDeliveries(periodOccurrences.map((row) => row.id)))
+
+      const horizonPeriods = periodsForHorizon(period, horizonMonths)
+      const lastPeriod = horizonPeriods[horizonPeriods.length - 1]!
+      const rangeStart = monthlyPeriodBounds(period).start
+      const rangeEndExclusive = monthlyPeriodBounds(lastPeriod).endExclusive
+      const horizonOccurrences = await listScheduledPaymentOccurrencesInRange(
+        rangeStart,
+        rangeEndExclusive,
+      )
+      const categoriesById = new Map(
+        cats.map((category) => [category.id, { archivedAt: category.archivedAt }] as const),
+      )
+      setProjection(
+        calculateExpenseProjection({
+          startPeriod: period,
+          horizonMonths,
+          payments: rules,
+          categoriesById,
+          occurrencesInHorizon: horizonOccurrences,
+        }),
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar los pagos programados.')
       setOccurrences([])
       setDeliveries([])
+      setProjection(null)
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the civil month changes
-  useEffect(() => { void Promise.resolve().then(load) }, [period])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when month or forecast horizon changes
+  useEffect(() => { void Promise.resolve().then(load) }, [period, horizonMonths])
 
   if (!user) return null
 
@@ -129,6 +179,22 @@ export function ScheduledPaymentsPage() {
       void load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el pago.')
+    }
+  }
+
+  async function remove(payment: ScheduledPayment) {
+    if (
+      !window.confirm(
+        `¿Eliminar “${payment.name}”? Se borrarán sus vencimientos y recordatorios. Las transacciones ya registradas se conservan.`,
+      )
+    ) {
+      return
+    }
+    try {
+      await deleteScheduledPayment(payment.id)
+      void load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el pago programado.')
     }
   }
 
@@ -280,6 +346,16 @@ export function ScheduledPaymentsPage() {
           </ul>
         </section>
       ) : null}
+      <UpcomingExpensesSection
+        projection={projection}
+        horizonMonths={horizonMonths}
+        expandedPeriod={expandedForecastPeriod}
+        money={money}
+        onHorizonChange={setHorizonMonths}
+        onTogglePeriod={(next) =>
+          setExpandedForecastPeriod((current) => (current === next ? null : next))
+        }
+      />
       <section className="stack">
         <div className="row-between">
           <h2>Reglas</h2>
@@ -295,9 +371,10 @@ export function ScheduledPaymentsPage() {
                   <div>
                     <strong>{payment.name}</strong>
                     <p className="muted">
-                      {payment.frequency === 'monthly' ? 'Mensual' : 'Anual'} ·{' '}
+                      {frequencyLabel(payment.frequency)} ·{' '}
                       {payment.amountType === 'fixed' ? 'Fijo' : 'Variable'} ·{' '}
                       {categoryRow?.name ?? 'Categoría eliminada'}
+                      {payment.frequency === 'one_time' ? ` · ${payment.startDate}` : ''}
                     </p>
                     <p className="muted">
                       {formatReminderSummary({
@@ -325,6 +402,14 @@ export function ScheduledPaymentsPage() {
                     </button>
                     <button className="btn" onClick={() => void deactivate(payment)}>
                       {payment.active ? 'Desactivar' : 'Reactivar'}
+                    </button>
+                    <button
+                      className="btn-icon btn-icon-danger"
+                      aria-label={`Eliminar ${payment.name}`}
+                      title="Eliminar"
+                      onClick={() => void remove(payment)}
+                    >
+                      <IconTrash />
                     </button>
                     <button className="btn btn-ghost" onClick={() => void openHistory(payment)}>
                       Historial
@@ -395,6 +480,113 @@ export function ScheduledPaymentsPage() {
   )
 }
 
+function UpcomingExpensesSection({
+  projection,
+  horizonMonths,
+  expandedPeriod,
+  money,
+  onHorizonChange,
+  onTogglePeriod,
+}: {
+  projection: ExpenseProjection | null
+  horizonMonths: ForecastHorizonMonths
+  expandedPeriod: MonthlyPeriod | null
+  money: (value: number) => string
+  onHorizonChange: (value: ForecastHorizonMonths) => void
+  onTogglePeriod: (period: MonthlyPeriod) => void
+}) {
+  return (
+    <section className="stack" aria-label="Próximos gastos">
+      <div className="row-between">
+        <div>
+          <h2>Próximos gastos</h2>
+          <p className="muted">Obligaciones esperadas; no es gasto registrado.</p>
+        </div>
+        <div className="field">
+          <label htmlFor="forecast-horizon">Horizonte</label>
+          <select
+            id="forecast-horizon"
+            value={horizonMonths}
+            onChange={(event) => onHorizonChange(Number(event.target.value) as ForecastHorizonMonths)}
+          >
+            <option value={3}>3 meses</option>
+            <option value={6}>6 meses</option>
+            <option value={12}>12 meses</option>
+          </select>
+        </div>
+      </div>
+      {projection === null ? <p className="page-status">Calculando proyección…</p> : null}
+      {projection ? (
+        <>
+          <p>
+            <strong>
+              Total conocido próximos {projection.horizonMonths} meses: {money(projection.totalKnownExpectedAmount)}
+            </strong>
+            {projection.totalUnknownVariableCount > 0 ? (
+              <span className="muted">
+                {' '}
+                + {projection.totalUnknownVariableCount} importe
+                {projection.totalUnknownVariableCount === 1 ? '' : 's'} variable
+                {projection.totalUnknownVariableCount === 1 ? '' : 's'}
+              </span>
+            ) : null}
+          </p>
+          <ul className="transaction-list">
+            {projection.months.map((month) => {
+              const expanded = expandedPeriod === month.period
+              return (
+                <li key={month.period} className="card stack">
+                  <button
+                    type="button"
+                    className="btn btn-ghost row-between"
+                    style={{ width: '100%' }}
+                    aria-expanded={expanded}
+                    onClick={() => onTogglePeriod(month.period)}
+                  >
+                    <strong>{formatYearMonthLabel(month.period)}</strong>
+                    <span className="muted">{expanded ? 'Ocultar' : 'Ver detalle'}</span>
+                  </button>
+                  <p className="muted">
+                    Esperado conocido: {money(month.knownExpectedAmount)}
+                    {month.unknownVariableCount > 0
+                      ? ` · ${month.unknownVariableCount} gasto${month.unknownVariableCount === 1 ? '' : 's'} variable${month.unknownVariableCount === 1 ? '' : 's'}`
+                      : ''}
+                    {month.paidCount > 0 ? ` · ${month.paidCount} pagado${month.paidCount === 1 ? '' : 's'}` : ''}
+                  </p>
+                  {expanded ? (
+                    month.lines.length === 0 ? (
+                      <p className="muted">Sin obligaciones en este mes.</p>
+                    ) : (
+                      <ul className="transaction-list">
+                        {month.lines.map((line) => (
+                          <li key={`${line.scheduledPaymentId}-${line.dueDate}`} className="row-between">
+                            <div>
+                              <strong>{line.name}</strong>
+                              <p className="muted">
+                                Vence {line.dueDate}
+                                {line.status === 'paid'
+                                  ? ' · Pagado'
+                                  : line.status === 'skipped'
+                                    ? ' · Omitido'
+                                    : ''}
+                              </p>
+                            </div>
+                            <span>{formatProjectedAmount(line, money)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      ) : null}
+    </section>
+  )
+}
+
 function RuleModal({
   userId,
   categories,
@@ -435,7 +627,11 @@ function RuleModal({
     }
     setSaving(true)
     try {
-      const input = { ...form, expectedAmount }
+      const input = {
+        ...form,
+        expectedAmount,
+        endDate: form.frequency === 'one_time' ? null : form.endDate,
+      }
       if (payment) await updateScheduledPayment(payment.id, input)
       else await createScheduledPayment(input)
       onSaved()
@@ -487,10 +683,16 @@ function RuleModal({
             <select
               id="scheduled-frequency"
               value={form.frequency}
-              onChange={(event) =>
-                setForm({ ...form, frequency: event.target.value as ScheduledPayment['frequency'] })
-              }
+              onChange={(event) => {
+                const frequency = event.target.value as ScheduledPayment['frequency']
+                setForm({
+                  ...form,
+                  frequency,
+                  endDate: frequency === 'one_time' ? null : form.endDate,
+                })
+              }}
             >
+              <option value="one_time">Una sola vez</option>
               <option value="monthly">Mensual</option>
               <option value="annual">Anual</option>
             </select>
@@ -523,7 +725,9 @@ function RuleModal({
             />
           </div>
           <div className="field">
-            <label htmlFor="scheduled-start">Fecha del primer vencimiento</label>
+            <label htmlFor="scheduled-start">
+              {form.frequency === 'one_time' ? 'Fecha de vencimiento' : 'Fecha del primer vencimiento'}
+            </label>
             <input
               id="scheduled-start"
               type="date"
@@ -532,16 +736,18 @@ function RuleModal({
               required
             />
           </div>
-          <div className="field">
-            <label htmlFor="scheduled-end">Fecha final (opcional)</label>
-            <input
-              id="scheduled-end"
-              type="date"
-              min={form.startDate}
-              value={form.endDate ?? ''}
-              onChange={(event) => setForm({ ...form, endDate: emptyToNull(event.target.value) })}
-            />
-          </div>
+          {form.frequency !== 'one_time' ? (
+            <div className="field">
+              <label htmlFor="scheduled-end">Fecha final (opcional)</label>
+              <input
+                id="scheduled-end"
+                type="date"
+                min={form.startDate}
+                value={form.endDate ?? ''}
+                onChange={(event) => setForm({ ...form, endDate: emptyToNull(event.target.value) })}
+              />
+            </div>
+          ) : null}
           <fieldset className="stack">
             <legend>Recordatorio por correo</legend>
             <label className="row">
@@ -577,7 +783,11 @@ function RuleModal({
             ) : null}
           </fieldset>
           {payment ? (
-            <p className="muted">Los cambios aplican a futuros vencimientos; el historial no se reescribe.</p>
+            <p className="muted">
+              {payment.frequency === 'one_time'
+                ? 'Si ya existe el vencimiento, su fecha e importe no se reescriben al editar la regla.'
+                : 'Los cambios aplican a futuros vencimientos; el historial no se reescribe.'}
+            </p>
           ) : null}
           {error ? (
             <p className="field-error" role="alert">
