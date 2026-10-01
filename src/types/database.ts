@@ -207,6 +207,8 @@ export type Database = {
           frequency: string
           id: string
           name: string
+          reminder_days_before: number
+          reminder_enabled: boolean
           start_date: string
           updated_at: string
           user_id: string
@@ -221,6 +223,8 @@ export type Database = {
           frequency: string
           id?: string
           name: string
+          reminder_days_before?: number
+          reminder_enabled?: boolean
           start_date: string
           updated_at?: string
           user_id: string
@@ -235,6 +239,8 @@ export type Database = {
           frequency?: string
           id?: string
           name?: string
+          reminder_days_before?: number
+          reminder_enabled?: boolean
           start_date?: string
           updated_at?: string
           user_id?: string
@@ -245,6 +251,66 @@ export type Database = {
             columns: ["financial_category_id"]
             isOneToOne: false
             referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_payment_reminder_deliveries: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          days_before_due: number
+          id: string
+          last_error: string | null
+          occurrence_id: string
+          reminder_date: string
+          scheduled_payment_id: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          days_before_due: number
+          id?: string
+          last_error?: string | null
+          occurrence_id: string
+          reminder_date: string
+          scheduled_payment_id: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          days_before_due?: number
+          id?: string
+          last_error?: string | null
+          occurrence_id?: string
+          reminder_date?: string
+          scheduled_payment_id?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_payment_reminder_deliveries_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: true
+            referencedRelation: "scheduled_payment_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_payment_reminder_deliveries_scheduled_payment_id_fkey"
+            columns: ["scheduled_payment_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -748,6 +814,18 @@ export type Database = {
       mark_scheduled_payment_occurrence_paid: {
         Args: { p_amount: number; p_notes?: string | null; p_occurrence_id: string; p_occurred_on: string }
         Returns: Database['public']['Tables']['transactions']['Row']
+      }
+      claim_scheduled_payment_reminder: {
+        Args: {
+          p_days_before_due: number
+          p_occurrence_id: string
+          p_reminder_date: string
+        }
+        Returns: Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row'] | null
+      }
+      complete_scheduled_payment_reminder: {
+        Args: { p_delivery_id: string; p_error?: string | null; p_status: string }
+        Returns: Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row']
       }
       select_item_option: { Args: { p_option_id: string }; Returns: undefined }
       skip_scheduled_payment_occurrence: { Args: { p_occurrence_id: string }; Returns: undefined }

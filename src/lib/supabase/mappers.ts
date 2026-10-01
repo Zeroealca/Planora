@@ -17,6 +17,7 @@ import type {
   BudgetTemplateAllocation,
 } from '@/features/monthly-budget/domain'
 import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
+import type { ScheduledPaymentReminderDelivery } from '@/features/scheduled-payments/reminders'
 import type { FinancialTransaction, TransactionType } from '@/features/transactions/domain'
 import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
@@ -49,6 +50,8 @@ type BudgetTemplateRow = Database['public']['Tables']['budget_templates']['Row']
 type BudgetTemplateAllocationRow = Database['public']['Tables']['budget_template_allocations']['Row']
 type ScheduledPaymentRow = Database['public']['Tables']['scheduled_payments']['Row']
 type ScheduledPaymentOccurrenceRow = Database['public']['Tables']['scheduled_payment_occurrences']['Row']
+type ScheduledPaymentReminderDeliveryRow =
+  Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row']
 
 function asPreset(value: string): LabelPreset {
   return (LABEL_PRESETS as readonly string[]).includes(value)
@@ -277,7 +280,10 @@ export function mapScheduledPayment(row: ScheduledPaymentRow): ScheduledPayment 
     frequency: row.frequency === 'annual' ? 'annual' : 'monthly',
     amountType: row.amount_type === 'variable' ? 'variable' : 'fixed',
     expectedAmount: parseNumeric(row.expected_amount), startDate: row.start_date, endDate: row.end_date,
-    active: row.active, createdAt: row.created_at, updatedAt: row.updated_at,
+    active: row.active,
+    reminderEnabled: row.reminder_enabled,
+    reminderDaysBefore: row.reminder_days_before,
+    createdAt: row.created_at, updatedAt: row.updated_at,
   }
 }
 
@@ -289,5 +295,28 @@ export function mapScheduledPaymentOccurrence(
     dueDate: row.due_date, expectedAmount: parseNumeric(row.expected_amount),
     status: row.status === 'paid' || row.status === 'skipped' ? row.status : 'pending',
     transactionId: row.transaction_id, createdAt: row.created_at, updatedAt: row.updated_at,
+  }
+}
+
+export function mapScheduledPaymentReminderDelivery(
+  row: ScheduledPaymentReminderDeliveryRow,
+): ScheduledPaymentReminderDelivery {
+  const status =
+    row.status === 'sent' || row.status === 'failed' || row.status === 'processing'
+      ? row.status
+      : 'pending'
+  return {
+    id: row.id,
+    userId: row.user_id,
+    scheduledPaymentId: row.scheduled_payment_id,
+    occurrenceId: row.occurrence_id,
+    reminderDate: row.reminder_date,
+    daysBeforeDue: row.days_before_due,
+    status,
+    attemptCount: row.attempt_count,
+    lastError: row.last_error,
+    sentAt: row.sent_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }

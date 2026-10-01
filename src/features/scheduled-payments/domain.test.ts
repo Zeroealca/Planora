@@ -17,7 +17,9 @@ function payment(overrides: Partial<ScheduledPayment> = {}): ScheduledPayment {
   return {
     id: 'mortgage', userId: 'user', name: 'Mortgage', financialCategoryId: 'housing',
     frequency: 'monthly', amountType: 'fixed', expectedAmount: 308.97,
-    startDate: '2027-01-31', endDate: null, active: true, createdAt: '', updatedAt: '', ...overrides,
+    startDate: '2027-01-31', endDate: null, active: true,
+    reminderEnabled: false, reminderDaysBefore: 7,
+    createdAt: '', updatedAt: '', ...overrides,
   }
 }
 

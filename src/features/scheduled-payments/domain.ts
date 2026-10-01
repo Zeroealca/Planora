@@ -1,5 +1,6 @@
 import { fromCents, toCents } from '@/features/monthly-budget/money'
 import type { FinancialCategory, MonthlyPeriod } from '@/features/monthly-budget/domain'
+import { validateReminderConfig } from './reminders'
 
 export type ScheduledPaymentFrequency = 'monthly' | 'annual'
 export type ScheduledPaymentAmountType = 'fixed' | 'variable'
@@ -16,6 +17,8 @@ export type ScheduledPayment = {
   startDate: string
   endDate: string | null
   active: boolean
+  reminderEnabled: boolean
+  reminderDaysBefore: number
   createdAt: string
   updatedAt: string
 }
@@ -106,10 +109,17 @@ export function validateScheduledPayment(input: ScheduledPaymentInput): Schedule
     throw new Error('Un pago fijo requiere un importe esperado.')
   }
 
+  const reminder = validateReminderConfig({
+    reminderEnabled: input.reminderEnabled,
+    reminderDaysBefore: input.reminderDaysBefore,
+  })
+
   return {
     ...input,
     name,
     expectedAmount: input.expectedAmount === null ? null : fromCents(toCents(input.expectedAmount)),
+    reminderEnabled: reminder.reminderEnabled,
+    reminderDaysBefore: reminder.reminderDaysBefore,
   }
 }
 

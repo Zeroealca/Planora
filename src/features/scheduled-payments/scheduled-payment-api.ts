@@ -1,11 +1,17 @@
 import { supabase } from '@/lib/supabase/client'
 import { supabaseErrorMessage } from '@/lib/supabase/errors'
-import { mapFinancialTransaction, mapScheduledPayment, mapScheduledPaymentOccurrence } from '@/lib/supabase/mappers'
+import {
+  mapFinancialTransaction,
+  mapScheduledPayment,
+  mapScheduledPaymentOccurrence,
+  mapScheduledPaymentReminderDelivery,
+} from '@/lib/supabase/mappers'
 import type { MonthlyPeriod } from '@/features/monthly-budget/domain'
 import { monthlyPeriodBounds } from '@/features/monthly-budget/period'
 import type { FinancialTransaction } from '@/features/transactions/domain'
 import type { ScheduledPayment, ScheduledPaymentInput, ScheduledPaymentOccurrence } from './domain'
 import { validateOccurrencePayment, validateScheduledPayment } from './domain'
+import type { ScheduledPaymentReminderDelivery } from './reminders'
 
 function toDatabaseInput(input: ScheduledPaymentInput) {
   const valid = validateScheduledPayment(input)
@@ -18,6 +24,8 @@ function toDatabaseInput(input: ScheduledPaymentInput) {
     start_date: valid.startDate,
     end_date: valid.endDate,
     active: valid.active,
+    reminder_enabled: valid.reminderEnabled,
+    reminder_days_before: valid.reminderDaysBefore,
   }
 }
 
@@ -112,4 +120,16 @@ export async function skipScheduledPaymentOccurrence(occurrence: ScheduledPaymen
   if (occurrence.status !== 'pending') throw new Error('Solo se puede omitir una occurrence pendiente.')
   const { error } = await supabase.rpc('skip_scheduled_payment_occurrence', { p_occurrence_id: occurrence.id })
   if (error) throw new Error(supabaseErrorMessage(error))
+}
+
+export async function listScheduledPaymentReminderDeliveries(
+  occurrenceIds: readonly string[],
+): Promise<ScheduledPaymentReminderDelivery[]> {
+  if (occurrenceIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('scheduled_payment_reminder_deliveries')
+    .select('*')
+    .in('occurrence_id', [...occurrenceIds])
+  if (error) throw new Error(supabaseErrorMessage(error))
+  return (data ?? []).map(mapScheduledPaymentReminderDelivery)
 }

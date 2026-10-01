@@ -1,0 +1,6 @@
+# Edge Functions
+# JWT verification is enabled by default. The reminders job authenticates with a
+# shared secret inside the function, so verify_jwt is disabled for that route only.
+
+[functions.process-scheduled-payment-reminders]
+verify_jwt = false

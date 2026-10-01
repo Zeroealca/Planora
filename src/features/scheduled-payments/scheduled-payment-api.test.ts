@@ -24,7 +24,9 @@ function query(result: { data: unknown; error: null }) {
 const paymentRow = {
   id: 'payment', user_id: 'user', name: 'Mortgage', financial_category_id: 'housing',
   frequency: 'monthly', amount_type: 'fixed', expected_amount: '308.97',
-  start_date: '2027-01-05', end_date: null, active: true, created_at: '', updated_at: '',
+  start_date: '2027-01-05', end_date: null, active: true,
+  reminder_enabled: false, reminder_days_before: 7,
+  created_at: '', updated_at: '',
 }
 const occurrenceRow = {
   id: 'occurrence', user_id: 'user', scheduled_payment_id: 'payment', due_date: '2027-10-05',
@@ -43,6 +45,7 @@ describe('scheduled payment persistence boundary', () => {
     await expect(createScheduledPayment({
       userId: 'user', name: ' Mortgage ', financialCategoryId: 'housing', frequency: 'monthly',
       amountType: 'fixed', expectedAmount: 0.1 + 0.2, startDate: '2027-01-05', endDate: null, active: true,
+      reminderEnabled: false, reminderDaysBefore: 7,
     })).resolves.toMatchObject({ expectedAmount: 308.97 })
     await expect(materializeScheduledPaymentOccurrence('payment', '2027-10')).resolves.toMatchObject({
       dueDate: '2027-10-05', status: 'pending', expectedAmount: 308.97,
@@ -51,6 +54,7 @@ describe('scheduled payment persistence boundary', () => {
     expect(create.inserts).toEqual([{
       user_id: 'user', name: 'Mortgage', financial_category_id: 'housing', frequency: 'monthly',
       amount_type: 'fixed', expected_amount: 0.3, start_date: '2027-01-05', end_date: null, active: true,
+      reminder_enabled: false, reminder_days_before: 7,
     }])
     expect(rpc).toHaveBeenCalledWith('materialize_scheduled_payment_occurrence', {
       p_scheduled_payment_id: 'payment', p_period: '2027-10',
