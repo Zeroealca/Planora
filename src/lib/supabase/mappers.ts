@@ -16,6 +16,7 @@ import type {
   BudgetTemplate,
   BudgetTemplateAllocation,
 } from '@/features/monthly-budget/domain'
+import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
 import type { FinancialTransaction, TransactionType } from '@/features/transactions/domain'
 import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
@@ -46,6 +47,8 @@ type MonthlyBudgetAllocationRow =
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 type BudgetTemplateRow = Database['public']['Tables']['budget_templates']['Row']
 type BudgetTemplateAllocationRow = Database['public']['Tables']['budget_template_allocations']['Row']
+type ScheduledPaymentRow = Database['public']['Tables']['scheduled_payments']['Row']
+type ScheduledPaymentOccurrenceRow = Database['public']['Tables']['scheduled_payment_occurrences']['Row']
 
 function asPreset(value: string): LabelPreset {
   return (LABEL_PRESETS as readonly string[]).includes(value)
@@ -265,5 +268,26 @@ export function mapFinancialTransaction(row: TransactionRow): FinancialTransacti
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  }
+}
+
+export function mapScheduledPayment(row: ScheduledPaymentRow): ScheduledPayment {
+  return {
+    id: row.id, userId: row.user_id, name: row.name, financialCategoryId: row.financial_category_id,
+    frequency: row.frequency === 'annual' ? 'annual' : 'monthly',
+    amountType: row.amount_type === 'variable' ? 'variable' : 'fixed',
+    expectedAmount: parseNumeric(row.expected_amount), startDate: row.start_date, endDate: row.end_date,
+    active: row.active, createdAt: row.created_at, updatedAt: row.updated_at,
+  }
+}
+
+export function mapScheduledPaymentOccurrence(
+  row: ScheduledPaymentOccurrenceRow,
+): ScheduledPaymentOccurrence {
+  return {
+    id: row.id, userId: row.user_id, scheduledPaymentId: row.scheduled_payment_id,
+    dueDate: row.due_date, expectedAmount: parseNumeric(row.expected_amount),
+    status: row.status === 'paid' || row.status === 'skipped' ? row.status : 'pending',
+    transactionId: row.transaction_id, createdAt: row.created_at, updatedAt: row.updated_at,
   }
 }

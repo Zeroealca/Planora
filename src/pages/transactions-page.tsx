@@ -6,7 +6,7 @@ import { listFinancialCategories } from '@/features/monthly-budget/monthly-budge
 import type { FinancialCategory } from '@/features/monthly-budget/domain'
 import { currentMonthlyPeriod, monthlyPeriodBounds, nextMonthlyPeriod, previousMonthlyPeriod } from '@/features/monthly-budget/period'
 import type { FinancialTransaction } from '@/features/transactions/domain'
-import { deleteTransaction, listTransactions } from '@/features/transactions/transaction-api'
+import { deleteTransaction, fetchTransaction, listTransactions } from '@/features/transactions/transaction-api'
 import { TransactionForm } from '@/features/transactions/transaction-form'
 import { useFormatMoney } from '@/utils/format'
 import { formatYearMonthLabel } from '@/utils/budget/savings-goal'
@@ -15,6 +15,13 @@ function defaultDate(period: string) { const current = currentMonthlyPeriod(); i
 export function TransactionsPage() {
   const { user } = useAuth(); const format = useFormatMoney(); const [params, setParams] = useSearchParams(); const [period, setPeriod] = useState(params.get('period') ?? currentMonthlyPeriod()); const [transactions, setTransactions] = useState<FinancialTransaction[] | null>(null); const [categories, setCategories] = useState<FinancialCategory[]>([]); const [error, setError] = useState<string | null>(null); const [editing, setEditing] = useState<FinancialTransaction | null>(null); const createOpen = params.get('create') === '1'
   async function load() { setError(null); setTransactions(null); try { const bounds = monthlyPeriodBounds(period); const [rows, cats] = await Promise.all([listTransactions({ fromDate: bounds.start, toDateExclusive: bounds.endExclusive, financialCategoryId: params.get('category') ?? undefined }), listFinancialCategories(true)]); setTransactions(rows); setCategories(cats) } catch (err) { setError(err instanceof Error ? err.message : 'No se pudieron cargar las transacciones.'); setTransactions([]) } }
+  const focusedTransactionId = params.get('transaction')
+  useEffect(() => {
+    if (!focusedTransactionId) return
+    void fetchTransaction(focusedTransactionId).then((transaction) => {
+      if (transaction) setPeriod(transaction.occurredOn.slice(0, 7))
+    }).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo abrir la transacción.'))
+  }, [focusedTransactionId])
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void Promise.resolve().then(load) }, [period])
   function close() { setEditing(null); setParams({ period }) }

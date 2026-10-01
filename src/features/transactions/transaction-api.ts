@@ -120,6 +120,8 @@ export async function updateTransaction(
 }
 
 export async function deleteTransaction(transactionId: string): Promise<void> {
-  const { error } = await supabase.from('transactions').delete().eq('id', transactionId)
+  const { error } = await supabase.rpc('delete_transaction_consistently', {
+    p_transaction_id: transactionId,
+  })
   if (error) throw new Error(supabaseErrorMessage(error))
 }

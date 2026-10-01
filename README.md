@@ -31,6 +31,33 @@ puedes crear el disponible del mes, añadir o editar asignaciones y registrar
 gastos; las métricas se actualizan desde los movimientos reales. Transacciones
 permite registrar, editar y eliminar gastos e ingresos por mes.
 
+## Pagos programados — Fase 6A
+
+Un **Scheduled Payment** es una regla de vencimiento por categoría financiera;
+una **Occurrence** es una obligación concreta y persistida para una fecha. No
+son transacciones ni asignaciones de presupuesto mensual. Las occurrences se
+materializan de forma idempotente por regla y fecha, conservan el importe
+esperado como snapshot y nacen en `pending`.
+
+Por ahora solo existen recurrencias `monthly` y `annual`, con fechas civiles
+`YYYY-MM-DD`. La regla conserva el día base: el 31 usa el último día de los
+meses cortos, y una regla anual del 29 de febrero vuelve al 29 cuando el año es
+bisiesto. `overdue` se deriva de `pending` y `dueDate < today`; no se persiste.
+
+Una categoría financiera archivada conserva la regla y su historial, pero hace
+que la regla deje de ser elegible para crear occurrences nuevas. Desactivar una
+regla tiene el mismo efecto y nunca borra su historial. Una occurrence `paid`
+se confirma mediante una operación atómica: crea una Transaction `expense` y
+vincula la occurrence como `paid`, o no cambia nada. El usuario puede ajustar
+importe, fecha real y notas antes de confirmar; llegar al vencimiento nunca
+crea una Transaction automáticamente. Omitir una occurrence no crea gasto.
+
+El gasto pertenece al mes de `Transaction.occurred_on`, no necesariamente al
+mes de `Occurrence.due_date`; por ello las métricas mensuales siguen leyendo
+solamente Transactions. Si se elimina una Transaction vinculada, una operación
+atómica devuelve la occurrence a `pending` y elimina el vínculo. Las reglas,
+los vencimientos y las transacciones siguen siendo conceptos separados.
+
 ## Para agentes y contribuidores
 
 - Instrucciones del proyecto: [`agent.md`](./agent.md)

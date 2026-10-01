@@ -11,6 +11,7 @@ import { SettingsPage } from '@/pages/settings-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { BudgetPage } from '@/pages/budget-page'
 import { TransactionsPage } from '@/pages/transactions-page'
+import { ScheduledPaymentsPage } from '@/pages/scheduled-payments-page'
 import { RequireSession } from '@/features/auth/require-session'
 
 /**
@@ -30,6 +31,7 @@ export function AppRoutes() {
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="budget" element={<BudgetPage />} />
           <Route path="budget/transactions" element={<TransactionsPage />} />
+          <Route path="budget/scheduled-payments" element={<ScheduledPaymentsPage />} />
           <Route path="transactions" element={<Navigate to="/budget/transactions" replace />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="projects/:projectId" element={<ProjectPage />} />

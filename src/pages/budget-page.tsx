@@ -157,16 +157,21 @@ export function BudgetPage() {
           <h1>Presupuesto</h1>
           <p className="muted">Planificación y gasto real del mes.</p>
         </div>
-        {budget ? (
-          <div className="row">
+        <div className="row">
+          <Link className="btn btn-ghost" to={`/budget/scheduled-payments`}>
+            Pagos programados
+          </Link>
+          {budget ? (
+            <>
             <Link className="btn btn-ghost" to={`/budget/transactions?period=${period}`}>
               Movimientos
             </Link>
             <Link className="btn btn-primary" to={`/budget/transactions?period=${period}&create=1`}>
               Registrar gasto
             </Link>
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </header>
 
       <div className="month-nav">

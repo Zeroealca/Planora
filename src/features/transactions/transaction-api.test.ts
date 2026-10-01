@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-const { from } = vi.hoisted(() => ({ from: vi.fn() }))
-vi.mock('@/lib/supabase/client', () => ({ supabase: { from } }))
+const { from, rpc } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/lib/supabase/client', () => ({ supabase: { from, rpc } }))
 
 import {
   createTransaction,
@@ -58,9 +58,9 @@ describe('transaction data access', () => {
     const list = query({ data: [expenseRow], error: null })
     const fetch = query({ data: expenseRow, error: null })
     const update = query({ data: null, error: null })
-    const remove = query({ data: null, error: null })
     from.mockReturnValueOnce(create).mockReturnValueOnce(list).mockReturnValueOnce(fetch)
-      .mockReturnValueOnce(update).mockReturnValueOnce(remove)
+      .mockReturnValueOnce(update)
+    rpc.mockResolvedValueOnce({ data: null, error: null })
 
     await expect(createTransaction('user', { name: 'Supermercado', occurredOn: '2027-09-10', amount: 186.42, type: 'expense', financialCategoryId: 'food', notes: null })).resolves.toMatchObject({ amount: 186.42 })
     await expect(listTransactions({ fromDate: '2027-09-01', toDateExclusive: '2027-10-01', financialCategoryId: 'food', type: 'expense' })).resolves.toHaveLength(1)
@@ -75,6 +75,6 @@ describe('transaction data access', () => {
     expect(list.filters).toContainEqual(['occurred_on', '2027-09-01'])
     expect(list.filters).toContainEqual(['occurred_on', '2027-10-01'])
     expect(update.updates).toEqual([{ name: 'Supermercado', occurred_on: '2027-09-10', amount: 198.72, transaction_type: 'expense', financial_category_id: 'food', notes: null }])
-    expect(remove.filters).toContainEqual(['id', 'expense'])
+    expect(rpc).toHaveBeenCalledWith('delete_transaction_consistently', { p_transaction_id: 'expense' })
   })
 })

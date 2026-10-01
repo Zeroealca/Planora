@@ -145,6 +145,110 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_payment_occurrences: {
+        Row: {
+          created_at: string
+          due_date: string
+          expected_amount: number | null
+          id: string
+          scheduled_payment_id: string
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          expected_amount?: number | null
+          id?: string
+          scheduled_payment_id: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          expected_amount?: number | null
+          id?: string
+          scheduled_payment_id?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_payment_occurrences_scheduled_payment_id_fkey"
+            columns: ["scheduled_payment_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_payment_occurrences_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_payments: {
+        Row: {
+          active: boolean
+          amount_type: string
+          created_at: string
+          end_date: string | null
+          expected_amount: number | null
+          financial_category_id: string
+          frequency: string
+          id: string
+          name: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount_type: string
+          created_at?: string
+          end_date?: string | null
+          expected_amount?: number | null
+          financial_category_id: string
+          frequency: string
+          id?: string
+          name: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount_type?: string
+          created_at?: string
+          end_date?: string | null
+          expected_amount?: number | null
+          financial_category_id?: string
+          frequency?: string
+          id?: string
+          name?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_payments_financial_category_id_fkey"
+            columns: ["financial_category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_option_price_observations: {
         Row: {
           availability: string
@@ -633,7 +737,20 @@ export type Database = {
         }
         Returns: string
       }
+      delete_transaction_consistently: {
+        Args: { p_transaction_id: string }
+        Returns: undefined
+      }
+      materialize_scheduled_payment_occurrence: {
+        Args: { p_period: string; p_scheduled_payment_id: string }
+        Returns: Database['public']['Tables']['scheduled_payment_occurrences']['Row'] | null
+      }
+      mark_scheduled_payment_occurrence_paid: {
+        Args: { p_amount: number; p_notes?: string | null; p_occurrence_id: string; p_occurred_on: string }
+        Returns: Database['public']['Tables']['transactions']['Row']
+      }
       select_item_option: { Args: { p_option_id: string }; Returns: undefined }
+      skip_scheduled_payment_occurrence: { Args: { p_occurrence_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
