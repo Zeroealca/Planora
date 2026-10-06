@@ -50,6 +50,13 @@ import {
 import { fuzzyMatch } from '@/utils/fuzzy'
 import { resolveProjectBudget } from '@/utils/budget/savings'
 import { useFormatMoney } from '@/utils/format'
+import {
+  buildPurchaseReportEntries,
+  createPurchaseReportPdf,
+  downloadPurchaseReportPdf,
+} from '@/features/projects/purchase-report-pdf'
+
+type PurchaseReportFilter = 'All' | 'included' | 'excluded'
 
 function resolveInitialTab(
   tabParam: string | null,
@@ -95,12 +102,15 @@ export function ProjectPage() {
     () => (searchParams.get('direction') as ItemSortDirection | null) ?? 'asc',
   )
   const [filtersOpen, setFiltersOpen] = useState(() =>
-    ['priority', 'category', 'status', 'query', 'attention', 'sort', 'direction'].some(
+    ['priority', 'category', 'status', 'query', 'attention', 'report', 'sort', 'direction'].some(
       (key) => searchParams.has(key),
     ),
   )
   const [attentionFilter, setAttentionFilter] = useState<AttentionFilter>(
     () => (searchParams.get('attention') as AttentionFilter | null) ?? 'All',
+  )
+  const [purchaseReportFilter, setPurchaseReportFilter] = useState<PurchaseReportFilter>(
+    () => (searchParams.get('report') as PurchaseReportFilter | null) ?? 'All',
   )
 
   const activeAttentionFilter = attentionFilter
@@ -113,6 +123,8 @@ export function ProjectPage() {
       ? 'resumen'
       : requestedTab
   const isGoalProject = project ? isSavingsGoalProject(project.savings_mode) : false
+  const activePurchaseReportFilter =
+    project?.savings_mode === 'plan' ? purchaseReportFilter : 'All'
 
   function setActiveTab(tab: ProjectTabId) {
     if (project && !isTabAllowedForMode(tab, project.savings_mode)) return
@@ -243,7 +255,18 @@ export function ProjectPage() {
         categoryFilter === 'All' || item.category_id === categoryFilter
       const matchesStatus = statusFilter === 'All' || item.status === statusFilter
       const matchesSearch = fuzzyMatch(productQuery, item.name)
-      return matchesPriority && matchesCategory && matchesStatus && matchesSearch
+      const matchesPurchaseReport =
+        activePurchaseReportFilter === 'All' ||
+        (activePurchaseReportFilter === 'included'
+          ? item.include_in_purchase_report
+          : !item.include_in_purchase_report)
+      return (
+        matchesPriority &&
+        matchesCategory &&
+        matchesStatus &&
+        matchesSearch &&
+        matchesPurchaseReport
+      )
     }),
     itemSort,
     itemSortDirection,
@@ -257,8 +280,13 @@ export function ProjectPage() {
     categoryFilter !== 'All' ||
     statusFilter !== 'All' ||
     productQuery.trim() !== '' ||
-    activeAttentionFilter !== 'All'
+    activeAttentionFilter !== 'All' ||
+    activePurchaseReportFilter !== 'All'
   const itemDetailSearch = `?${searchParams.toString() || 'tab=items'}`
+  const purchaseReportEntries =
+    project.savings_mode === 'plan'
+      ? buildPurchaseReportEntries(items, project.status_options)
+      : []
 
   const budgetLabel =
     project.budget == null ? 'sin definir' : formatMoney(project.budget)
@@ -364,6 +392,22 @@ export function ProjectPage() {
             <Link to={`/import?projectId=${project.id}`} className="btn btn-ghost">
               Subida masiva
             </Link>
+            {project.savings_mode === 'plan' ? (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  const pdf = createPurchaseReportPdf({
+                    projectName: project.name,
+                    entries: purchaseReportEntries,
+                    formatPrice: formatMoney,
+                  })
+                  downloadPurchaseReportPdf(project.name, pdf)
+                }}
+              >
+                Descargar PDF
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn"
@@ -476,6 +520,24 @@ export function ProjectPage() {
                 <option value="missing_planned_price">Sin presupuesto</option>
               </select>
             </div>
+            {project.savings_mode === 'plan' ? (
+              <div className="field">
+                <label htmlFor="filter-purchase-report">PDF</label>
+                <select
+                  id="filter-purchase-report"
+                  value={activePurchaseReportFilter}
+                  onChange={(event) => {
+                    const next = event.target.value as PurchaseReportFilter
+                    setPurchaseReportFilter(next)
+                    setListFilter('report', next, 'All')
+                  }}
+                >
+                  <option value="All">Todos</option>
+                  <option value="included">Incluidos en PDF</option>
+                  <option value="excluded">No incluidos en PDF</option>
+                </select>
+              </div>
+            ) : null}
             <div className="field">
               <label htmlFor="filter-sort">Ordenar por</label>
               <select
@@ -491,7 +553,10 @@ export function ProjectPage() {
                   ])
                 }}
               >
-                {ITEM_SORT_OPTIONS.map((option) => (
+                {ITEM_SORT_OPTIONS.filter(
+                  (option) =>
+                    project.savings_mode === 'plan' || option.id !== 'purchase_report',
+                ).map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
@@ -588,6 +653,7 @@ export function ProjectPage() {
             activeSort={itemSort}
             activeSortDirection={itemSortDirection}
             itemDetailSearch={itemDetailSearch}
+            canIncludeInPurchaseReport={project.savings_mode === 'plan'}
             onSortChange={changeItemSort}
             onItemUpdated={(updated) => {
               setItems((prev) =>

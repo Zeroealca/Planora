@@ -60,6 +60,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          include_in_purchase_report: boolean
           name: string
           suggested_available_amount: number | null
           updated_at: string
@@ -68,6 +69,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          include_in_purchase_report?: boolean
           name: string
           suggested_available_amount?: number | null
           updated_at?: string
@@ -76,6 +78,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          include_in_purchase_report?: boolean
           name?: string
           suggested_available_amount?: number | null
           updated_at?: string
@@ -466,6 +469,7 @@ export type Database = {
           description: string | null
           estimated_cost: number | null
           id: string
+          include_in_purchase_report: boolean
           name: string
           notes: string | null
           priority: string
@@ -483,6 +487,7 @@ export type Database = {
           description?: string | null
           estimated_cost?: number | null
           id?: string
+          include_in_purchase_report?: boolean
           name: string
           notes?: string | null
           priority?: string
@@ -500,6 +505,7 @@ export type Database = {
           description?: string | null
           estimated_cost?: number | null
           id?: string
+          include_in_purchase_report?: boolean
           name?: string
           notes?: string | null
           priority?: string

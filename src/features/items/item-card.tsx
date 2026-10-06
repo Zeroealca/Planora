@@ -41,6 +41,9 @@ export function ItemCard({
   itemDetailSearch,
   reviewing,
   onReviewPrice,
+  includeInPurchaseReport,
+  purchaseReportBusy,
+  onTogglePurchaseReport,
 }: {
   item: ItemWithOptions
   projectId: string
@@ -51,6 +54,9 @@ export function ItemCard({
   itemDetailSearch: string
   reviewing?: boolean
   onReviewPrice?: () => void
+  includeInPurchaseReport?: boolean
+  purchaseReportBusy?: boolean
+  onTogglePurchaseReport?: (included: boolean) => void
 }) {
   const formatMoney = useFormatMoney()
   const costs = getItemCostSummary(item, statusOptions)
@@ -135,6 +141,17 @@ export function ItemCard({
       )}
       {store ? <p className="muted">Tienda: {store}</p> : null}
       <div className="item-card-actions">
+        {includeInPurchaseReport && onTogglePurchaseReport ? (
+          <label>
+            <input
+              type="checkbox"
+              checked={item.include_in_purchase_report}
+              disabled={purchaseReportBusy}
+              onChange={(event) => onTogglePurchaseReport(event.target.checked)}
+            />{' '}
+            Incluir en PDF
+          </label>
+        ) : null}
         {purchaseLink ? (
           <a href={purchaseLink.href} target="_blank" rel="noopener noreferrer">
             {purchaseLink.source === 'option' ? 'Ver producto' : 'Ver enlace del ítem'}

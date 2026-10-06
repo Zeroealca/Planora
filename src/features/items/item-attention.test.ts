@@ -75,6 +75,7 @@ function item(
     updated_at: '',
     options: [],
     ...partial,
+    include_in_purchase_report: partial.include_in_purchase_report ?? false,
   }
 }
 

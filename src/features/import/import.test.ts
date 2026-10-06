@@ -53,6 +53,7 @@ function item(partial: Partial<ItemWithOptions> & Pick<ItemWithOptions, 'id' | '
     updated_at: '',
     options: [],
     ...partial,
+    include_in_purchase_report: partial.include_in_purchase_report ?? false,
   }
 }
 

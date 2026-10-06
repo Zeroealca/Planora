@@ -185,6 +185,7 @@ export function mapItem(row: ItemRow): Item {
     quantity: parseNumeric(row.quantity) ?? 1,
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
+    include_in_purchase_report: row.include_in_purchase_report,
     purchase_url: row.purchase_url,
     notes: row.notes,
     completed_at: row.completed_at,

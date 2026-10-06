@@ -8,7 +8,11 @@ import type {
   ProjectPriorityOption,
   ProjectStatusOption,
 } from '@/types/domain'
-import { updateItem, type ItemInput } from '@/features/items/item-api'
+import {
+  setItemPurchaseReportInclusion,
+  updateItem,
+  type ItemInput,
+} from '@/features/items/item-api'
 import {
   createOption,
   reviewOptionPrice,
@@ -86,6 +90,7 @@ export function ItemTable({
   activeSort,
   activeSortDirection,
   itemDetailSearch,
+  canIncludeInPurchaseReport,
   onSortChange,
   onItemUpdated,
 }: {
@@ -98,6 +103,7 @@ export function ItemTable({
   activeSort: ItemSortKey
   activeSortDirection: ItemSortDirection
   itemDetailSearch: string
+  canIncludeInPurchaseReport: boolean
   onSortChange: (sort: ItemSortKey) => void
   onItemUpdated: (item: ItemWithOptions) => void
 }) {
@@ -199,6 +205,24 @@ export function ItemTable({
     }
   }
 
+  async function togglePurchaseReport(item: ItemWithOptions, included: boolean) {
+    setSavingId(item.id)
+    setError(null)
+    try {
+      await setItemPurchaseReportInclusion(item.id, included)
+      onItemUpdated({
+        ...item,
+        include_in_purchase_report: included,
+        updated_at: new Date().toISOString(),
+      })
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el reporte.')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   async function reviewSelectedOption(item: ItemWithOptions) {
     const selected = getSelectedOption(item)
     if (!selected) {
@@ -265,6 +289,11 @@ export function ItemTable({
               itemDetailSearch={itemDetailSearch}
               reviewing={getSelectedOption(item)?.id === reviewingOptionId}
               onReviewPrice={() => void reviewSelectedOption(item)}
+              includeInPurchaseReport={canIncludeInPurchaseReport}
+              purchaseReportBusy={savingId === item.id}
+              onTogglePurchaseReport={(included) =>
+                void togglePurchaseReport(item, included)
+              }
             />
           </li>
         ))}
@@ -283,6 +312,17 @@ export function ItemTable({
                   onSortChange={onSortChange}
                 />
               </th>
+              {canIncludeInPurchaseReport ? (
+                <th scope="col">
+                  <SortHeader
+                    label="PDF"
+                    sortKey="purchase_report"
+                    activeSort={activeSort}
+                    activeSortDirection={activeSortDirection}
+                    onSortChange={onSortChange}
+                  />
+                </th>
+              ) : null}
               <th scope="col">
                 <SortHeader
                   label="Estado"
@@ -333,12 +373,16 @@ export function ItemTable({
                   priorityOptions={priorityOptions}
                   attentionContext={attentionContext}
                   itemDetailSearch={itemDetailSearch}
+                  canIncludeInPurchaseReport={canIncludeInPurchaseReport}
                   busy={savingId === item.id}
                   reviewingOptionId={reviewingOptionId}
                   formatMoney={formatMoney}
                   onSaveItem={(patch) => void saveItemFields(item, patch)}
                   onSaveOption={(patch) => void saveOptionFields(item, patch)}
                   onReviewPrice={() => void reviewSelectedOption(item)}
+                  onTogglePurchaseReport={(included) =>
+                    void togglePurchaseReport(item, included)
+                  }
                 />
               )
             })}
@@ -395,12 +439,14 @@ function EditableItemRow({
   priorityOptions,
   attentionContext,
   itemDetailSearch,
+  canIncludeInPurchaseReport,
   busy,
   reviewingOptionId,
   formatMoney,
   onSaveItem,
   onSaveOption,
   onReviewPrice,
+  onTogglePurchaseReport,
 }: {
   item: ItemWithOptions
   projectId: string
@@ -409,6 +455,7 @@ function EditableItemRow({
   priorityOptions: readonly ProjectPriorityOption[]
   attentionContext: AttentionContext
   itemDetailSearch: string
+  canIncludeInPurchaseReport: boolean
   busy: boolean
   reviewingOptionId: string | null
   formatMoney: (value: number) => string
@@ -417,6 +464,7 @@ function EditableItemRow({
     patch: Partial<Pick<ItemOption, 'price' | 'store' | 'product_url'>>,
   ) => void
   onReviewPrice: () => void
+  onTogglePurchaseReport: (included: boolean) => void
 }) {
   const costs = getItemCostSummary(item, statusOptions)
   const selected = getSelectedOption(item)
@@ -478,6 +526,19 @@ function EditableItemRow({
           </Link>
         </div>
       </th>
+      {canIncludeInPurchaseReport ? (
+        <td>
+          <label>
+            <input
+              type="checkbox"
+              checked={item.include_in_purchase_report}
+              disabled={busy}
+              onChange={(event) => onTogglePurchaseReport(event.target.checked)}
+            />{' '}
+            Incluir
+          </label>
+        </td>
+      ) : null}
       <td>
         <select
           className="item-table-input"

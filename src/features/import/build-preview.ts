@@ -156,6 +156,7 @@ export function buildPreviewRows(input: {
         quantity: 1,
         estimated_cost: draft.estimatedCost,
         actual_cost: draft.actualCost,
+        include_in_purchase_report: false,
         purchase_url: draft.purchaseUrl,
         notes: draft.notes,
         completed_at: draft.completedAt,

@@ -109,6 +109,7 @@ export interface Item {
   quantity: number
   estimated_cost: number | null
   actual_cost: number | null
+  include_in_purchase_report: boolean
   purchase_url: string | null
   notes: string | null
   completed_at: string | null

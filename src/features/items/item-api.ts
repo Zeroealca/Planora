@@ -80,6 +80,18 @@ export async function updateItem(
   if (error) throw new Error(supabaseErrorMessage(error))
 }
 
+export async function setItemPurchaseReportInclusion(
+  itemId: string,
+  includeInPurchaseReport: boolean,
+): Promise<void> {
+  const { error } = await supabase
+    .from('items')
+    .update({ include_in_purchase_report: includeInPurchaseReport })
+    .eq('id', itemId)
+
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
+
 export async function deleteItem(itemId: string): Promise<void> {
   const { error } = await supabase.from('items').delete().eq('id', itemId)
   if (error) throw new Error(supabaseErrorMessage(error))

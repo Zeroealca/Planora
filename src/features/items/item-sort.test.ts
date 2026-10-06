@@ -50,6 +50,7 @@ function item(
     updated_at: '',
     options: [],
     ...partial,
+    include_in_purchase_report: partial.include_in_purchase_report ?? false,
   }
 }
 
@@ -244,6 +245,28 @@ describe('sortProjectItems', () => {
       context,
     )
     expect(sorted[0]?.id).toBe('1')
+  })
+
+  it('puts items included in the PDF first', () => {
+    const sorted = sortProjectItems(
+      [
+        item({ id: '1', name: 'Mesa', status: 'Pending', priority: 'Medium' }),
+        item({
+          id: '2',
+          name: 'Cocina',
+          status: 'Pending',
+          priority: 'Medium',
+          include_in_purchase_report: true,
+        }),
+      ],
+      'purchase_report',
+      'asc',
+      DEFAULT_PRIORITY_OPTIONS,
+      DEFAULT_STATUS_OPTIONS,
+      context,
+    )
+
+    expect(sorted.map((entry) => entry.name)).toEqual(['Cocina', 'Mesa'])
   })
 
   it('sorts in descending direction', () => {

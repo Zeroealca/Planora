@@ -15,6 +15,7 @@ export type ItemSortKey =
   | 'priority'
   | 'category'
   | 'store'
+  | 'purchase_report'
   | 'attention'
 export type ItemSortDirection = 'asc' | 'desc'
 
@@ -24,6 +25,7 @@ export const ITEM_SORT_OPTIONS: readonly { id: ItemSortKey; label: string }[] = 
   { id: 'priority', label: 'Prioridad' },
   { id: 'category', label: 'Categoría' },
   { id: 'store', label: 'Tienda' },
+  { id: 'purchase_report', label: 'Incluidos en PDF primero' },
   { id: 'attention', label: 'Atención primero' },
 ]
 
@@ -118,6 +120,12 @@ function compareItems(
   if (sort === 'store') {
     const byStore = compareNullableNames(getItemStore(a), getItemStore(b))
     if (byStore !== 0) return byStore
+    return compareNames(a.name, b.name)
+  }
+  if (sort === 'purchase_report') {
+    const byPurchaseReport =
+      Number(b.include_in_purchase_report) - Number(a.include_in_purchase_report)
+    if (byPurchaseReport !== 0) return byPurchaseReport
     return compareNames(a.name, b.name)
   }
   // attention first
