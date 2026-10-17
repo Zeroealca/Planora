@@ -174,6 +174,41 @@ La app estará en `http://localhost:5173`.
 | `npm run lint` | ESLint |
 | `npm test` | Tests (Vitest) |
 | `npm run preview` | Vista previa del build de producción |
+| `npm run test:e2e` | Pruebas de navegador Playwright seguras |
+| `npm run test:e2e:ui` | Abre el runner visual de Playwright |
+| `npm run test:e2e:report` | Abre el último reporte HTML de Playwright |
+
+## Pruebas E2E seguras
+
+La suite E2E usa Playwright y ejecuta Vite localmente con una URL de Supabase
+inválida (`https://e2e.invalid`). Esa configuración tiene prioridad sobre
+`.env`, por lo que los tests de humo no pueden leer ni escribir en Supabase,
+incluido el proyecto de producción. La suite comprueba redirecciones de rutas
+privadas y una recarga de navegador, también en viewport móvil; conserva traza,
+captura y reporte HTML cuando falla.
+
+Instala Chromium una vez en la máquina antes de ejecutarla:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+Para ejecutar un caso concreto, usa por ejemplo
+`npx playwright test e2e/safe-smoke.spec.ts --project=chromium`. Los artefactos
+locales `playwright-report/` y `test-results/` no se versionan.
+
+Los flujos que requieren una sesión (inicio de sesión correcto e incorrecto,
+proyectos, presupuestos, pagos programados, metas y modales sobre datos) están
+preparados como siguiente capa, pero **no se ejecutan** hasta disponer de un
+proyecto Supabase aislado y cuentas sintéticas. Deben configurarse solo en CI
+con variables no secretas de cliente, por ejemplo `E2E_SUPABASE_URL`,
+`E2E_SUPABASE_ANON_KEY`, `E2E_USER_EMAIL` y `E2E_USER_PASSWORD`; nunca se
+deben apuntar al entorno productivo ni guardar valores en el repositorio. La
+preparación y limpieza de esos datos debe hacerse por un proceso de test
+controlado y aislado. El job `e2e-safe-smoke` de GitHub Actions no necesita
+secretos y es independiente del despliegue para no bloquearlo por esa
+infraestructura pendiente.
 
 ## Supabase
 
@@ -318,3 +353,4 @@ supabase/functions/
 ```ts
 import { supabase } from '@/lib/supabase/client'
 ```
+

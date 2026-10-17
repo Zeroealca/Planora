@@ -2658,6 +2658,327 @@ html[data-theme='dark'] select.item-table-input {
   font-size: 0.9rem;
 }
 
+/* General dashboard: compact overview, intentionally built from existing domain metrics. */
+.general-dashboard {
+  gap: 1.5rem;
+}
+
+.general-dashboard-hero,
+.general-dashboard-section-heading,
+.general-dashboard-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.general-dashboard-hero {
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 1rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 70%, var(--card)), var(--card));
+}
+
+.general-dashboard-hero h1,
+.general-dashboard-section-heading h2,
+.general-project-grid h3 {
+  margin: 0;
+}
+
+.general-dashboard-hero .btn {
+  align-self: flex-start;
+}
+
+.general-dashboard-eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.general-dashboard-section-heading > a {
+  align-self: flex-start;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.general-dashboard-section-heading p {
+  margin: 0.2rem 0 0;
+}
+
+.general-dashboard-panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--card);
+}
+
+.general-dashboard-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.7rem;
+  color: var(--text-muted);
+}
+
+.general-dashboard-empty p {
+  flex: 1 1 13rem;
+  margin: 0;
+}
+
+.general-budget-list,
+.general-payment-list,
+.general-goal-list,
+.general-transaction-list,
+.general-project-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.general-budget-list,
+.general-goal-list,
+.general-transaction-list,
+.general-payment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.general-budget-list > li,
+.general-goal-list > li,
+.general-transaction-list > li,
+.general-payment-list > li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.general-budget-list > li:last-child,
+.general-goal-list > li:last-child,
+.general-transaction-list > li:last-child,
+.general-payment-list > li:last-child {
+  border-bottom: 0;
+}
+
+.general-budget-list__head,
+.general-payment-list li,
+.general-goal-list a > div:first-child,
+.general-transaction-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.general-budget-list p,
+.general-goal-list p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.general-budget-list__track,
+.general-project-progress,
+.general-budget-compare__track {
+  height: 0.45rem;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-soft) 60%, var(--border));
+}
+
+.general-budget-list__track > span,
+.general-project-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.general-budget-list__track > .is-over {
+  background: var(--danger);
+}
+
+.general-budget-compare__track {
+  position: relative;
+  height: 0.7rem;
+}
+
+.general-budget-compare__assigned,
+.general-budget-compare__spent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.general-budget-compare__assigned {
+  background: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.general-budget-compare__spent {
+  background: var(--accent);
+}
+
+.general-budget-compare__spent.is-over {
+  background: var(--danger);
+}
+
+.is-over-text {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+.general-dashboard-more {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.general-dashboard-skeleton {
+  display: grid;
+  gap: 1rem;
+}
+
+.general-dashboard-skeleton__hero,
+.general-dashboard-skeleton__row,
+.general-dashboard-skeleton__split > div {
+  border-radius: 0.9rem;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border) 55%, var(--card)),
+    color-mix(in srgb, var(--accent-soft) 40%, var(--card)),
+    color-mix(in srgb, var(--border) 55%, var(--card))
+  );
+  background-size: 200% 100%;
+  animation: general-dashboard-shimmer 1.4s ease-in-out infinite;
+}
+
+.general-dashboard-skeleton__hero {
+  min-height: 8rem;
+}
+
+.general-dashboard-skeleton__row {
+  min-height: 5.5rem;
+}
+
+.general-dashboard-skeleton__split {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.general-dashboard-skeleton__split > div {
+  min-height: 10rem;
+}
+
+@keyframes general-dashboard-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (min-width: 720px) {
+  .general-dashboard-skeleton__split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.general-payment-list span,
+.general-goal-list span,
+.general-transaction-list span {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.general-payment-list .is-overdue strong,
+.general-payment-list .is-overdue span {
+  color: var(--danger);
+}
+
+.general-payment-list b,
+.general-transaction-list b {
+  white-space: nowrap;
+}
+
+.general-project-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.general-project-grid a {
+  display: block;
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+}
+
+.general-project-grid a:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.general-project-grid dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.85rem 0;
+}
+
+.general-project-grid dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.general-project-grid dd {
+  margin: 0.12rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.general-project-progress {
+  position: relative;
+  margin-bottom: 1.35rem;
+}
+
+.general-project-progress small {
+  position: absolute;
+  top: 0.65rem;
+  left: 0;
+  color: var(--text-muted);
+}
+
+.is-income { color: var(--success); }
+.is-expense { color: var(--danger); }
+
+@media (min-width: 720px) {
+  .general-dashboard-hero,
+  .general-dashboard-section-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .general-dashboard-hero .btn,
+  .general-dashboard-section-heading > a { align-self: auto; }
+
+  .general-dashboard-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .general-project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1120px) {
+  .general-project-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 @media (min-width: 640px) {
   .financial-commitments {
     grid-template-columns: repeat(2, minmax(0, 1fr));

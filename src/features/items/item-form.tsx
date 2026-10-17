@@ -111,6 +111,7 @@ export function ItemForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
+          autoFocus={!item}
         />
       </div>
       <div className="field">

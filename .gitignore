@@ -11,6 +11,8 @@ node_modules
 dist
 dev-dist
 dist-ssr
+playwright-report
+test-results
 *.local
 .env
 .env.*

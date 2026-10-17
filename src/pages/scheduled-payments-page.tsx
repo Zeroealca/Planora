@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { IconBack, IconClose, IconPencil, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
@@ -40,13 +40,12 @@ import {
 import { formatYearMonthLabel } from '@/utils/budget/savings-goal'
 import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
-import { useEscapeKey } from '@/hooks/use-escape-key'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 function todayCivil(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
-
 function frequencyLabel(frequency: ScheduledPayment['frequency']): string {
   if (frequency === 'one_time') return 'Una sola vez'
   if (frequency === 'annual') return 'Anual'
@@ -109,14 +108,11 @@ export function ScheduledPaymentsPage() {
   const [showRuleForm, setShowRuleForm] = useState(false)
   const [paying, setPaying] = useState<ScheduledPaymentOccurrence | null>(null)
   const [history, setHistory] = useState<{ payment: ScheduledPayment; rows: ScheduledPaymentOccurrence[] } | null>(null)
+  const historyDialogRef = useRef<HTMLElement>(null)
   const [horizonMonths, setHorizonMonths] = useState<ForecastHorizonMonths>(3)
   const [projection, setProjection] = useState<ExpenseProjection | null>(null)
   const [expandedForecastPeriod, setExpandedForecastPeriod] = useState<MonthlyPeriod | null>(null)
-  useEscapeKey(showRuleForm || paying !== null || history !== null, () => {
-    if (history) setHistory(null)
-    else if (paying) setPaying(null)
-    else setShowRuleForm(false)
-  })
+  useModalAccessibility(history !== null, historyDialogRef, () => setHistory(null))
 
   async function load() {
     setError(null)
@@ -461,7 +457,7 @@ export function ScheduledPaymentsPage() {
             if (event.target === event.currentTarget) setHistory(null)
           }}
         >
-          <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+          <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="history-title" ref={historyDialogRef} tabIndex={-1}>
             <div className="modal-head">
               <h2 id="history-title">Historial: {history.payment.name}</h2>
               <button className="btn-icon" aria-label="Cerrar" onClick={() => setHistory(null)}>
@@ -485,7 +481,6 @@ export function ScheduledPaymentsPage() {
     </div>
   )
 }
-
 function UpcomingExpensesSection({
   projection,
   horizonMonths,
@@ -611,6 +606,8 @@ function RuleModal({
   const [amount, setAmount] = useState(costInputValue(initial.expectedAmount))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const dialogRef = useRef<HTMLElement>(null)
+  useModalAccessibility(true, dialogRef, onClose, { dismissible: !saving })
   const activeCategories = categories.filter(
     (category) => !category.archivedAt || category.id === form.financialCategoryId,
   )
@@ -650,10 +647,10 @@ function RuleModal({
 
   return (
     <div className="modal-backdrop">
-      <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="rule-title">
+      <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="rule-title" ref={dialogRef} tabIndex={-1}>
         <div className="modal-head">
           <h2 id="rule-title">{payment ? 'Editar pago programado' : 'Nuevo pago programado'}</h2>
-          <button className="btn-icon" aria-label="Cerrar" onClick={onClose}>
+          <button className="btn-icon" aria-label="Cerrar" onClick={onClose} disabled={saving}>
             <IconClose />
           </button>
         </div>
@@ -665,6 +662,7 @@ function RuleModal({
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               required
+              autoFocus
             />
           </div>
           <div className="field">
@@ -808,7 +806,6 @@ function RuleModal({
     </div>
   )
 }
-
 function PaymentModal({
   occurrence,
   payment,
@@ -827,6 +824,8 @@ function PaymentModal({
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const dialogRef = useRef<HTMLElement>(null)
+  useModalAccessibility(true, dialogRef, onClose, { dismissible: !saving })
 
   async function save(event: FormEvent) {
     event.preventDefault()
@@ -850,10 +849,10 @@ function PaymentModal({
 
   return (
     <div className="modal-backdrop">
-      <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+      <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="payment-title" ref={dialogRef} tabIndex={-1}>
         <div className="modal-head">
           <h2 id="payment-title">Registrar pago</h2>
-          <button className="btn-icon" aria-label="Cerrar" onClick={onClose}>
+          <button className="btn-icon" aria-label="Cerrar" onClick={onClose} disabled={saving}>
             <IconClose />
           </button>
         </div>
@@ -915,3 +914,4 @@ function PaymentModal({
     </div>
   )
 }
+

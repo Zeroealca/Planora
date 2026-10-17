@@ -19,7 +19,7 @@ const ScheduledPaymentsPage = lazy(() => import('@/pages/scheduled-payments-page
 /**
  * Client-side routing (history API). Basename follows Vite `base`.
  *
- * Public: `/login`, `/auth/callback`
+ * Public: `/login`, `/auth/callback`; `/` redirects guests and renders the authenticated overview.
  * Protected: `/projects`, `/import`, `/projects/:projectId`, `/projects/:projectId/items/:itemId`, `/settings`
  */
 export function AppRoutes() {

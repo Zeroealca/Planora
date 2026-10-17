@@ -18,6 +18,8 @@ export type TransactionFilters = {
   toDateExclusive?: string
   financialCategoryId?: string
   type?: TransactionType
+  /** Keeps overview surfaces from reading the complete transaction history. */
+  limit?: number
 }
 
 function isDateOnly(value: string): boolean {
@@ -76,6 +78,7 @@ export async function listTransactions(
     query = query.eq('financial_category_id', filters.financialCategoryId)
   }
   if (filters.type) query = query.eq('transaction_type', filters.type)
+  if (filters.limit != null) query = query.limit(filters.limit)
 
   const { data, error } = await query
   if (error) throw new Error(supabaseErrorMessage(error))

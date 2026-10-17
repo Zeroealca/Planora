@@ -25,7 +25,7 @@ export function AppLayout() {
     <div className={session ? 'app-shell' : 'app-shell app-shell-guest'}>
       {session ? (
         <header className="app-header">
-          <Link to="/projects" className="app-brand" onClick={() => setMenuOpen(false)}>
+          <Link to="/" className="app-brand" onClick={() => setMenuOpen(false)}>
             Planora
           </Link>
           <button
@@ -43,6 +43,9 @@ export function AppLayout() {
             className={menuOpen ? 'app-nav app-nav-open' : 'app-nav'}
             aria-label="Principal"
           >
+            <Link to="/" onClick={() => setMenuOpen(false)}>
+              Inicio
+            </Link>
             <Link to="/budget" onClick={() => setMenuOpen(false)}>
               Presupuesto
             </Link>

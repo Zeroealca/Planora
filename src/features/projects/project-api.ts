@@ -80,6 +80,22 @@ export async function fetchProjects(): Promise<ProjectListEntry[]> {
   })
 }
 
+/** Movements are fetched only for the goal projects visible in an overview. */
+export async function listSavingsMovementsForProjects(
+  projectIds: readonly string[],
+): Promise<ProjectSavingsMovement[]> {
+  if (projectIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('project_savings_movements')
+    .select('*')
+    .in('project_id', [...projectIds])
+    .order('movement_date', { ascending: false })
+
+  if (error) throw new Error(supabaseErrorMessage(error))
+  return (data ?? []).map(mapSavingsMovement)
+}
+
 export async function fetchProjectBundle(projectId: string): Promise<{
   project: Project
   categories: Category[]

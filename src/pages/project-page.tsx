@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { IconBack, IconClose } from '@/components/icons'
 import { DashboardPanel } from '@/features/dashboard/dashboard-panel'
@@ -50,7 +50,7 @@ import {
 import { fuzzyMatch } from '@/utils/fuzzy'
 import { resolveProjectBudget } from '@/utils/budget/savings'
 import { useFormatMoney } from '@/utils/format'
-import { useEscapeKey } from '@/hooks/use-escape-key'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 import {
   buildPurchaseReportEntries,
   createPurchaseReportPdf,
@@ -68,7 +68,6 @@ function resolveInitialTab(
   if (attentionParam === 'needs_attention') return 'items'
   return 'resumen'
 }
-
 export function ProjectPage() {
   const { projectId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -86,7 +85,8 @@ export function ProjectPage() {
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [creatingItem, setCreatingItem] = useState(false)
-  useEscapeKey(creatingItem, () => setCreatingItem(false))
+  const itemDialogRef = useRef<HTMLElement>(null)
+  useModalAccessibility(creatingItem, itemDialogRef, () => setCreatingItem(false))
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>(
     () => (searchParams.get('priority') as PriorityFilter | null) ?? 'All',
   )
@@ -596,6 +596,8 @@ export function ProjectPage() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="new-item-title"
+              ref={itemDialogRef}
+              tabIndex={-1}
             >
               <div className="modal-head">
                 <h2 id="new-item-title">Nuevo ítem</h2>
