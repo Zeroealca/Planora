@@ -33,7 +33,7 @@ export function TransactionForm({ userId, categories, transaction, defaultDate, 
     catch (err) { setError(err instanceof Error ? err.message : 'No se pudo crear la categoría.') }
   }
   return <form className="stack" onSubmit={save}>
-    <div className="field"><label htmlFor="transaction-name">Nombre</label><input id="transaction-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
+    <div className="field"><label htmlFor="transaction-name">Descripción</label><input id="transaction-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus={!transaction} /></div>
     <div className="field"><label htmlFor="transaction-type">Tipo</label><select id="transaction-type" value={type} onChange={(e) => setType(e.target.value as TransactionType)}><option value="expense">Gasto</option><option value="income">Ingreso</option></select></div>
     <div className="field"><label htmlFor="transaction-amount">Cantidad</label><input id="transaction-amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
     <div className="field"><label htmlFor="transaction-date">Fecha</label><input id="transaction-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>

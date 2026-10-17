@@ -40,6 +40,7 @@ import {
 import { formatYearMonthLabel } from '@/utils/budget/savings-goal'
 import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
+import { useEscapeKey } from '@/hooks/use-escape-key'
 
 function todayCivil(): string {
   const now = new Date()
@@ -111,6 +112,11 @@ export function ScheduledPaymentsPage() {
   const [horizonMonths, setHorizonMonths] = useState<ForecastHorizonMonths>(3)
   const [projection, setProjection] = useState<ExpenseProjection | null>(null)
   const [expandedForecastPeriod, setExpandedForecastPeriod] = useState<MonthlyPeriod | null>(null)
+  useEscapeKey(showRuleForm || paying !== null || history !== null, () => {
+    if (history) setHistory(null)
+    else if (paying) setPaying(null)
+    else setShowRuleForm(false)
+  })
 
   async function load() {
     setError(null)

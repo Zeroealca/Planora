@@ -26,9 +26,17 @@ import {
 } from '@/features/monthly-budget/period'
 import { getMonthlyBudgetPeriodSummary } from '@/features/monthly-budget/monthly-budget-summary-api'
 import type { MonthlyBudgetPeriodSummary } from '@/features/monthly-budget/transaction-summary'
+import { calculateAvailableAfterKnownCommitments, calculateCategoryCommitmentCoverage, calculateMonthlyScheduledCommitments } from '@/features/scheduled-payments/commitments'
+import { listScheduledPaymentOccurrencesForPeriod, listScheduledPayments } from '@/features/scheduled-payments/scheduled-payment-api'
+import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
 import { formatYearMonthLabel } from '@/utils/budget/savings-goal'
 import { costInputValue, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
+
+function todayCivil(): string {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+}
 
 export function BudgetPage() {
   const { user } = useAuth()
@@ -38,6 +46,8 @@ export function BudgetPage() {
   const [summary, setSummary] = useState<MonthlyBudgetPeriodSummary | null | undefined>()
   const [categories, setCategories] = useState<FinancialCategory[]>([])
   const [allocations, setAllocations] = useState<PersistedMonthlyBudgetAllocation[]>([])
+  const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([])
+  const [scheduledOccurrences, setScheduledOccurrences] = useState<ScheduledPaymentOccurrence[]>([])
   const [available, setAvailable] = useState('')
   const [editing, setEditing] = useState(false)
   const [categoryName, setCategoryName] = useState('')
@@ -49,14 +59,18 @@ export function BudgetPage() {
     setError(null)
     setSummary(undefined)
     try {
-      const [row, result, cats] = await Promise.all([
+      const [row, result, cats, payments, occurrences] = await Promise.all([
         fetchMonthlyBudgetByPeriod(period),
         getMonthlyBudgetPeriodSummary(period),
         listFinancialCategories(true),
+        listScheduledPayments(),
+        listScheduledPaymentOccurrencesForPeriod(period),
       ])
       setBudget(row)
       setSummary(result)
       setCategories(cats)
+      setScheduledPayments(payments)
+      setScheduledOccurrences(occurrences)
       setAllocations(row ? await listMonthlyBudgetAllocations(row.id) : [])
       setAvailable(costInputValue(row?.availableAmount ?? null))
     } catch (e) {
@@ -149,6 +163,23 @@ export function BudgetPage() {
     (editAllocation != null || categoryName.trim() !== '') &&
     allocationAmount != null &&
     allocationAmount >= 0
+  const commitments = calculateMonthlyScheduledCommitments({
+    period,
+    today: todayCivil(),
+    payments: scheduledPayments,
+    categoriesById: new Map(categories.map((category) => [category.id, category] as const)),
+    occurrences: scheduledOccurrences,
+  })
+  const commitmentByCategory = new Map(
+    commitments.byCategory.map((commitment) => [commitment.financialCategoryId, commitment] as const),
+  )
+  const categorySummaryById = new Map(
+    (summary?.categories ?? []).map((category) => [category.financialCategoryId, category] as const),
+  )
+  const categoryIds = new Set([
+    ...categorySummaryById.keys(),
+    ...commitmentByCategory.keys(),
+  ])
 
   return (
     <div className="page">
@@ -253,9 +284,49 @@ export function BudgetPage() {
             <article
               className={`metric-card ${m.actualRemaining < 0 ? 'metric-card-over' : 'metric-card-balance'}`}
             >
-              <p className="metric-label">Disponible actual</p>
+              <p className="metric-label">Saldo real</p>
               <p className="metric-value">{money(m.actualRemaining)}</p>
             </article>
+          </section>
+
+          <section className="financial-commitments" aria-label="Pagos programados del mes">
+            <div>
+              <p className="metric-label">Comprometido conocido</p>
+              <p className="financial-commitments__amount">{money(commitments.knownAmount)}</p>
+              {commitments.unknownAmountCount > 0 ? (
+                <p className="muted">
+                  Además: {commitments.unknownAmountCount} pago{commitments.unknownAmountCount === 1 ? '' : 's'} variable{commitments.unknownAmountCount === 1 ? '' : 's'} sin importe.
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <p className="metric-label">Disponible tras compromisos</p>
+              <p className="financial-commitments__amount">
+                {money(calculateAvailableAfterKnownCommitments(m.availableAmount, commitments.knownAmount))}
+              </p>
+              <p className="muted">Orientativo; no altera el saldo real.</p>
+            </div>
+            <div>
+              <p className="metric-label">Pagos vencidos</p>
+              <p className="financial-commitments__amount">{commitments.overdueCount}</p>
+            </div>
+            <div>
+              <p className="metric-label">Próximo pago</p>
+              {commitments.nextPendingPayment ? (
+                <p className="financial-commitments__next">
+                  <strong>{commitments.nextPendingPayment.name}</strong>
+                  <span>
+                    {commitments.nextPendingPayment.dueDate < todayCivil() ? 'Vencido · ' : ''}
+                    {commitments.nextPendingPayment.dueDate} · {commitments.nextPendingPayment.expectedAmount == null ? 'Importe variable' : money(commitments.nextPendingPayment.expectedAmount)}
+                  </span>
+                </p>
+              ) : (
+                <p className="muted">No hay pagos pendientes este mes.</p>
+              )}
+            </div>
+            <Link className="btn btn-ghost" to="/budget/scheduled-payments">
+              Ver pagos
+            </Link>
           </section>
 
           <BudgetCategoryChart
@@ -265,35 +336,61 @@ export function BudgetPage() {
 
           <section className="stack">
             <h2>Categorías</h2>
-            {summary.categories.length === 0 ? (
-              <p className="muted">Aún no hay categorías en este mes. Añade una abajo.</p>
+            {categoryIds.size === 0 ? (
+              <p className="muted">Aún no hay categorías ni obligaciones para este mes. Añade una abajo o crea un pago programado.</p>
             ) : null}
             <ul className="budget-category-list">
-              {summary.categories.map((c) => {
-                const a = allocations.find((x) => x.financialCategoryId === c.financialCategoryId)
+              {[...categoryIds].map((financialCategoryId) => {
+                const c = categorySummaryById.get(financialCategoryId) ?? {
+                  financialCategoryId,
+                  hasAllocation: false,
+                  budget: 0,
+                  spent: 0,
+                  remaining: 0,
+                  usage: null,
+                  overBudget: 0,
+                }
+                const a = allocations.find((x) => x.financialCategoryId === financialCategoryId)
+                const coverage = calculateCategoryCommitmentCoverage({
+                  allocated: c.budget,
+                  spent: c.spent,
+                  commitment: commitmentByCategory.get(financialCategoryId),
+                })
                 return (
-                  <li className="budget-category-item" key={c.financialCategoryId}>
+                  <li className="budget-category-item" key={financialCategoryId}>
                     <div className="budget-category-item__meta">
-                      <strong>{categoryLabel(c.financialCategoryId)}</strong>
+                      <strong>{categoryLabel(financialCategoryId)}</strong>
                       <p>
                         {a
                           ? `${money(c.spent)} de ${money(c.budget)}`
                           : `Sin presupuesto · ${money(c.spent)} gastado`}
                       </p>
+                      {coverage.knownCommitment > 0 ? (
+                        <p>Comprometido conocido: {money(coverage.knownCommitment)}</p>
+                      ) : null}
+                      {coverage.unknownCommitmentCount > 0 ? (
+                        <p>{coverage.unknownCommitmentCount} pago{coverage.unknownCommitmentCount === 1 ? '' : 's'} variable{coverage.unknownCommitmentCount === 1 ? '' : 's'} sin importe.</p>
+                      ) : null}
+                      {coverage.knownCommitment > 0 || coverage.unknownCommitmentCount > 0 ? (
+                        <p>Cobertura prevista: {money(coverage.coverage)}</p>
+                      ) : null}
+                      {coverage.isKnownShortfall ? (
+                        <p className="field-error">Los pagos programados superan el presupuesto de esta categoría en {money(Math.abs(coverage.coverage))}.</p>
+                      ) : null}
                     </div>
                     <div className="budget-category-item__actions">
                       <Link
                         className="btn-icon"
-                        to={`/budget/transactions?period=${period}&category=${c.financialCategoryId}`}
-                        aria-label={`Ver gastos de ${categoryLabel(c.financialCategoryId)}`}
+                        to={`/budget/transactions?period=${period}&category=${financialCategoryId}`}
+                        aria-label={`Ver gastos de ${categoryLabel(financialCategoryId)}`}
                         title="Ver gastos"
                       >
                         <IconEye />
                       </Link>
                       <Link
                         className="btn-icon"
-                        to={`/budget/transactions?period=${period}&create=1&category=${c.financialCategoryId}`}
-                        aria-label={`Registrar gasto en ${categoryLabel(c.financialCategoryId)}`}
+                        to={`/budget/transactions?period=${period}&create=1&category=${financialCategoryId}`}
+                        aria-label={`Registrar gasto en ${categoryLabel(financialCategoryId)}`}
                         title="Registrar gasto"
                       >
                         <IconPlusCircle />

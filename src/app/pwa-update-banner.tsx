@@ -10,9 +10,9 @@ export function PwaUpdateBanner() {
 
   return (
     <div className="update-banner" role="status">
-      <p>Hay una nueva versión de Planora.</p>
-      <button type="button" className="btn" onClick={() => void updateServiceWorker(true)}>
-        Actualizar
+      <p>Hay una nueva versión de Planora. Se aplicará al volver a cargar.</p>
+      <button type="button" className="btn" onClick={() => void updateServiceWorker(false)}>
+        Preparar actualización
       </button>
     </div>
   )

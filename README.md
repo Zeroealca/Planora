@@ -8,6 +8,14 @@ El dominio es **genérico** (no acoplado a casas ni muebles). El primer caso de 
 
 React · Vite · TypeScript · Supabase (Auth, PostgreSQL, Storage) · PWA · GitHub Pages
 
+## Rendimiento de rutas
+
+Las páginas se cargan bajo demanda. El shell de la aplicación, autenticación y
+navegación se mantienen disponibles, mientras que presupuesto, transacciones,
+pagos programados, importación y detalle de proyecto se descargan al visitar su
+ruta. Durante esa transición se muestra un estado accesible de carga sin
+ocultar la navegación.
+
 ## Presupuesto mensual — estado actual
 
 El módulo de presupuesto mensual es independiente de Projects. En esta fase se
@@ -65,6 +73,20 @@ mes de `Occurrence.due_date`; por ello las métricas mensuales siguen leyendo
 solamente Transactions. Si se elimina una Transaction vinculada, una operación
 atómica devuelve la occurrence a `pending` y elimina el vínculo. Las reglas,
 los vencimientos y las transacciones siguen siendo conceptos separados.
+
+### Experiencia financiera — Fase 7
+
+La pantalla de **Presupuesto** muestra los compromisos derivados de pagos
+programados del mes: importe conocido, variables sin importe, vencidos y el
+siguiente vencimiento. Es una ayuda de planificación, no un gasto ni una nueva
+asignación. Por categoría muestra gasto real, compromiso pendiente conocido y
+cobertura prevista (`asignado − gastado real − compromisos conocidos`).
+
+Las occurrences `paid` y `skipped` no participan en los compromisos: una
+occurrence `paid` ya está representada por su Transaction. Si todavía no hay
+occurrence, se usa la recurrencia de la regla; si existe, su snapshot tiene
+prioridad. Un importe variable desconocido se informa explícitamente, no se
+asume como $0 ni genera una advertencia de insuficiencia.
 
 ### Próximos gastos (proyección)
 
@@ -191,6 +213,10 @@ El build copia `index.html` a `404.html` para que el refresh de rutas SPA funcio
 ## PWA
 
 El build genera manifest + service worker. Cachea el app shell y assets estáticos; no cachea datos de Supabase. Si hay una versión nueva, la app ofrece actualizar.
+
+Al preparar una actualización no se fuerza una recarga: la nueva versión se
+aplica al volver a cargar la aplicación, evitando perder datos introducidos en
+formularios abiertos.
 
 ## Variables de entorno
 

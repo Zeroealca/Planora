@@ -2626,6 +2626,51 @@ html[data-theme='dark'] select.item-table-input {
   min-height: 2.1rem;
 }
 
+.financial-commitments {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--accent-soft) 30%, var(--card));
+}
+
+.financial-commitments p {
+  margin: 0;
+}
+
+.financial-commitments__amount {
+  margin-top: 0.2rem !important;
+  color: var(--text-h);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.financial-commitments__next {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.financial-commitments__next span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 640px) {
+  .financial-commitments {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+  }
+}
+
+@media (min-width: 960px) {
+  .financial-commitments {
+    grid-template-columns: 1.1fr 1.1fr 0.65fr 1.25fr auto;
+  }
+}
+
 .budget-category-chart {
   gap: 0.65rem;
 }

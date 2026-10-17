@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { Suspense, useEffect, useId, useState } from 'react'
 import { Link, Outlet } from 'react-router'
 import { IconClose, IconMenu } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
@@ -68,7 +68,9 @@ export function AppLayout() {
       <PwaUpdateBanner />
       <PwaInstallBanner />
       <main className="app-main">
-        <Outlet />
+        <Suspense fallback={<p className="page-status" role="status">Cargando página…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
       <ThemeToggle />
     </div>

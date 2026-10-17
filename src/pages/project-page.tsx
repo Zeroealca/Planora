@@ -50,6 +50,7 @@ import {
 import { fuzzyMatch } from '@/utils/fuzzy'
 import { resolveProjectBudget } from '@/utils/budget/savings'
 import { useFormatMoney } from '@/utils/format'
+import { useEscapeKey } from '@/hooks/use-escape-key'
 import {
   buildPurchaseReportEntries,
   createPurchaseReportPdf,
@@ -85,6 +86,7 @@ export function ProjectPage() {
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [creatingItem, setCreatingItem] = useState(false)
+  useEscapeKey(creatingItem, () => setCreatingItem(false))
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>(
     () => (searchParams.get('priority') as PriorityFilter | null) ?? 'All',
   )
