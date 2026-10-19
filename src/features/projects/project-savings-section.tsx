@@ -99,7 +99,10 @@ function ProjectionDetails({
       {eyebrow ? <p className="muted savings-projection-eyebrow">{eyebrow}</p> : null}
       <h3>{title}</h3>
       {!projection ? (
-        <p className="muted">No se puede proyectar con los datos actuales.</p>
+        <p className="muted">
+          Completa saldo inicial, objetivo, reserva, aporte mensual y fecha de inicio para ver la
+          proyección.
+        </p>
       ) : (
         <ul className="plain-list savings-summary">
           <li>

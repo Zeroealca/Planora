@@ -29,19 +29,26 @@ test.describe('Pagos programados (requiere Supabase E2E aislado)', () => {
     }
     await ruleDialog.getByLabel('Importe esperado', { exact: true }).fill('25')
     await ruleDialog.getByRole('button', { name: 'Guardar pago', exact: true }).click()
-    await expect(page.getByRole('listitem').filter({ hasText: paymentName }).first()).toBeVisible()
+    const occurrence = page
+      .getByRole('listitem')
+      .filter({ hasText: paymentName })
+      .filter({ hasText: 'Vence' })
+    await expect(occurrence).toBeVisible()
 
-    const payButton = page.getByRole('button', { name: /registrar pago|marcar.*pagado|pagar/i }).first()
-    await payButton.click()
+    await occurrence
+      .getByRole('button', { name: /registrar pago|marcar.*pagado|pagar/i })
+      .click()
     const paymentDialog = page.getByRole('dialog', { name: /registrar pago/i })
     await expect(paymentDialog).toBeVisible()
     await paymentDialog.getByLabel(/importe pagado/i).fill('25')
     await paymentDialog.getByRole('button', { name: 'Confirmar pago' }).click()
     await expect(paymentDialog).toHaveCount(0)
 
-    // Second confirmation must not be available for the same occurrence.
+    // A prior run can leave other pending occurrences behind; only this
+    // occurrence must no longer allow a second confirmation.
+    await expect(occurrence).not.toContainText('Pendiente')
     await expect(
-      page.getByRole('button', { name: /registrar pago|marcar.*pagado|pagar/i }),
+      occurrence.getByRole('button', { name: /registrar pago|marcar.*pagado|pagar/i }),
     ).toHaveCount(0)
 
     await page.goto('/budget/transactions')

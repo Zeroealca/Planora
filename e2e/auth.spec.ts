@@ -42,4 +42,19 @@ test.describe('Autenticación (requiere Supabase E2E aislado)', () => {
     await page.goto('/budget/transactions')
     await expect(page).toHaveURL(/\/login$/)
   })
+
+  test('vuelve a una ruta privada profunda después de iniciar sesión', async ({ page }) => {
+    const config = readE2EConfig()!
+    const destination = '/budget/transactions?period=2026-10&create=1&type=income'
+
+    await page.goto(destination)
+    await expect(page).toHaveURL(/\/login$/)
+    await page.getByLabel('Email').fill(config.userEmail)
+    await page.getByLabel('Contraseña', { exact: true }).fill(config.userPassword)
+    await page.locator('button[type="submit"]').click()
+
+    await expect(page).toHaveURL(destination)
+    await expect(page.getByRole('dialog', { name: 'Nueva transacción' })).toBeVisible()
+    await expect(page.getByLabel('Tipo')).toHaveValue('income')
+  })
 })

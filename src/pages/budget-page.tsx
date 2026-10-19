@@ -190,7 +190,7 @@ export function BudgetPage() {
           <p className="muted">Planificación y gasto real del mes.</p>
         </div>
         <div className="row">
-          <Link className="btn btn-ghost" to={`/budget/scheduled-payments`}>
+          <Link className="btn btn-ghost" to={`/budget/scheduled-payments?period=${period}`}>
             Pagos programados
           </Link>
           {budget ? (
@@ -219,13 +219,19 @@ export function BudgetPage() {
       {error ? <p className="field-error">{error}</p> : null}
       {summary === undefined ? <p>Cargando presupuesto…</p> : null}
       {summary === null ? (
-        <BudgetReusePanel
-          userId={user.id}
-          period={period}
-          categories={categories}
-          budget={null}
-          onCreated={load}
-        />
+        <section className="stack empty-state">
+          <p>
+            Aún no hay un presupuesto para este mes. Define el disponible y las categorías
+            que quieres planificar; los gastos reales se registran por separado.
+          </p>
+          <BudgetReusePanel
+            userId={user.id}
+            period={period}
+            categories={categories}
+            budget={null}
+            onCreated={load}
+          />
+        </section>
       ) : null}
 
       {budget && m ? (
@@ -290,6 +296,12 @@ export function BudgetPage() {
             </article>
           </section>
 
+          <p className="field-hint" role="note">
+            <strong>Presupuestado</strong> es tu plan por categoría. <strong>Gastado</strong>{' '}
+            proviene de transacciones confirmadas. Los compromisos de pagos programados son una
+            previsión y no cambian el saldo real hasta que registres el pago.
+          </p>
+
           <section className="financial-commitments" aria-label="Pagos programados del mes">
             <div>
               <p className="metric-label">Comprometido conocido</p>
@@ -325,7 +337,7 @@ export function BudgetPage() {
                 <p className="muted">No hay pagos pendientes este mes.</p>
               )}
             </div>
-            <Link className="btn btn-ghost" to="/budget/scheduled-payments">
+            <Link className="btn btn-ghost" to={`/budget/scheduled-payments?period=${period}`}>
               Ver pagos
             </Link>
           </section>

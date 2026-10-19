@@ -247,7 +247,9 @@ En Windows, los scripts E2E usan `scripts/run-e2e.ps1`: espera el código de
 salida de Playwright y, al finalizar, cierra únicamente el proceso Vite de este
 workspace que haya iniciado la ejecución. Si ya existe un Vite de Planora en el
 puerto 4173, falla antes de iniciar para evitar que una suite reutilice una
-configuración distinta. Para validar ambos entornos: `npm run test:e2e:all`.
+configuración distinta. La suite local usa un worker por defecto para mantener
+una ejecución determinista sobre Docker/Supabase local; para validar ambos
+entornos: `npm run test:e2e:all`.
 
 ### CI
 
