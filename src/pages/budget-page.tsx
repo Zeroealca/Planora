@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { IconEye, IconPencil, IconPlusCircle, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
 import { BudgetCategoryChart } from '@/features/monthly-budget/budget-category-chart'
@@ -41,7 +41,8 @@ function todayCivil(): string {
 export function BudgetPage() {
   const { user } = useAuth()
   const money = useFormatMoney()
-  const [period, setPeriod] = useState(currentMonthlyPeriod())
+  const [params, setParams] = useSearchParams()
+  const [period, setPeriod] = useState(params.get('period') ?? currentMonthlyPeriod())
   const [budget, setBudget] = useState<PersistedMonthlyBudget | null>(null)
   const [summary, setSummary] = useState<MonthlyBudgetPeriodSummary | null | undefined>()
   const [categories, setCategories] = useState<FinancialCategory[]>([])
@@ -206,11 +207,11 @@ export function BudgetPage() {
       </header>
 
       <div className="month-nav">
-        <button className="btn" onClick={() => setPeriod(previousMonthlyPeriod(period))}>
+        <button className="btn" aria-label="Mes anterior" onClick={() => { const next = previousMonthlyPeriod(period); setPeriod(next); setParams({ period: next }) }}>
           ←
         </button>
         <strong>{formatYearMonthLabel(period)}</strong>
-        <button className="btn" onClick={() => setPeriod(nextMonthlyPeriod(period))}>
+        <button className="btn" aria-label="Mes siguiente" onClick={() => { const next = nextMonthlyPeriod(period); setPeriod(next); setParams({ period: next }) }}>
           →
         </button>
       </div>

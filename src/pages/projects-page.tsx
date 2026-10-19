@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { fetchProjects, type ProjectListEntry } from '@/features/projects/project-api'
 import { ProjectForm } from '@/features/projects/project-form'
 import { isSavingsGoalProject } from '@/features/projects/project-kind'
@@ -19,10 +19,12 @@ import { formatPercent, useFormatMoney } from '@/utils/format'
 export function ProjectsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const formatMoney = useFormatMoney()
   const [projects, setProjects] = useState<ProjectListEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const createOpen = creating || params.get('create') === '1'
 
   async function load() {
     setError(null)
@@ -82,7 +84,7 @@ export function ProjectsPage() {
         </div>
       ) : null}
 
-      {projects && projects.length === 0 && !creating ? (
+      {projects && projects.length === 0 && !createOpen ? (
         <p className="muted">Todavía no tienes proyectos. Crea el primero para empezar.</p>
       ) : null}
 
@@ -151,16 +153,17 @@ export function ProjectsPage() {
         </ul>
       ) : null}
 
-      {creating ? (
+      {createOpen ? (
         <ProjectForm
           userId={user.id}
           onSaved={(id) => {
             setCreating(false)
+            setParams({})
             void navigate(`/projects/${id}`)
           }}
         />
       ) : (
-        <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+        <button type="button" className="btn btn-primary" onClick={() => { setCreating(true); setParams({ create: '1' }) }}>
           Crear proyecto
         </button>
       )}

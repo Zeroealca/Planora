@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { IconBack, IconClose, IconPencil, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
 import { listFinancialCategories } from '@/features/monthly-budget/monthly-budget-api'
@@ -98,7 +98,8 @@ function blankInput(userId: string): ScheduledPaymentInput {
 export function ScheduledPaymentsPage() {
   const { user } = useAuth()
   const money = useFormatMoney()
-  const [period, setPeriod] = useState<MonthlyPeriod>(currentMonthlyPeriod())
+  const [params, setParams] = useSearchParams()
+  const [period, setPeriod] = useState<MonthlyPeriod>(params.get('period') ?? currentMonthlyPeriod())
   const [payments, setPayments] = useState<ScheduledPayment[]>([])
   const [occurrences, setOccurrences] = useState<ScheduledPaymentOccurrence[] | null>(null)
   const [deliveries, setDeliveries] = useState<ScheduledPaymentReminderDelivery[]>([])
@@ -174,6 +175,8 @@ export function ScheduledPaymentsPage() {
     }
   }
 
+  const focusedPaymentId = params.get('payment')
+
   async function deactivate(payment: ScheduledPayment) {
     if (!window.confirm(`¿${payment.active ? 'Desactivar' : 'Reactivar'} “${payment.name}”?`)) return
     try {
@@ -213,7 +216,7 @@ export function ScheduledPaymentsPage() {
   return (
     <div className="page">
       <p>
-        <Link to="/budget" className="back-link">
+        <Link to={`/budget?period=${period}`} className="back-link">
           <IconBack />
           Volver a presupuesto
         </Link>
@@ -234,11 +237,11 @@ export function ScheduledPaymentsPage() {
         </button>
       </header>
       <div className="month-nav">
-        <button className="btn" aria-label="Mes anterior" onClick={() => setPeriod(previousMonthlyPeriod(period))}>
+        <button className="btn" aria-label="Mes anterior" onClick={() => { const next = previousMonthlyPeriod(period); setPeriod(next); setParams({ period: next }) }}>
           ←
         </button>
         <strong>{formatYearMonthLabel(period)}</strong>
-        <button className="btn" aria-label="Mes siguiente" onClick={() => setPeriod(nextMonthlyPeriod(period))}>
+        <button className="btn" aria-label="Mes siguiente" onClick={() => { const next = nextMonthlyPeriod(period); setPeriod(next); setParams({ period: next }) }}>
           →
         </button>
       </div>
@@ -308,7 +311,10 @@ export function ScheduledPaymentsPage() {
                       ? 'Vencido'
                       : 'Pendiente'
               return (
-                <li key={occurrence.id} className="card row-between">
+                <li
+                  key={occurrence.id}
+                  className={`card row-between${focusedPaymentId === occurrence.scheduledPaymentId ? ' scheduled-payment-focused' : ''}`}
+                >
                   <div>
                     <strong>{ruleName(occurrence.scheduledPaymentId)}</strong>
                     <p className="muted">
@@ -914,4 +920,3 @@ function PaymentModal({
     </div>
   )
 }
-
