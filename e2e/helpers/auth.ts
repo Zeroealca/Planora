@@ -1,17 +1,26 @@
 import { expect, type Page } from '@playwright/test'
-import { readE2ERemoteConfig } from './env'
+import { readE2EConfig } from './env'
 
-/** Signs in with the synthetic E2E account. Requires remote E2E env. */
-export async function signInAsE2EUser(page: Page): Promise<void> {
-  const config = readE2ERemoteConfig()
+/** Signs in with a synthetic E2E account from the isolated configuration. */
+export async function signInAsE2EUser(
+  page: Page,
+  user: 'primary' | 'secondary' = 'primary',
+): Promise<void> {
+  const config = readE2EConfig()
   if (!config) {
-    throw new Error('signInAsE2EUser requires remote E2E environment variables.')
+    throw new Error('signInAsE2EUser requires isolated E2E environment variables.')
+  }
+
+  const email = user === 'secondary' ? config.secondaryUserEmail : config.userEmail
+  const password = user === 'secondary' ? config.secondaryUserPassword : config.userPassword
+  if (!email || !password) {
+    throw new Error('The secondary E2E user is only available in prepared local runs.')
   }
 
   await page.goto('/login')
-  await page.getByLabel('Email').fill(config.userEmail)
-  await page.getByLabel('Contraseña').fill(config.userPassword)
-  await page.getByRole('button', { name: 'Entrar' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Contraseña', { exact: true }).fill(password)
+  await page.locator('button[type="submit"]').click()
   await expect(page).not.toHaveURL(/\/login$/)
 }
 

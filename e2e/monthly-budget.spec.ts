@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { e2eRunId, signInAsE2EUser } from './helpers/auth'
-import { isE2ERemoteEnabled } from './helpers/env'
+import { isE2EEnabled } from './helpers/env'
 
 test.describe('Presupuesto mensual (requiere Supabase E2E aislado)', () => {
   test.beforeEach(() => {
     test.skip(
-      !isE2ERemoteEnabled(),
-      'Pendiente: proyecto Supabase aislado y variables E2E_*',
+      !isE2EEnabled(),
+      'Pendiente: entorno Supabase aislado y variables E2E_*',
     )
   })
 
@@ -44,12 +44,9 @@ test.describe('Presupuesto mensual (requiere Supabase E2E aislado)', () => {
     await expect(dialog).toBeVisible()
     await dialog.getByLabel('Descripción').fill(`Gasto ${id}`)
     await dialog.getByLabel('Cantidad').fill('40')
-    const categorySelect = dialog.getByLabel('Categoría')
-    if (await categorySelect.isVisible().catch(() => false)) {
-      const options = categorySelect.locator('option')
-      const count = await options.count()
-      if (count > 1) await categorySelect.selectOption({ index: 1 })
-    }
+    const categorySelect = dialog.getByLabel('Categoría', { exact: true })
+    await expect(categorySelect).toBeVisible()
+    await categorySelect.selectOption({ label: 'E2E Essentials' })
     await dialog.getByRole('button', { name: 'Registrar transacción' }).click()
     await expect(page.getByText(`Gasto ${id}`)).toBeVisible()
 

@@ -8,7 +8,13 @@ function looksLikeApiUrl(value: string | undefined): boolean {
   if (!value) return false
   try {
     const host = new URL(value).hostname
-    return host.endsWith('.supabase.co') || host.endsWith('.supabase.in')
+    return (
+      host.endsWith('.supabase.co') ||
+      host.endsWith('.supabase.in') ||
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1'
+    )
   } catch {
     return false
   }

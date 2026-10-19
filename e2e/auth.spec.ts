@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { isE2ERemoteEnabled, readE2ERemoteConfig } from './helpers/env'
+import { isE2EEnabled, readE2EConfig } from './helpers/env'
 import { signInAsE2EUser, signOut } from './helpers/auth'
 
 test.describe('Autenticación (requiere Supabase E2E aislado)', () => {
   test.beforeEach(() => {
     test.skip(
-      !isE2ERemoteEnabled(),
-      'Pendiente: proyecto Supabase aislado y variables E2E_*',
+      !isE2EEnabled(),
+      'Pendiente: entorno Supabase aislado y variables E2E_*',
     )
   })
 
@@ -25,11 +25,11 @@ test.describe('Autenticación (requiere Supabase E2E aislado)', () => {
   test('rechaza credenciales incorrectas sin filtrar datos de otra sesión', async ({
     page,
   }) => {
-    const config = readE2ERemoteConfig()!
+    const config = readE2EConfig()!
     await page.goto('/login')
     await page.getByLabel('Email').fill(config.userEmail)
-    await page.getByLabel('Contraseña').fill('clave-incorrecta-e2e')
-    await page.getByRole('button', { name: 'Entrar' }).click()
+    await page.getByLabel('Contraseña', { exact: true }).fill('clave-incorrecta-e2e')
+    await page.locator('button[type="submit"]').click()
     await expect(page.getByRole('alert')).toBeVisible()
     await expect(page).toHaveURL(/\/login$/)
     await page.goto('/budget')

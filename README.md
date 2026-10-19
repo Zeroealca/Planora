@@ -178,37 +178,82 @@ La app estará en `http://localhost:5173`.
 | `npm run test:e2e:ui` | Abre el runner visual de Playwright |
 | `npm run test:e2e:report` | Abre el último reporte HTML de Playwright |
 
-## Pruebas E2E seguras
+## Pruebas E2E (Playwright)
 
-La suite E2E usa Playwright y ejecuta Vite localmente con una URL de Supabase
-inválida (`https://e2e.invalid`). Esa configuración tiene prioridad sobre
-`.env`, por lo que los tests de humo no pueden leer ni escribir en Supabase,
-incluido el proyecto de producción. La suite comprueba redirecciones de rutas
-privadas y una recarga de navegador, también en viewport móvil; conserva traza,
-captura y reporte HTML cuando falla.
+### Suite segura (por defecto)
 
-Instala Chromium una vez en la máquina antes de ejecutarla:
+Sin variables `E2E_*`, Playwright arranca Vite con
+`VITE_SUPABASE_URL=https://e2e.invalid`. Esa configuración sustituye cualquier
+`.env` local, así que la suite no puede leer ni escribir en Supabase, incluida
+producción. Cubre redirecciones de rutas privadas, recarga sin sesión y
+navegación básica por teclado en login. Conserva traza, captura y reporte HTML
+ante fallos.
 
 ```bash
 npx playwright install chromium
 npm run test:e2e
+npm run test:e2e:ui
+npm run test:e2e:report
+npm run test:e2e:safe
 ```
 
-Para ejecutar un caso concreto, usa por ejemplo
-`npx playwright test e2e/safe-smoke.spec.ts --project=chromium`. Los artefactos
-locales `playwright-report/` y `test-results/` no se versionan.
+Artefactos locales no versionados: `playwright-report/` y `test-results/`.
 
-Los flujos que requieren una sesión (inicio de sesión correcto e incorrecto,
-proyectos, presupuestos, pagos programados, metas y modales sobre datos) están
-preparados como siguiente capa, pero **no se ejecutan** hasta disponer de un
-proyecto Supabase aislado y cuentas sintéticas. Deben configurarse solo en CI
-con variables no secretas de cliente, por ejemplo `E2E_SUPABASE_URL`,
-`E2E_SUPABASE_ANON_KEY`, `E2E_USER_EMAIL` y `E2E_USER_PASSWORD`; nunca se
-deben apuntar al entorno productivo ni guardar valores en el repositorio. La
-preparación y limpieza de esos datos debe hacerse por un proceso de test
-controlado y aislado. El job `e2e-safe-smoke` de GitHub Actions no necesita
-secretos y es independiente del despliegue para no bloquearlo por esa
-infraestructura pendiente.
+### Suite autenticada (opt-in, entorno aislado)
+
+Los specs de auth, proyectos, presupuesto mensual, pagos programados, metas y
+modales con datos se omiten hasta configurar un proyecto Supabase aislado y un
+usuario sintético. Nunca deben apuntar a producción.
+
+| Variable | Uso |
+|----------|-----|
+| `E2E_SUPABASE_URL` | URL API del proyecto aislado |
+| `E2E_SUPABASE_ANON_KEY` | anon key del proyecto aislado |
+| `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` | cuenta sintética |
+| `E2E_ALLOWED_SUPABASE_REF` | ref que debe coincidir con la URL |
+| `E2E_BLOCKED_SUPABASE_REFS` | refs de producción bloqueados |
+
+Si faltan variables a medias, la ejecución falla antes de iniciar. La URL debe
+coincidir con el ref permitido y no puede estar bloqueada. Los datos de prueba
+deben crearse y limpiarse exclusivamente en ese entorno aislado.
+
+### Suite autenticada local (Docker)
+
+El entorno local es el flujo reproducible recomendado. No usa `supabase link`,
+`--linked`, `--db-url` ni datos de producción. Tras activar la versión de Node
+del proyecto, ejecuta:
+
+```bash
+npm exec supabase -- start
+npm run e2e:local:reset
+npm run test:e2e:local
+npm run test:e2e:report
+```
+
+`e2e:local:reset` usa explícitamente `supabase db reset --local`, reaplica las
+migraciones versionadas y genera `.env.e2e.local` (ignorado por Git). El
+preparador crea o actualiza dos usuarios confirmados, `planora-e2e-a@example.com`
+y `planora-e2e-b@example.com`, y una categoría financiera base por usuario.
+Los flujos que validan creación de proyectos, ítems, transacciones, metas y
+pagos realizan esas acciones mediante la interfaz. No se envían correos: Auth
+confirma los usuarios localmente y Mailpit permanece local.
+
+El guard requiere `E2E_LOCAL_SUPABASE=true` y rechaza cualquier host distinto
+de `localhost` o `127.0.0.1`. La clave de servicio existe solo dentro del
+archivo ignorado para el preparador; Playwright entrega a Vite exclusivamente
+la URL y anon key locales.
+
+En Windows, los scripts E2E usan `scripts/run-e2e.ps1`: espera el código de
+salida de Playwright y, al finalizar, cierra únicamente el proceso Vite de este
+workspace que haya iniciado la ejecución. Si ya existe un Vite de Planora en el
+puerto 4173, falla antes de iniciar para evitar que una suite reutilice una
+configuración distinta. Para validar ambos entornos: `npm run test:e2e:all`.
+
+### CI
+
+El job `e2e-safe-smoke` ejecuta la suite sin secretos y es independiente del
+despliegue. Los specs autenticados quedan como *skipped*, no como exitosos,
+hasta que exista infraestructura E2E segura.
 
 ## Supabase
 

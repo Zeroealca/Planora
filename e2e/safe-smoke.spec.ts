@@ -30,3 +30,13 @@ test("keeps a private route protected after a browser reload on mobile", async (
     "VITE_SUPABASE_ANON_KEY",
   );
 });
+
+test("does not expose authenticated navigation while Supabase is unconfigured", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await expect(page.getByRole("link", { name: "Presupuesto" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Cerrar sesión" })).toHaveCount(
+    0,
+  );
+});

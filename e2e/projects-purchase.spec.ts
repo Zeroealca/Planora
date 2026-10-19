@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { e2eRunId, signInAsE2EUser } from './helpers/auth'
-import { isE2ERemoteEnabled } from './helpers/env'
+import { isE2EEnabled } from './helpers/env'
 
 test.describe('Proyectos y compras (requiere Supabase E2E aislado)', () => {
   test.beforeEach(() => {
     test.skip(
-      !isE2ERemoteEnabled(),
-      'Pendiente: proyecto Supabase aislado y variables E2E_*',
+      !isE2EEnabled(),
+      'Pendiente: entorno Supabase aislado y variables E2E_*',
     )
   })
 
@@ -22,7 +22,7 @@ test.describe('Proyectos y compras (requiere Supabase E2E aislado)', () => {
     await page.goto('/projects')
     await page.getByRole('button', { name: 'Crear proyecto' }).click()
     await page.getByLabel(/nombre/i).fill(projectName)
-    await page.getByLabel(/presupuesto/i).fill('1000')
+    await page.getByRole('spinbutton', { name: 'Presupuesto del proyecto' }).fill('1000')
     await page.getByRole('button', { name: /crear|guardar/i }).click()
     await expect(page.getByRole('heading', { name: projectName })).toBeVisible()
 
@@ -36,15 +36,16 @@ test.describe('Proyectos y compras (requiere Supabase E2E aislado)', () => {
       await expect(page.getByText(categoryName)).toBeVisible()
     }
 
-    await page.getByRole('button', { name: 'Nuevo ítem' }).click()
+    await page.getByRole('button', { name: 'Nuevo ítem' }).first().click()
     const dialog = page.getByRole('dialog', { name: 'Nuevo ítem' })
     await expect(dialog).toBeVisible()
     await dialog.getByLabel('Nombre').fill(itemName)
     await dialog.getByLabel(/tope total presupuestado|estimado|presupuesto/i).fill('120')
     await dialog.getByRole('button', { name: 'Crear ítem' }).click()
-    await expect(page.getByText(itemName)).toBeVisible()
+    await page.getByRole('tab', { name: /ítems/i }).click()
+    await expect(page.getByRole('textbox', { name: `Nombre ${itemName}` })).toHaveValue(itemName)
 
-    await page.getByRole('link', { name: itemName }).click()
+    await page.getByRole('link', { name: `Abrir detalle de ${itemName}` }).click()
     await page.getByRole('button', { name: /nueva opción|añadir opción|agregar opción/i }).click()
     await page.getByLabel(/^nombre$/i).last().fill(`Opción ${id}`)
     await page.getByLabel(/precio/i).last().fill('110')

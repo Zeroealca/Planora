@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { e2eRunId, signInAsE2EUser } from './helpers/auth'
-import { isE2ERemoteEnabled } from './helpers/env'
+import { isE2EEnabled } from './helpers/env'
 
 test.describe('Metas de ahorro (requiere Supabase E2E aislado)', () => {
   test.beforeEach(() => {
     test.skip(
-      !isE2ERemoteEnabled(),
-      'Pendiente: proyecto Supabase aislado y variables E2E_*',
+      !isE2EEnabled(),
+      'Pendiente: entorno Supabase aislado y variables E2E_*',
     )
   })
 
@@ -18,29 +18,26 @@ test.describe('Metas de ahorro (requiere Supabase E2E aislado)', () => {
     await page.goto('/projects')
     await page.getByRole('button', { name: 'Crear proyecto' }).click()
 
-    const savingsToggle = page.getByLabel(/meta de ahorro|ahorro|tipo/i).or(
-      page.getByRole('button', { name: /meta de ahorro|ahorro/i }),
-    )
-    if (await savingsToggle.first().isVisible().catch(() => false)) {
-      await savingsToggle.first().click()
-    }
+    await page.getByRole('radio', { name: /Meta de ahorro/ }).check()
 
     await page.getByLabel(/nombre/i).fill(goalName)
-    const target = page.getByLabel(/objetivo|meta|target/i)
-    if (await target.isVisible().catch(() => false)) await target.fill('300')
     await page.getByRole('button', { name: /crear|guardar/i }).click()
     await expect(page.getByRole('heading', { name: goalName })).toBeVisible()
 
-    const movementName = page.getByLabel(/nombre|concepto/i).last()
-    const movementAmount = page.getByLabel(/importe|cantidad|monto/i).last()
-    if (
-      (await movementName.isVisible().catch(() => false)) &&
-      (await movementAmount.isVisible().catch(() => false))
-    ) {
-      await movementName.fill(`Aporte ${id}`)
-      await movementAmount.fill('50')
-      await page.getByRole('button', { name: /añadir|registrar|guardar/i }).last().click()
-      await expect(page.getByText(/50|16|17|progres/i).first()).toBeVisible()
-    }
+    await page.getByRole('tab', { name: 'Meta' }).click()
+    await page.getByLabel('Saldo inicial').fill('0')
+    await page.getByLabel('Cantidad objetivo').fill('300')
+    await page.getByLabel('Reserva mínima').fill('0')
+    await page.getByLabel('Aporte mensual').fill('50')
+    await page.getByLabel('Fecha de inicio').fill('2026-01-01')
+    await page.getByRole('button', { name: 'Aplicar a la meta' }).click()
+    await expect(page.getByRole('region', { name: 'Proyección' })).toContainText('300 US$')
+
+    const movementName = `Aporte ${id}`
+    await page.getByLabel('Nombre').fill(movementName)
+    await page.getByLabel('Fecha', { exact: true }).fill('2026-02-01')
+    await page.getByLabel('Monto').fill('50')
+    await page.getByRole('button', { name: 'Añadir movimiento' }).click()
+    await expect(page.getByText(movementName)).toBeVisible()
   })
 })

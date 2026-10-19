@@ -1,45 +1,81 @@
 /**
- * Guards remote browser tests so they never point at production by accident.
+ * Guards browser tests so they never point at production by accident.
  *
- * Authenticated Playwright specs require all of:
+ * Remote authenticated Playwright specs require all of:
  * - E2E_SUPABASE_URL
  * - E2E_SUPABASE_ANON_KEY
  * - E2E_USER_EMAIL
  * - E2E_USER_PASSWORD
  * - E2E_ALLOWED_SUPABASE_REF (project ref of the isolated Supabase project)
  *
- * Never set these to the production project. Values must not be committed.
+ * Local runs must opt in with E2E_LOCAL_SUPABASE=true and can only use
+ * localhost/127.0.0.1. Values must not be committed.
  */
 
 const PLACEHOLDER_HOSTS = new Set(['e2e.invalid', 'unavailable.local', 'localhost'])
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
 
-export type E2ERemoteConfig = {
+export type E2EConfig = {
   supabaseUrl: string
   supabaseAnonKey: string
   userEmail: string
   userPassword: string
-  allowedRef: string
+  mode: 'local' | 'remote'
+  secondaryUserEmail?: string
+  secondaryUserPassword?: string
 }
 
-export function readE2ERemoteConfig(): E2ERemoteConfig | null {
+export function readE2EConfig(): E2EConfig | null {
   const supabaseUrl = process.env.E2E_SUPABASE_URL?.trim() ?? ''
   const supabaseAnonKey = process.env.E2E_SUPABASE_ANON_KEY?.trim() ?? ''
   const userEmail = process.env.E2E_USER_EMAIL?.trim() ?? ''
   const userPassword = process.env.E2E_USER_PASSWORD?.trim() ?? ''
   const allowedRef = process.env.E2E_ALLOWED_SUPABASE_REF?.trim() ?? ''
+  const isLocal = process.env.E2E_LOCAL_SUPABASE?.trim() === 'true'
 
-  if (!supabaseUrl && !supabaseAnonKey && !userEmail && !userPassword && !allowedRef) {
+  if (!supabaseUrl && !supabaseAnonKey && !userEmail && !userPassword && !allowedRef && !isLocal) {
     return null
   }
 
-  if (!supabaseUrl || !supabaseAnonKey || !userEmail || !userPassword || !allowedRef) {
+  if (!supabaseUrl || !supabaseAnonKey || !userEmail || !userPassword) {
     throw new Error(
-      'E2E remoto incompleto: define E2E_SUPABASE_URL, E2E_SUPABASE_ANON_KEY, E2E_USER_EMAIL, E2E_USER_PASSWORD y E2E_ALLOWED_SUPABASE_REF, o ninguna de ellas.',
+      'E2E incompleto: define E2E_SUPABASE_URL, E2E_SUPABASE_ANON_KEY, E2E_USER_EMAIL y E2E_USER_PASSWORD, o ninguna de ellas.',
     )
   }
 
+  if (isLocal) {
+    assertSafeLocalE2ESupabaseUrl(supabaseUrl)
+    return {
+      supabaseUrl,
+      supabaseAnonKey,
+      userEmail,
+      userPassword,
+      mode: 'local',
+      secondaryUserEmail: process.env.E2E_USER_B_EMAIL?.trim() || undefined,
+      secondaryUserPassword: process.env.E2E_USER_B_PASSWORD?.trim() || undefined,
+    }
+  }
+
+  if (!allowedRef) {
+    throw new Error(
+      'E2E remoto incompleto: define E2E_ALLOWED_SUPABASE_REF o usa E2E_LOCAL_SUPABASE=true con una URL local.',
+    )
+  }
   assertSafeE2ESupabaseUrl(supabaseUrl, allowedRef)
-  return { supabaseUrl, supabaseAnonKey, userEmail, userPassword, allowedRef }
+  return { supabaseUrl, supabaseAnonKey, userEmail, userPassword, mode: 'remote' }
+}
+
+export function assertSafeLocalE2ESupabaseUrl(url: string): void {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error(`E2E_SUPABASE_URL no es una URL válida: ${url}`)
+  }
+
+  if (!LOCAL_HOSTS.has(parsed.hostname.toLowerCase())) {
+    throw new Error('E2E local solo puede apuntar a localhost o 127.0.0.1.')
+  }
 }
 
 export function assertSafeE2ESupabaseUrl(url: string, allowedRef: string): void {
@@ -77,6 +113,6 @@ export function assertSafeE2ESupabaseUrl(url: string, allowedRef: string): void 
   }
 }
 
-export function isE2ERemoteEnabled(): boolean {
-  return readE2ERemoteConfig() !== null
+export function isE2EEnabled(): boolean {
+  return readE2EConfig() !== null
 }
