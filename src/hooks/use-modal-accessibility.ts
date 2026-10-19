@@ -29,10 +29,11 @@ export function useModalAccessibility(
   active: boolean,
   dialogRef: RefObject<HTMLElement | null>,
   onClose: () => void,
-  options: { dismissible?: boolean } = {},
+  options: { dismissible?: boolean; openerRef?: RefObject<HTMLElement | null> } = {},
 ): void {
   const onCloseRef = useRef(onClose);
   const dismissibleRef = useRef(options.dismissible ?? true);
+  const lastOpenerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -43,15 +44,23 @@ export function useModalAccessibility(
   }, [options.dismissible]);
 
   useEffect(() => {
+    if (active) return;
+
+    const rememberOpener = (event: MouseEvent) => {
+      if (event.target instanceof HTMLElement) lastOpenerRef.current = event.target;
+    };
+    document.addEventListener("click", rememberOpener, true);
+    return () => document.removeEventListener("click", rememberOpener, true);
+  }, [active]);
+
+  useEffect(() => {
     if (!active) return;
 
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    const opener =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
+    const opener = options.openerRef?.current ?? lastOpenerRef.current ??
+      (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     activeDialogs.push(dialog);
     if (scrollLockCount === 0) {
       previousBodyOverflow = document.body.style.overflow;
@@ -60,7 +69,9 @@ export function useModalAccessibility(
     scrollLockCount += 1;
 
     const focusInitialControl = () => {
-      const preferred = dialog.querySelector<HTMLElement>("[autofocus]");
+      const preferred = dialog.querySelector<HTMLElement>(
+        "[data-modal-initial-focus], [autofocus]",
+      );
       const target = preferred ?? focusableElements(dialog)[0] ?? dialog;
       target.focus();
     };
@@ -108,7 +119,9 @@ export function useModalAccessibility(
       scrollLockCount -= 1;
       if (scrollLockCount === 0)
         document.body.style.overflow = previousBodyOverflow;
-      if (opener?.isConnected) opener.focus();
+      queueMicrotask(() => {
+        if (opener?.isConnected) opener.focus();
+      });
     };
-  }, [active, dialogRef]);
+  }, [active, dialogRef, options.openerRef]);
 }

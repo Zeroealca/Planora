@@ -605,7 +605,7 @@ export function ProjectPage() {
                   type="button"
                   className="btn-icon"
                   onClick={() => setCreatingItem(false)}
-                  aria-label="Cerrar formulario"
+                  aria-label="Cerrar"
                 >
                   <IconClose />
                 </button>

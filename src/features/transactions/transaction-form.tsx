@@ -5,11 +5,11 @@ import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
 import type { FinancialTransaction, TransactionType } from './domain'
 import { createTransaction, updateTransaction } from './transaction-api'
 
-export function TransactionForm({ userId, categories, transaction, defaultDate, defaultCategoryId, onSaved, onCategoryCreated }: { userId: string; categories: readonly FinancialCategory[]; transaction?: FinancialTransaction; defaultDate: string; defaultCategoryId?: string; onSaved: () => void; onCategoryCreated: (category: FinancialCategory) => void }) {
+export function TransactionForm({ userId, categories, transaction, defaultDate, defaultCategoryId, defaultType = 'expense', onSaved, onCategoryCreated }: { userId: string; categories: readonly FinancialCategory[]; transaction?: FinancialTransaction; defaultDate: string; defaultCategoryId?: string; defaultType?: TransactionType; onSaved: () => void; onCategoryCreated: (category: FinancialCategory) => void }) {
   const [name, setName] = useState(transaction?.name ?? '')
   const [amount, setAmount] = useState(costInputValue(transaction?.amount ?? null))
   const [date, setDate] = useState(transaction?.occurredOn ?? defaultDate)
-  const [type, setType] = useState<TransactionType>(transaction?.type ?? 'expense')
+  const [type, setType] = useState<TransactionType>(transaction?.type ?? defaultType)
   const [categoryId, setCategoryId] = useState(transaction?.financialCategoryId ?? defaultCategoryId ?? '')
   const [notes, setNotes] = useState(transaction?.notes ?? '')
   const [newCategory, setNewCategory] = useState('')
@@ -32,8 +32,8 @@ export function TransactionForm({ userId, categories, transaction, defaultDate, 
     try { const category = await createFinancialCategory(userId, newCategory); onCategoryCreated(category); setCategoryId(category.id); setNewCategory(''); setError(null) }
     catch (err) { setError(err instanceof Error ? err.message : 'No se pudo crear la categoría.') }
   }
-  return <form className="stack" onSubmit={save}>
-    <div className="field"><label htmlFor="transaction-name">Descripción</label><input id="transaction-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus={!transaction} /></div>
+  return <form className="stack" onSubmit={save} noValidate>
+    <div className="field"><label htmlFor="transaction-name">Descripción</label><input id="transaction-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus={!transaction} data-modal-initial-focus /></div>
     <div className="field"><label htmlFor="transaction-type">Tipo</label><select id="transaction-type" value={type} onChange={(e) => setType(e.target.value as TransactionType)}><option value="expense">Gasto</option><option value="income">Ingreso</option></select></div>
     <div className="field"><label htmlFor="transaction-amount">Cantidad</label><input id="transaction-amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
     <div className="field"><label htmlFor="transaction-date">Fecha</label><input id="transaction-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
