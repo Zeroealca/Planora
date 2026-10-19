@@ -1048,6 +1048,112 @@ button:disabled,
   letter-spacing: 0.01em;
 }
 
+.next-decisions {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--card-elevated);
+  box-shadow: var(--shadow);
+}
+
+.next-decisions-heading,
+.next-decision-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.next-decisions-heading > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.next-decisions-heading h2 {
+  font-size: 1.05rem;
+}
+
+.next-decisions-summary,
+.next-decisions-empty {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--bg) 68%, var(--card));
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.next-decisions-empty {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.next-decisions-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.next-decision {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+}
+
+.next-decision-main h3,
+.next-decision-issues {
+  margin: 0;
+}
+
+.next-decision-state {
+  width: fit-content;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.next-decision-state-ready {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+  background: color-mix(in srgb, var(--success-soft) 72%, var(--card));
+}
+
+.next-decision-state-needs_information {
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--border));
+  background: color-mix(in srgb, var(--warn-soft) 72%, var(--card));
+}
+
+.next-decision-state-needs_resolution {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger-soft) 72%, var(--card));
+}
+
+.next-decision-issues {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.next-decision-action {
+  width: fit-content;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 650;
+}
+
+@media (min-width: 640px) {
+  .next-decisions-heading,
+  .next-decision-main {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+}
+
 .metric-card-budget {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   background: linear-gradient(

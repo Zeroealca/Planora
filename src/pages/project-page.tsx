@@ -33,6 +33,7 @@ import { ProjectForm } from '@/features/projects/project-form'
 import { ProjectDuplicatePanel } from '@/features/projects/project-duplicate-panel'
 import { ProjectOptionsSection } from '@/features/projects/project-options-section'
 import { ProjectSavingsSection } from '@/features/projects/project-savings-section'
+import { NextDecisionsPanel } from '@/features/projects/next-decisions-panel'
 import { fetchProjectBundle } from '@/features/projects/project-api'
 import { useAuth } from '@/features/auth/auth-context'
 import { priorityLabel, statusLabel } from '@/features/projects/project-options'
@@ -372,15 +373,23 @@ export function ProjectPage() {
             movements={movementsToProjectionInput(savingsMovements)}
           />
         ) : (
-          <DashboardPanel
-            budget={resolveProjectBudget(project)}
-            items={dashboardItems}
-            categories={categories}
-            statusOptions={project.status_options}
-            priorityOptions={project.priority_options}
-            savingsMode={project.savings_mode}
-            attentionCount={attentionCount}
-          />
+          <>
+            <DashboardPanel
+              budget={resolveProjectBudget(project)}
+              items={dashboardItems}
+              categories={categories}
+              statusOptions={project.status_options}
+              priorityOptions={project.priority_options}
+              savingsMode={project.savings_mode}
+              attentionCount={attentionCount}
+            />
+            <NextDecisionsPanel
+              projectId={project.id}
+              items={items}
+              attentionContext={attentionContext}
+              priorityOptions={project.priority_options}
+            />
+          </>
         )}
       </ProjectTabPanel>
 

@@ -65,4 +65,57 @@ test.describe('Proyectos y compras (requiere Supabase E2E aislado)', () => {
     await page.getByRole('link', { name: projectName }).click()
     await expect(page.getByText(/110|120/).first()).toBeVisible()
   })
+
+  test('muestra próximas decisiones, estado vacío y navega al ítem', async ({ page }) => {
+    const id = e2eRunId()
+    const projectName = `Decisiones ${id}`
+    const itemName = `Revisar ${id}`
+
+    await signInAsE2EUser(page)
+    await page.goto('/projects')
+    await page.getByRole('button', { name: 'Crear proyecto' }).click()
+    await page.getByLabel(/nombre/i).fill(projectName)
+    await page.getByRole('button', { name: /crear|guardar/i }).click()
+    await expect(page.getByRole('heading', { name: 'Próximas decisiones' })).toBeVisible()
+    await expect(page.getByText('No hay compras pendientes por revisar.')).toBeVisible()
+
+    await page.getByRole('tab', { name: /ítems/i }).click()
+    await page.getByRole('button', { name: 'Nuevo ítem' }).first().click()
+    const dialog = page.getByRole('dialog', { name: 'Nuevo ítem' })
+    await dialog.getByLabel('Nombre').fill(itemName)
+    await dialog.getByLabel(/tope total presupuestado/i).fill('120')
+    await dialog.getByRole('button', { name: 'Crear ítem' }).click()
+    await page.getByRole('tab', { name: /resumen/i }).click()
+
+    await expect(page.getByText(itemName)).toBeVisible()
+    await expect(page.getByText('Requiere información')).toBeVisible()
+    await page.getByRole('link', { name: 'Completar información' }).click()
+    await expect(page.getByRole('heading', { name: itemName })).toBeVisible()
+  })
+})
+
+test.describe('Próximas decisiones en móvil (requiere Supabase E2E aislado)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('conserva una acción visible por decisión', async ({ page }) => {
+    test.skip(!isE2EEnabled(), 'Pendiente: entorno Supabase aislado y variables E2E_*')
+    const id = e2eRunId()
+    const projectName = `Móvil ${id}`
+    const itemName = `Pendiente ${id}`
+
+    await signInAsE2EUser(page)
+    await page.goto('/projects')
+    await page.getByRole('button', { name: 'Crear proyecto' }).click()
+    await page.getByLabel(/nombre/i).fill(projectName)
+    await page.getByRole('button', { name: /crear|guardar/i }).click()
+    await page.getByRole('tab', { name: /ítems/i }).click()
+    await page.getByRole('button', { name: 'Nuevo ítem' }).first().click()
+    const dialog = page.getByRole('dialog', { name: 'Nuevo ítem' })
+    await dialog.getByLabel('Nombre').fill(itemName)
+    await dialog.getByLabel(/tope total presupuestado/i).fill('75')
+    await dialog.getByRole('button', { name: 'Crear ítem' }).click()
+    await page.getByRole('tab', { name: /resumen/i }).click()
+
+    await expect(page.getByRole('link', { name: 'Completar información' })).toBeVisible()
+  })
 })
