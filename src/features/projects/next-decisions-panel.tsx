@@ -49,6 +49,9 @@ export function NextDecisionsPanel({
         <div className="next-decisions-empty">
           <p>No hay compras pendientes por revisar.</p>
           <p className="muted">Los ítems comprados o que ya tienes no aparecen aquí.</p>
+          <Link to={`/projects/${projectId}?tab=items&create=1`} className="btn btn-primary">
+            Crear primer ítem
+          </Link>
         </div>
       ) : (
         <>

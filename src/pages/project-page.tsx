@@ -85,9 +85,30 @@ export function ProjectPage() {
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
-  const [creatingItem, setCreatingItem] = useState(false)
+  const creatingItem = searchParams.get('create') === '1'
   const itemDialogRef = useRef<HTMLElement>(null)
-  useModalAccessibility(creatingItem, itemDialogRef, () => setCreatingItem(false))
+  function closeItemCreation() {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        next.delete('create')
+        return next
+      },
+      { replace: true },
+    )
+  }
+  function openItemCreation() {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        next.set('tab', 'items')
+        next.set('create', '1')
+        return next
+      },
+      { replace: true },
+    )
+  }
+  useModalAccessibility(creatingItem, itemDialogRef, closeItemCreation)
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>(
     () => (searchParams.get('priority') as PriorityFilter | null) ?? 'All',
   )
@@ -422,7 +443,7 @@ export function ProjectPage() {
             <button
               type="button"
               className="btn"
-              onClick={() => setCreatingItem(!creatingItem)}
+              onClick={() => (creatingItem ? closeItemCreation() : openItemCreation())}
             >
               {creatingItem ? 'Cerrar' : 'Nuevo ítem'}
             </button>
@@ -597,7 +618,7 @@ export function ProjectPage() {
             className="modal-backdrop"
             role="presentation"
             onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setCreatingItem(false)
+              if (event.target === event.currentTarget) closeItemCreation()
             }}
           >
             <section
@@ -613,7 +634,7 @@ export function ProjectPage() {
                 <button
                   type="button"
                   className="btn-icon"
-                  onClick={() => setCreatingItem(false)}
+                  onClick={closeItemCreation}
                   aria-label="Cerrar"
                 >
                   <IconClose />
@@ -625,7 +646,7 @@ export function ProjectPage() {
                 statusOptions={project.status_options}
                 priorityOptions={project.priority_options}
                 onSaved={() => {
-                  setCreatingItem(false)
+                  closeItemCreation()
                   void load()
                 }}
               />
@@ -640,7 +661,7 @@ export function ProjectPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setCreatingItem(true)}
+                onClick={openItemCreation}
               >
                 Nuevo ítem
               </button>

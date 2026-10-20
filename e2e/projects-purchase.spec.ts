@@ -78,6 +78,9 @@ test.describe('Proyectos y compras (requiere Supabase E2E aislado)', () => {
     await page.getByRole('button', { name: /crear|guardar/i }).click()
     await expect(page.getByRole('heading', { name: 'Próximas decisiones' })).toBeVisible()
     await expect(page.getByText('No hay compras pendientes por revisar.')).toBeVisible()
+    await page.getByRole('link', { name: 'Crear primer ítem' }).click()
+    await expect(page.getByRole('dialog', { name: 'Nuevo ítem' })).toBeVisible()
+    await page.getByRole('dialog', { name: 'Nuevo ítem' }).getByLabel('Cerrar').click()
 
     await page.getByRole('tab', { name: /ítems/i }).click()
     await page.getByRole('button', { name: 'Nuevo ítem' }).first().click()
@@ -91,6 +94,25 @@ test.describe('Proyectos y compras (requiere Supabase E2E aislado)', () => {
     await expect(page.getByText('Requiere información')).toBeVisible()
     await page.getByRole('link', { name: 'Completar información' }).click()
     await expect(page.getByRole('heading', { name: itemName })).toBeVisible()
+  })
+
+  test('permite recorrer las pestañas del proyecto con teclado', async ({ page }) => {
+    const id = e2eRunId()
+    await signInAsE2EUser(page)
+    await page.goto('/projects')
+    await page.getByRole('button', { name: 'Crear proyecto' }).click()
+    await page.getByLabel(/nombre/i).fill(`Tabs ${id}`)
+    await page.getByRole('button', { name: /crear|guardar/i }).click()
+
+    const summary = page.getByRole('tab', { name: 'Resumen' })
+    await summary.focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(page.getByRole('tab', { name: /ítems/i })).toBeFocused()
+    await expect(page).toHaveURL(/tab=items/)
+    await page.keyboard.press('End')
+    await expect(page.getByRole('tab', { name: 'Ahorros' })).toBeFocused()
+    await page.keyboard.press('Home')
+    await expect(summary).toBeFocused()
   })
 })
 

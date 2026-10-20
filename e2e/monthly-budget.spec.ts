@@ -59,5 +59,11 @@ test.describe('Presupuesto mensual (requiere Supabase E2E aislado)', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.getByRole('button', { name: 'Mes siguiente' }).click()
     await expect(page.getByText(/40|gast/i).first()).toBeVisible()
+
+    await page.goto('/budget/transactions?period=2026-09')
+    await page.getByRole('button', { name: 'Mes siguiente' }).click()
+    await expect(page).toHaveURL(/period=2026-10/)
+    await page.getByRole('link', { name: 'Volver a presupuesto' }).click()
+    await expect(page).toHaveURL(/\/budget\?period=2026-10/)
   })
 })

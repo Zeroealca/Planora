@@ -208,6 +208,9 @@ function BudgetCreationOptions({
   return (
     <section className="card stack">
       <h2>Crear presupuesto</h2>
+      <p className="muted">
+        Primero indica cuánto tienes disponible para este mes. Después podrás asignarlo por categoría.
+      </p>
       <form className="budget-form-compact" onSubmit={submitEmpty}>
         <div className="field">
           <label htmlFor="budget-create-available">Disponible inicial</label>
@@ -287,7 +290,9 @@ function BudgetCreationOptions({
         )}
       </div>
 
-      <div className="stack templates-panel__block">
+      <details className="templates-disclosure templates-panel__block">
+        <summary>Usar una plantilla (opcional)</summary>
+        <div className="stack templates-disclosure__content">
         <h3>Usar plantilla</h3>
         {templates.length === 0 ? (
           <p className="muted">
@@ -375,7 +380,8 @@ function BudgetCreationOptions({
             ) : null}
           </>
         )}
-      </div>
+        </div>
+      </details>
     </section>
   )
 }
@@ -776,13 +782,18 @@ export function BudgetReusePanel({ userId, period, categories, budget, onCreated
           setError={setError}
         />
       )}
-      <TemplateManagement
-        categories={categories}
-        budget={budget}
-        templates={templates}
-        refreshTemplates={refreshTemplates}
-        setError={setError}
-      />
+      <details className="templates-disclosure">
+        <summary>Gestionar plantillas</summary>
+        <div className="templates-disclosure__content">
+          <TemplateManagement
+            categories={categories}
+            budget={budget}
+            templates={templates}
+            refreshTemplates={refreshTemplates}
+            setError={setError}
+          />
+        </div>
+      </details>
     </div>
   )
 }
