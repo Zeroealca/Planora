@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
 import { IconPencil, IconTrash } from '@/components/icons'
 import type {
   Project,
+  ItemWithOptions,
+  ProjectStatusOption,
   ProjectSavingsMovement,
   SavingsMode,
   SavingsMovementType,
@@ -30,6 +33,7 @@ import {
   type ProjectSavingsGoalInput,
 } from './project-savings'
 import { isSavingsGoalProject } from './project-kind'
+import { calculateSavingsPlanPurchaseSummary } from './savings-plan-purchases'
 import { SavingsPlanFields } from './savings-plan-fields'
 import {
   parseSavingsPlanInput,
@@ -146,18 +150,23 @@ function ProjectionDetails({
 function PlanSavingsEditor({
   project,
   movements,
+  items,
+  statusOptions,
   onChanged,
   onError,
   onInfo,
 }: {
   project: Project
   movements: readonly ProjectSavingsMovement[]
+  items: readonly ItemWithOptions[]
+  statusOptions: readonly ProjectStatusOption[]
   onChanged: () => void
   onError: (message: string | null) => void
   onInfo: (message: string | null) => void
 }) {
   const formatMoney = useFormatMoney()
   const plan = savingsPlanFromProject(project)
+  const purchases = calculateSavingsPlanPurchaseSummary(items, statusOptions)
   const [planAmount, setPlanAmount] = useState(costInputValue(plan.savings_amount))
   const [planAccrues, setPlanAccrues] = useState(plan.savings_accrues_interest)
   const [planRate, setPlanRate] = useState(costInputValue(plan.savings_interest_rate_annual))
@@ -237,7 +246,34 @@ function PlanSavingsEditor({
   }
 
   return (
-    <form className="stack card" onSubmit={(event) => void onSavePlan(event)}>
+    <>
+      <section className="stack card" aria-labelledby="plan-purchases-heading">
+        <div className="row-between">
+          <div>
+            <h2 id="plan-purchases-heading">Artículos planificados</h2>
+            <p className="muted">Referencia de compras: no modifica el ahorro acumulado ni crea transacciones.</p>
+          </div>
+          <Link
+            className="btn btn-ghost"
+            to={`/projects/${project.id}?tab=items${purchases.totalCount === 0 ? '&create=1' : ''}`}
+          >
+            {purchases.totalCount === 0 ? 'Añadir primer artículo' : 'Ver artículos'}
+          </Link>
+        </div>
+        {purchases.totalCount === 0 ? (
+          <p className="muted">Aún no has añadido artículos al plan.</p>
+        ) : (
+          <>
+            <div className="metrics-grid metrics-grid-secondary" aria-label="Resumen de artículos">
+              <article className="metric-card metric-card-compact metric-card-pending"><p className="metric-label">Pendiente estimado</p><p className="metric-value">{formatMoney(purchases.pendingEstimated)}</p></article>
+              <article className="metric-card metric-card-compact metric-card-spent"><p className="metric-label">Total gastado</p><p className="metric-value">{formatMoney(purchases.spent)}</p></article>
+              <article className="metric-card metric-card-compact metric-card-projected"><p className="metric-label">Total proyectado</p><p className="metric-value">{formatMoney(purchases.projected)}</p></article>
+            </div>
+            <p className="muted">{purchases.purchasedCount} de {purchases.totalCount} artículos comprados.</p>
+          </>
+        )}
+      </section>
+      <form className="stack card" onSubmit={(event) => void onSavePlan(event)}>
       <SavingsPlanFields
         amount={planAmount}
         accruesInterest={planAccrues}
@@ -264,17 +300,20 @@ function PlanSavingsEditor({
           Usar total como presupuesto
         </button>
       </div>
-    </form>
+      </form>
+    </>
   )
 }
 
 export function ProjectSavingsSection({
   project,
   movements,
+  items,
   onChanged,
 }: {
   project: Project
   movements: ProjectSavingsMovement[]
+  items: readonly ItemWithOptions[]
   onChanged: () => void
 }) {
   const formatMoney = useFormatMoney()
@@ -563,6 +602,8 @@ export function ProjectSavingsSection({
           key={`${project.id}-${project.updated_at}`}
           project={project}
           movements={movements}
+          items={items}
+          statusOptions={project.status_options}
           onChanged={onChanged}
           onError={setError}
           onInfo={setInfo}

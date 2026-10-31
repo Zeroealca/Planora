@@ -419,6 +419,11 @@ export function ProjectPage() {
       <ProjectTabPanel
         id="items"
         activeTab={activeTab}
+        description={
+          project.savings_mode === 'plan'
+            ? 'Artículos del plan: el precio estimado sirve para proyectar; el precio pagado solo cuenta al marcarlo comprado.'
+            : undefined
+        }
         toolbar={
           <div className="row project-tab-actions">
             <Link to={`/import?projectId=${project.id}`} className="btn btn-ghost">
@@ -445,7 +450,7 @@ export function ProjectPage() {
               className="btn"
               onClick={() => (creatingItem ? closeItemCreation() : openItemCreation())}
             >
-              {creatingItem ? 'Cerrar' : 'Nuevo ítem'}
+              {creatingItem ? 'Cerrar' : project.savings_mode === 'plan' ? 'Nuevo artículo' : 'Nuevo ítem'}
             </button>
           </div>
         }
@@ -630,7 +635,9 @@ export function ProjectPage() {
               tabIndex={-1}
             >
               <div className="modal-head">
-                <h2 id="new-item-title">Nuevo ítem</h2>
+                <h2 id="new-item-title">
+                  {project.savings_mode === 'plan' ? 'Nuevo artículo' : 'Nuevo ítem'}
+                </h2>
                 <button
                   type="button"
                   className="btn-icon"
@@ -655,7 +662,11 @@ export function ProjectPage() {
         ) : null}
         {items.length === 0 ? (
           <div className="stack empty-state">
-            <p>Este proyecto aún no tiene ítems.</p>
+            <p>
+              {project.savings_mode === 'plan'
+                ? 'Este plan aún no tiene artículos.'
+                : 'Este proyecto aún no tiene ítems.'}
+            </p>
             <p className="muted">Crea el primero o importa varios desde un CSV.</p>
             <div className="row">
               <button
@@ -663,7 +674,7 @@ export function ProjectPage() {
                 className="btn btn-primary"
                 onClick={openItemCreation}
               >
-                Nuevo ítem
+                {project.savings_mode === 'plan' ? 'Nuevo artículo' : 'Nuevo ítem'}
               </button>
               <Link to={`/import?projectId=${project.id}`} className="btn btn-ghost">
                 Importar CSV
@@ -737,6 +748,7 @@ export function ProjectPage() {
         <ProjectSavingsSection
           project={project}
           movements={savingsMovements}
+          items={items}
           onChanged={() => void load()}
         />
       </ProjectTabPanel>
