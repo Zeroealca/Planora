@@ -4,6 +4,11 @@ type SavingsPlanItem = {
   status: string
   estimated_cost: number | null
   actual_cost: number | null
+  subarticles?: readonly {
+    estimated_cost: number | null
+    actual_cost: number | null
+    status: 'pending' | 'purchased'
+  }[]
 }
 
 export type SavingsPlanPurchaseSummary = {
@@ -29,6 +34,18 @@ export function calculateSavingsPlanPurchaseSummary(
   let totalCount = 0
 
   for (const item of items) {
+    if (item.subarticles && item.subarticles.length > 0) {
+      for (const subarticle of item.subarticles) {
+        totalCount += 1
+        if (subarticle.status === 'purchased') {
+          purchasedCount += 1
+          spent += amountOrZero(subarticle.actual_cost)
+        } else {
+          pendingEstimated += amountOrZero(subarticle.estimated_cost)
+        }
+      }
+      continue
+    }
     const behavior = getStatusBehavior(item.status, statusOptions)
     if (behavior === 'pending') {
       totalCount += 1

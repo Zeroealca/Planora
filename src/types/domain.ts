@@ -143,6 +143,19 @@ export interface ItemOption {
   updated_at: string
 }
 
+export interface ItemSubarticle {
+  id: string
+  item_id: string
+  name: string
+  estimated_cost: number | null
+  status: 'pending' | 'purchased'
+  actual_cost: number | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ItemWithOptions extends Item {
   options: ItemOption[]
+  /** Omitted by legacy item queries; loaded for project detail. */
+  subarticles?: ItemSubarticle[]
 }

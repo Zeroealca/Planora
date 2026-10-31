@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { IconBack } from '@/components/icons'
 import { ItemForm } from '@/features/items/item-form'
 import { deleteItem } from '@/features/items/item-api'
+import { ItemSubarticlesSection } from '@/features/items/item-subarticles-section'
 import {
   ATTENTION_ISSUE_LABELS,
   collectItemAttentionIssues,
@@ -250,6 +251,13 @@ export function ItemPage() {
         item={item}
         onSaved={() => void load()}
       />
+      {project.savings_mode === 'plan' ? (
+        <ItemSubarticlesSection
+          itemId={item.id}
+          subarticles={item.subarticles ?? []}
+          onChanged={() => void load()}
+        />
+      ) : null}
       <button type="button" className="btn btn-danger" onClick={() => void onDelete()}>
         Eliminar ítem
       </button>

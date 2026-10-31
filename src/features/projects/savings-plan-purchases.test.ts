@@ -25,4 +25,24 @@ describe('calculateSavingsPlanPurchaseSummary', () => {
       totalCount: 0,
     })
   })
+
+  it('uses internal articles instead of the parent item amounts', () => {
+    expect(
+      calculateSavingsPlanPurchaseSummary(
+        [
+          {
+            status: 'Pending',
+            estimated_cost: 999,
+            actual_cost: 500,
+            subarticles: [
+              { status: 'purchased', estimated_cost: 80, actual_cost: 65 },
+              { status: 'purchased', estimated_cost: 40, actual_cost: 32 },
+              { status: 'pending', estimated_cost: 20, actual_cost: null },
+            ],
+          },
+        ],
+        DEFAULT_STATUS_OPTIONS,
+      ),
+    ).toEqual({ pendingEstimated: 20, spent: 97, projected: 117, purchasedCount: 2, totalCount: 3 })
+  })
 })

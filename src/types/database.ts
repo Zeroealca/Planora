@@ -460,6 +460,47 @@ export type Database = {
           },
         ]
       }
+      item_subarticles: {
+        Row: {
+          actual_cost: number | null
+          created_at: string
+          estimated_cost: number | null
+          id: string
+          item_id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          created_at?: string
+          estimated_cost?: number | null
+          id?: string
+          item_id: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          created_at?: string
+          estimated_cost?: number | null
+          id?: string
+          item_id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_subarticles_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           actual_cost: number | null

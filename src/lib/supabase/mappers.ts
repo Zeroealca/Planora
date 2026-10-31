@@ -2,6 +2,7 @@ import type {
   Category,
   Item,
   ItemOption,
+  ItemSubarticle,
   LabelPreset,
   Profile,
   Project,
@@ -38,6 +39,7 @@ type ProjectRow = Database['public']['Tables']['projects']['Row']
 type CategoryRow = Database['public']['Tables']['categories']['Row']
 type ItemRow = Database['public']['Tables']['items']['Row']
 type OptionRow = Database['public']['Tables']['item_options']['Row']
+type ItemSubarticleRow = Database['public']['Tables']['item_subarticles']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type SavingsMovementRow =
   Database['public']['Tables']['project_savings_movements']['Row']
@@ -217,6 +219,19 @@ export function mapOption(row: OptionRow): ItemOption {
     alert_drop_percentage: parseNumeric(row.alert_drop_percentage),
     last_checked_at: row.last_checked_at,
     tracking_status: asPriceTrackingStatus(row.tracking_status),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }
+}
+
+export function mapItemSubarticle(row: ItemSubarticleRow): ItemSubarticle {
+  return {
+    id: row.id,
+    item_id: row.item_id,
+    name: row.name,
+    estimated_cost: parseNumeric(row.estimated_cost),
+    status: row.status === 'purchased' ? 'purchased' : 'pending',
+    actual_cost: parseNumeric(row.actual_cost),
     created_at: row.created_at,
     updated_at: row.updated_at,
   }

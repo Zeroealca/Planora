@@ -3,6 +3,7 @@ import {
   mapBudgetItem,
   mapCategory,
   mapItem,
+  mapItemSubarticle,
   mapOption,
   mapProject,
   mapSavingsMovement,
@@ -40,10 +41,11 @@ type ProjectRow = Database['public']['Tables']['projects']['Row']
 type CategoryRow = Database['public']['Tables']['categories']['Row']
 type ItemRow = Database['public']['Tables']['items']['Row']
 type OptionRow = Database['public']['Tables']['item_options']['Row']
+type ItemSubarticleRow = Database['public']['Tables']['item_subarticles']['Row']
 
 type ProjectBundleRow = ProjectRow & {
   categories: CategoryRow[] | null
-  items: Array<ItemRow & { item_options: OptionRow[] | null }> | null
+  items: Array<ItemRow & { item_options: OptionRow[] | null; item_subarticles: ItemSubarticleRow[] | null }> | null
 }
 
 export type ProjectListEntry = Project & { items: BudgetItem[] }
@@ -104,7 +106,7 @@ export async function fetchProjectBundle(projectId: string): Promise<{
 }> {
   const { data, error } = await supabase
     .from('projects')
-    .select('*, categories(*), items(*, item_options(*))')
+    .select('*, categories(*), items(*, item_options(*), item_subarticles(*))')
     .eq('id', projectId)
     .single()
 
@@ -119,6 +121,7 @@ export async function fetchProjectBundle(projectId: string): Promise<{
   const items = (row.items ?? []).map((itemRow) => ({
     ...mapItem(itemRow),
     options: (itemRow.item_options ?? []).map(mapOption),
+    subarticles: (itemRow.item_subarticles ?? []).map(mapItemSubarticle),
   }))
 
   // Separate query avoids PostgREST schema-cache embed issues after new tables.
