@@ -28,8 +28,8 @@ const budget: PersistedMonthlyBudget = {
 }
 
 const allocations: PersistedMonthlyBudgetAllocation[] = [
-  { id: 'food-allocation', monthlyBudgetId: 'budget', financialCategoryId: 'food', amount: 250, createdAt: '', updatedAt: '' },
-  { id: 'internet-allocation', monthlyBudgetId: 'budget', financialCategoryId: 'internet', amount: 35, createdAt: '', updatedAt: '' },
+  { id: 'food-allocation', monthlyBudgetId: 'budget', financialCategoryId: 'food', amount: 250, paymentMode: 'multiple', scheduledPaymentId: null, manualCompletionTransactionId: null, manualCompletedAt: null, createdAt: '', updatedAt: '' },
+  { id: 'internet-allocation', monthlyBudgetId: 'budget', financialCategoryId: 'internet', amount: 35, paymentMode: 'multiple', scheduledPaymentId: null, manualCompletionTransactionId: null, manualCompletedAt: null, createdAt: '', updatedAt: '' },
 ]
 
 describe('transaction input rules', () => {

@@ -11,7 +11,9 @@ import {
   fetchMonthlyBudgetByPeriod,
   listFinancialCategories,
   listMonthlyBudgetAllocations,
+  setMonthlyBudgetAllocationManualCompletion,
   updateMonthlyBudgetAllocationAmount,
+  updateMonthlyBudgetAllocationPaymentSettings,
   updateMonthlyBudgetAvailableAmount,
 } from '@/features/monthly-budget/monthly-budget-api'
 import type {
@@ -21,14 +23,18 @@ import type {
 } from '@/features/monthly-budget/domain'
 import {
   currentMonthlyPeriod,
+  monthlyPeriodBounds,
   nextMonthlyPeriod,
   previousMonthlyPeriod,
 } from '@/features/monthly-budget/period'
 import { getMonthlyBudgetPeriodSummary } from '@/features/monthly-budget/monthly-budget-summary-api'
+import { calculateFreeMoney } from '@/features/monthly-budget/free-money'
 import type { MonthlyBudgetPeriodSummary } from '@/features/monthly-budget/transaction-summary'
 import { calculateAvailableAfterKnownCommitments, calculateCategoryCommitmentCoverage, calculateMonthlyScheduledCommitments } from '@/features/scheduled-payments/commitments'
 import { listScheduledPaymentOccurrencesForPeriod, listScheduledPayments } from '@/features/scheduled-payments/scheduled-payment-api'
 import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
+import { listTransactions } from '@/features/transactions/transaction-api'
+import type { FinancialTransaction } from '@/features/transactions/domain'
 import { formatYearMonthLabel } from '@/utils/budget/savings-goal'
 import { costInputValue, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
@@ -49,29 +55,36 @@ export function BudgetPage() {
   const [allocations, setAllocations] = useState<PersistedMonthlyBudgetAllocation[]>([])
   const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([])
   const [scheduledOccurrences, setScheduledOccurrences] = useState<ScheduledPaymentOccurrence[]>([])
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
   const [available, setAvailable] = useState('')
   const [editing, setEditing] = useState(false)
   const [categoryName, setCategoryName] = useState('')
   const [amount, setAmount] = useState('')
   const [editAllocation, setEditAllocation] = useState<PersistedMonthlyBudgetAllocation | null>(null)
+  const [paymentMode, setPaymentMode] = useState<'multiple' | 'single'>('multiple')
+  const [scheduledPaymentId, setScheduledPaymentId] = useState('')
+  const [manualTransactionId, setManualTransactionId] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
   async function load() {
     setError(null)
     setSummary(undefined)
     try {
-      const [row, result, cats, payments, occurrences] = await Promise.all([
+      const bounds = monthlyPeriodBounds(period)
+      const [row, result, cats, payments, occurrences, periodTransactions] = await Promise.all([
         fetchMonthlyBudgetByPeriod(period),
         getMonthlyBudgetPeriodSummary(period),
         listFinancialCategories(true),
         listScheduledPayments(),
         listScheduledPaymentOccurrencesForPeriod(period),
+        listTransactions({ fromDate: bounds.start, toDateExclusive: bounds.endExclusive }),
       ])
       setBudget(row)
       setSummary(result)
       setCategories(cats)
       setScheduledPayments(payments)
       setScheduledOccurrences(occurrences)
+      setTransactions(periodTransactions)
       setAllocations(row ? await listMonthlyBudgetAllocations(row.id) : [])
       setAvailable(costInputValue(row?.availableAmount ?? null))
     } catch (e) {
@@ -104,6 +117,8 @@ export function BudgetPage() {
     setEditAllocation(null)
     setCategoryName('')
     setAmount('')
+    setPaymentMode('multiple')
+    setScheduledPaymentId('')
   }
 
   async function saveAllocation(e: FormEvent) {
@@ -120,6 +135,13 @@ export function BudgetPage() {
     try {
       if (editAllocation) {
         await updateMonthlyBudgetAllocationAmount(editAllocation.id, v)
+        await updateMonthlyBudgetAllocationPaymentSettings({
+          allocationId: editAllocation.id,
+          paymentMode,
+          scheduledPaymentId: paymentMode === 'single' && scheduledPaymentId !== ''
+            ? scheduledPaymentId
+            : null,
+        })
       } else {
         const trimmed = categoryName.trim()
         if (!trimmed) {
@@ -181,6 +203,16 @@ export function BudgetPage() {
     ...categorySummaryById.keys(),
     ...commitmentByCategory.keys(),
   ])
+  const freeMoney = calculateFreeMoney({
+    period,
+    unassigned: m?.unassigned ?? 0,
+    allocations,
+    transactions,
+    occurrences: scheduledOccurrences,
+  })
+  const releaseByAllocationId = new Map(
+    freeMoney.releases.map((release) => [release.allocationId, release] as const),
+  )
 
   return (
     <div className="page">
@@ -283,6 +315,12 @@ export function BudgetPage() {
               <p className="metric-value">{money(Math.abs(m.unassigned))}</p>
             </article>
 
+            <article className="metric-card metric-card-balance">
+              <p className="metric-label">Dinero libre</p>
+              <p className="metric-value">{money(freeMoney.freeMoney)}</p>
+              <p className="muted">Sin asignar: {money(freeMoney.unassigned)} · liberado: {money(freeMoney.released)}</p>
+            </article>
+
             <article className="metric-card metric-card-spent">
               <p className="metric-label">Gastado</p>
               <p className="metric-value">{money(m.spent)}</p>
@@ -364,6 +402,10 @@ export function BudgetPage() {
                   overBudget: 0,
                 }
                 const a = allocations.find((x) => x.financialCategoryId === financialCategoryId)
+                const release = a ? releaseByAllocationId.get(a.id) : undefined
+                const manualCandidates = a?.paymentMode === 'single' && a.scheduledPaymentId === null
+                  ? transactions.filter((transaction) => transaction.type === 'expense' && transaction.financialCategoryId === a.financialCategoryId)
+                  : []
                 const coverage = calculateCategoryCommitmentCoverage({
                   allocated: c.budget,
                   spent: c.spent,
@@ -389,6 +431,42 @@ export function BudgetPage() {
                       ) : null}
                       {coverage.isKnownShortfall ? (
                         <p className="field-error">Los pagos programados superan el presupuesto de esta categoría en {money(Math.abs(coverage.coverage))}.</p>
+                      ) : null}
+                      {a?.paymentMode === 'single' ? (
+                        <div className="stack">
+                          <p>
+                            <strong>Un pago por periodo.</strong>{' '}
+                            {a.scheduledPaymentId
+                              ? 'Se completa automáticamente solo con la ocurrencia pagada y su transacción de este periodo.'
+                              : 'Requiere confirmar una transacción concreta de este periodo.'}
+                          </p>
+                          {release ? (
+                            <>
+                              <p className="page-status">{release.amount > 0 ? `Pago completado · sobrante liberado: ${money(release.amount)}` : 'Pago completado · no hay sobrante para liberar.'}</p>
+                              {release.source === 'manual' ? (
+                                <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
+                              ) : null}
+                            </>
+                          ) : a.scheduledPaymentId ? (
+                            <p className="muted">Pendiente: no hay una ocurrencia pagada con una transacción válida en este periodo.</p>
+                          ) : a.manualCompletionTransactionId ? (
+                            <>
+                              <p className="muted">Confirmado manualmente, pero la transacción ya no es válida para este periodo; no se libera dinero.</p>
+                              <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
+                            </>
+                          ) : manualCandidates.length === 0 ? (
+                            <p className="muted">No se puede liberar dinero: registra y selecciona un gasto real de esta categoría y periodo.</p>
+                          ) : (
+                            <div className="row">
+                              <label className="sr-only" htmlFor={`manual-payment-${a.id}`}>Transacción que completa el pago</label>
+                              <select id={`manual-payment-${a.id}`} value={manualTransactionId[a.id] ?? ''} onChange={(event) => setManualTransactionId((current) => ({ ...current, [a.id]: event.target.value }))}>
+                                <option value="">Selecciona el gasto real</option>
+                                {manualCandidates.map((transaction) => <option key={transaction.id} value={transaction.id}>{transaction.occurredOn} · {transaction.name} · {money(transaction.amount)}</option>)}
+                              </select>
+                              <button className="btn btn-ghost" type="button" disabled={!manualTransactionId[a.id]} onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, manualTransactionId[a.id] ?? null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago.'))}>Confirmar pago</button>
+                            </div>
+                          )}
+                        </div>
                       ) : null}
                     </div>
                     <div className="budget-category-item__actions">
@@ -417,6 +495,8 @@ export function BudgetPage() {
                               setEditAllocation(a)
                               setCategoryName(categoryLabel(a.financialCategoryId))
                               setAmount(costInputValue(a.amount))
+                              setPaymentMode(a.paymentMode)
+                              setScheduledPaymentId(a.scheduledPaymentId ?? '')
                               setError(null)
                             }}
                             aria-label={`Editar asignación de ${categoryLabel(a.financialCategoryId)}`}
@@ -466,6 +546,26 @@ export function BudgetPage() {
                   autoComplete="off"
                 />
               </div>
+              {editAllocation ? (
+                <>
+                  <div className="field">
+                    <label htmlFor="budget-payment-mode">Pagos por periodo</label>
+                    <select id="budget-payment-mode" value={paymentMode} onChange={(event) => setPaymentMode(event.target.value === 'single' ? 'single' : 'multiple')}>
+                      <option value="multiple">Múltiples pagos por periodo</option>
+                      <option value="single">Un pago por periodo</option>
+                    </select>
+                  </div>
+                  {paymentMode === 'single' ? (
+                    <div className="field">
+                      <label htmlFor="budget-scheduled-payment">Pago programado vinculado (opcional)</label>
+                      <select id="budget-scheduled-payment" value={scheduledPaymentId} onChange={(event) => setScheduledPaymentId(event.target.value)}>
+                        <option value="">Sin vínculo: confirmación manual</option>
+                        {scheduledPayments.filter((payment) => payment.financialCategoryId === editAllocation.financialCategoryId).map((payment) => <option key={payment.id} value={payment.id}>{payment.name} · {payment.frequency === 'annual' ? 'anual' : payment.frequency === 'monthly' ? 'mensual' : 'único'}</option>)}
+                      </select>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
               <div className="field">
                 <label htmlFor="budget-category-amount">Monto presupuestado</label>
                 <input

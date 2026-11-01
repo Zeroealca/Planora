@@ -167,6 +167,36 @@ export async function updateMonthlyBudgetAllocationAmount(
   if (error) throw new Error(supabaseErrorMessage(error))
 }
 
+export async function updateMonthlyBudgetAllocationPaymentSettings(input: {
+  allocationId: string
+  paymentMode: 'multiple' | 'single'
+  scheduledPaymentId: string | null
+}): Promise<void> {
+  const { error } = await supabase
+    .from('monthly_budget_allocations')
+    .update({
+      payment_mode: input.paymentMode,
+      scheduled_payment_id: input.paymentMode === 'single' ? input.scheduledPaymentId : null,
+      manual_completion_transaction_id: null,
+    })
+    .eq('id', input.allocationId)
+
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
+
+/** Confirmation only stores an explicit attribution; it never writes a transaction. */
+export async function setMonthlyBudgetAllocationManualCompletion(
+  allocationId: string,
+  transactionId: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('monthly_budget_allocations')
+    .update({ manual_completion_transaction_id: transactionId })
+    .eq('id', allocationId)
+
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
+
 export async function deleteMonthlyBudgetAllocation(allocationId: string): Promise<void> {
   const { error } = await supabase
     .from('monthly_budget_allocations')

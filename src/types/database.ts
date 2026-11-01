@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: '14.5'
   }
   public: {
     Tables: {
@@ -41,18 +41,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "budget_template_allocations_budget_template_id_fkey"
-            columns: ["budget_template_id"]
+            foreignKeyName: 'budget_template_allocations_budget_template_id_fkey'
+            columns: ['budget_template_id']
             isOneToOne: false
-            referencedRelation: "budget_templates"
-            referencedColumns: ["id"]
+            referencedRelation: 'budget_templates'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "budget_template_allocations_financial_category_id_fkey"
-            columns: ["financial_category_id"]
+            foreignKeyName: 'budget_template_allocations_financial_category_id_fkey'
+            columns: ['financial_category_id']
             isOneToOne: false
-            referencedRelation: "financial_categories"
-            referencedColumns: ["id"]
+            referencedRelation: 'financial_categories'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -113,11 +113,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "categories_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: 'categories_project_id_fkey'
+            columns: ['project_id']
             isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -211,11 +211,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "managed_fund_movements_fund_id_fkey"
-            columns: ["fund_id"]
+            foreignKeyName: 'managed_fund_movements_fund_id_fkey'
+            columns: ['fund_id']
             isOneToOne: false
-            referencedRelation: "managed_funds"
-            referencedColumns: ["id"]
+            referencedRelation: 'managed_funds'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -255,18 +255,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "scheduled_payment_occurrences_scheduled_payment_id_fkey"
-            columns: ["scheduled_payment_id"]
+            foreignKeyName: 'scheduled_payment_occurrences_scheduled_payment_id_fkey'
+            columns: ['scheduled_payment_id']
             isOneToOne: false
-            referencedRelation: "scheduled_payments"
-            referencedColumns: ["id"]
+            referencedRelation: 'scheduled_payments'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "scheduled_payment_occurrences_transaction_id_fkey"
-            columns: ["transaction_id"]
+            foreignKeyName: 'scheduled_payment_occurrences_transaction_id_fkey'
+            columns: ['transaction_id']
             isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["id"]
+            referencedRelation: 'transactions'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -321,11 +321,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "scheduled_payments_financial_category_id_fkey"
-            columns: ["financial_category_id"]
+            foreignKeyName: 'scheduled_payments_financial_category_id_fkey'
+            columns: ['financial_category_id']
             isOneToOne: false
-            referencedRelation: "financial_categories"
-            referencedColumns: ["id"]
+            referencedRelation: 'financial_categories'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -374,18 +374,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "scheduled_payment_reminder_deliveries_occurrence_id_fkey"
-            columns: ["occurrence_id"]
+            foreignKeyName: 'scheduled_payment_reminder_deliveries_occurrence_id_fkey'
+            columns: ['occurrence_id']
             isOneToOne: true
-            referencedRelation: "scheduled_payment_occurrences"
-            referencedColumns: ["id"]
+            referencedRelation: 'scheduled_payment_occurrences'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "scheduled_payment_reminder_deliveries_scheduled_payment_id_fkey"
-            columns: ["scheduled_payment_id"]
+            foreignKeyName: 'scheduled_payment_reminder_deliveries_scheduled_payment_id_fkey'
+            columns: ['scheduled_payment_id']
             isOneToOne: false
-            referencedRelation: "scheduled_payments"
-            referencedColumns: ["id"]
+            referencedRelation: 'scheduled_payments'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -437,11 +437,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "item_option_price_observations_option_id_fkey"
-            columns: ["option_id"]
+            foreignKeyName: 'item_option_price_observations_option_id_fkey'
+            columns: ['option_id']
             isOneToOne: false
-            referencedRelation: "item_options"
-            referencedColumns: ["id"]
+            referencedRelation: 'item_options'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -523,11 +523,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "item_options_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: 'item_options_item_id_fkey'
+            columns: ['item_id']
             isOneToOne: false
-            referencedRelation: "items"
-            referencedColumns: ["id"]
+            referencedRelation: 'items'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -564,11 +564,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "item_subarticles_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: 'item_subarticles_item_id_fkey'
+            columns: ['item_id']
             isOneToOne: false
-            referencedRelation: "items"
-            referencedColumns: ["id"]
+            referencedRelation: 'items'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -629,18 +629,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "items_category_id_fkey"
-            columns: ["category_id"]
+            foreignKeyName: 'items_category_id_fkey'
+            columns: ['category_id']
             isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
+            referencedRelation: 'categories'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "items_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: 'items_project_id_fkey'
+            columns: ['project_id']
             isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -650,7 +650,11 @@ export type Database = {
           created_at: string
           financial_category_id: string
           id: string
+          manual_completed_at: string | null
+          manual_completion_transaction_id: string | null
           monthly_budget_id: string
+          payment_mode: string
+          scheduled_payment_id: string | null
           updated_at: string
         }
         Insert: {
@@ -658,7 +662,11 @@ export type Database = {
           created_at?: string
           financial_category_id: string
           id?: string
+          manual_completed_at?: string | null
+          manual_completion_transaction_id?: string | null
           monthly_budget_id: string
+          payment_mode?: string
+          scheduled_payment_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -666,23 +674,41 @@ export type Database = {
           created_at?: string
           financial_category_id?: string
           id?: string
+          manual_completed_at?: string | null
+          manual_completion_transaction_id?: string | null
           monthly_budget_id?: string
+          payment_mode?: string
+          scheduled_payment_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "monthly_budget_allocations_financial_category_id_fkey"
-            columns: ["financial_category_id"]
+            foreignKeyName: 'monthly_budget_allocations_financial_category_id_fkey'
+            columns: ['financial_category_id']
             isOneToOne: false
-            referencedRelation: "financial_categories"
-            referencedColumns: ["id"]
+            referencedRelation: 'financial_categories'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "monthly_budget_allocations_monthly_budget_id_fkey"
-            columns: ["monthly_budget_id"]
+            foreignKeyName: 'monthly_budget_allocations_monthly_budget_id_fkey'
+            columns: ['monthly_budget_id']
             isOneToOne: false
-            referencedRelation: "monthly_budgets"
-            referencedColumns: ["id"]
+            referencedRelation: 'monthly_budgets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'monthly_budget_allocations_manual_completion_transaction_id_fkey'
+            columns: ['manual_completion_transaction_id']
+            isOneToOne: false
+            referencedRelation: 'transactions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'monthly_budget_allocations_scheduled_payment_id_fkey'
+            columns: ['scheduled_payment_id']
+            isOneToOne: false
+            referencedRelation: 'scheduled_payments'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -743,8 +769,10 @@ export type Database = {
           created_at: string
           id: string
           movement_date: string
+          movement_kind: string
           movement_type: string
           name: string
+          description: string | null
           project_id: string
           updated_at: string
         }
@@ -753,8 +781,10 @@ export type Database = {
           created_at?: string
           id?: string
           movement_date: string
+          movement_kind?: string
           movement_type: string
           name: string
+          description?: string | null
           project_id: string
           updated_at?: string
         }
@@ -763,18 +793,20 @@ export type Database = {
           created_at?: string
           id?: string
           movement_date?: string
+          movement_kind?: string
           movement_type?: string
           name?: string
+          description?: string | null
           project_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "project_savings_movements_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: 'project_savings_movements_project_id_fkey'
+            columns: ['project_id']
             isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -796,6 +828,8 @@ export type Database = {
           savings_goal_start_date: string | null
           savings_initial_balance: number | null
           savings_interest_rate_annual: number | null
+          savings_interest_rate_type: string
+          savings_interest_compounding_frequency: string
           savings_minimum_reserve: number | null
           savings_mode: string
           savings_start_date: string | null
@@ -821,6 +855,8 @@ export type Database = {
           savings_goal_start_date?: string | null
           savings_initial_balance?: number | null
           savings_interest_rate_annual?: number | null
+          savings_interest_rate_type?: string
+          savings_interest_compounding_frequency?: string
           savings_minimum_reserve?: number | null
           savings_mode?: string
           savings_start_date?: string | null
@@ -846,6 +882,8 @@ export type Database = {
           savings_goal_start_date?: string | null
           savings_initial_balance?: number | null
           savings_interest_rate_annual?: number | null
+          savings_interest_rate_type?: string
+          savings_interest_compounding_frequency?: string
           savings_minimum_reserve?: number | null
           savings_mode?: string
           savings_start_date?: string | null
@@ -895,11 +933,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "transactions_financial_category_id_fkey"
-            columns: ["financial_category_id"]
+            foreignKeyName: 'transactions_financial_category_id_fkey'
+            columns: ['financial_category_id']
             isOneToOne: false
-            referencedRelation: "financial_categories"
-            referencedColumns: ["id"]
+            referencedRelation: 'financial_categories'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -931,10 +969,17 @@ export type Database = {
       }
       materialize_scheduled_payment_occurrence: {
         Args: { p_period: string; p_scheduled_payment_id: string }
-        Returns: Database['public']['Tables']['scheduled_payment_occurrences']['Row'] | null
+        Returns:
+          | Database['public']['Tables']['scheduled_payment_occurrences']['Row']
+          | null
       }
       mark_scheduled_payment_occurrence_paid: {
-        Args: { p_amount: number; p_notes?: string | null; p_occurrence_id: string; p_occurred_on: string }
+        Args: {
+          p_amount: number
+          p_notes?: string | null
+          p_occurrence_id: string
+          p_occurred_on: string
+        }
         Returns: Database['public']['Tables']['transactions']['Row']
       }
       claim_scheduled_payment_reminder: {
@@ -943,14 +988,23 @@ export type Database = {
           p_occurrence_id: string
           p_reminder_date: string
         }
-        Returns: Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row'] | null
+        Returns:
+          | Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row']
+          | null
       }
       complete_scheduled_payment_reminder: {
-        Args: { p_delivery_id: string; p_error?: string | null; p_status: string }
+        Args: {
+          p_delivery_id: string
+          p_error?: string | null
+          p_status: string
+        }
         Returns: Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row']
       }
       select_item_option: { Args: { p_option_id: string }; Returns: undefined }
-      skip_scheduled_payment_occurrence: { Args: { p_occurrence_id: string }; Returns: undefined }
+      skip_scheduled_payment_occurrence: {
+        Args: { p_occurrence_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -961,33 +1015,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -996,23 +1050,22 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1021,23 +1074,22 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1046,36 +1098,35 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {

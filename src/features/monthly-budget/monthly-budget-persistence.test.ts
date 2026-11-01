@@ -36,7 +36,7 @@ describe('monthly-budget persistence boundary', () => {
     ).toMatchObject({ id: 'budget', period: '2027-09', availableAmount: 869.67 })
     expect(
       mapMonthlyBudgetAllocation({
-        id: 'allocation', monthly_budget_id: 'budget', financial_category_id: 'category', amount: 250, created_at: 'created', updated_at: 'updated',
+        id: 'allocation', monthly_budget_id: 'budget', financial_category_id: 'category', amount: 250, payment_mode: 'multiple', scheduled_payment_id: null, manual_completion_transaction_id: null, manual_completed_at: null, created_at: 'created', updated_at: 'updated',
       }),
     ).toMatchObject({ monthlyBudgetId: 'budget', financialCategoryId: 'category', amount: 250 })
   })

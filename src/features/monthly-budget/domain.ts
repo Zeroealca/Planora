@@ -10,6 +10,8 @@ export type MonthlyBudgetAllocation = {
   amount: number
 }
 
+export type MonthlyBudgetAllocationPaymentMode = 'multiple' | 'single'
+
 export type MonthlyBudget = {
   period: MonthlyPeriod
   availableAmount: number
@@ -37,6 +39,10 @@ export type PersistedMonthlyBudget = Omit<MonthlyBudget, 'allocations'> & {
 export type PersistedMonthlyBudgetAllocation = MonthlyBudgetAllocation & {
   id: string
   monthlyBudgetId: string
+  paymentMode: MonthlyBudgetAllocationPaymentMode
+  scheduledPaymentId: string | null
+  manualCompletionTransactionId: string | null
+  manualCompletedAt: string | null
   createdAt: string
   updatedAt: string
 }

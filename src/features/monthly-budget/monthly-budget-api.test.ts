@@ -14,7 +14,9 @@ import {
   listFinancialCategories,
   listMonthlyBudgetAllocations,
   renameFinancialCategory,
+  setMonthlyBudgetAllocationManualCompletion,
   updateMonthlyBudgetAllocationAmount,
+  updateMonthlyBudgetAllocationPaymentSettings,
   updateMonthlyBudgetAvailableAmount,
 } from './monthly-budget-api'
 
@@ -93,6 +95,10 @@ const allocationRow = {
   monthly_budget_id: 'budget',
   financial_category_id: 'category',
   amount: '250.00',
+  payment_mode: 'multiple',
+  scheduled_payment_id: null,
+  manual_completion_transaction_id: null,
+  manual_completed_at: null,
   created_at: 'created',
   updated_at: 'updated',
 }
@@ -142,15 +148,21 @@ describe('monthly-budget data access', () => {
   it('creates, updates, lists, and deletes an allocation without imposing a total cap', async () => {
     const create = query({ data: allocationRow, error: null })
     const update = query({ data: null, error: null })
+    const settings = query({ data: null, error: null })
+    const complete = query({ data: null, error: null })
     const list = query({ data: [allocationRow], error: null })
     const remove = query({ data: null, error: null })
-    from.mockReturnValueOnce(create).mockReturnValueOnce(update).mockReturnValueOnce(list)
+    from.mockReturnValueOnce(create).mockReturnValueOnce(update).mockReturnValueOnce(settings).mockReturnValueOnce(complete).mockReturnValueOnce(list)
       .mockReturnValueOnce(remove)
 
     await expect(
       createMonthlyBudgetAllocation({ monthlyBudgetId: 'budget', financialCategoryId: 'category', amount: 900 }),
     ).resolves.toMatchObject({ amount: 250 })
     await updateMonthlyBudgetAllocationAmount('allocation', 300)
+    await updateMonthlyBudgetAllocationPaymentSettings({
+      allocationId: 'allocation', paymentMode: 'single', scheduledPaymentId: 'payment',
+    })
+    await setMonthlyBudgetAllocationManualCompletion('allocation', 'transaction')
     await expect(listMonthlyBudgetAllocations('budget')).resolves.toHaveLength(1)
     await deleteMonthlyBudgetAllocation('allocation')
 
@@ -158,6 +170,10 @@ describe('monthly-budget data access', () => {
       { monthly_budget_id: 'budget', financial_category_id: 'category', amount: 900 },
     ])
     expect(update.updates).toEqual([{ amount: 300 }])
+    expect(settings.updates).toEqual([{
+      payment_mode: 'single', scheduled_payment_id: 'payment', manual_completion_transaction_id: null,
+    }])
+    expect(complete.updates).toEqual([{ manual_completion_transaction_id: 'transaction' }])
     expect(remove.filters).toContainEqual(['id', 'allocation'])
   })
 })

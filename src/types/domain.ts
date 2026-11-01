@@ -17,7 +17,11 @@ import type {
 
 export type { CurrencyCode } from '@/features/profile/currencies'
 export { DEFAULT_CURRENCY } from '@/features/profile/currencies'
-export type { ProjectPriorityOption, ProjectStatusOption, StatusBehavior } from '@/features/projects/project-options'
+export type {
+  ProjectPriorityOption,
+  ProjectStatusOption,
+  StatusBehavior,
+} from '@/features/projects/project-options'
 
 /** @deprecated Use per-project priority_options instead. */
 export const LABEL_PRESETS = ['default', 'move_in'] as const
@@ -70,6 +74,8 @@ export interface Project {
   savings_amount: number | null
   savings_accrues_interest: boolean
   savings_interest_rate_annual: number | null
+  savings_interest_rate_type: SavingsInterestRateType
+  savings_interest_compounding_frequency: SavingsCompoundingFrequency
   savings_start_date: string | null
   savings_end_date: string | null
   created_at: string
@@ -77,6 +83,10 @@ export interface Project {
 }
 
 export type SavingsMovementType = 'inflow' | 'outflow'
+export type SavingsMovementKind = 'contribution' | 'interest'
+export type SavingsInterestRateType = 'tea' | 'tna'
+export type SavingsCompoundingFrequency =
+  'monthly' | 'quarterly' | 'semiannual' | 'annual'
 
 export interface ProjectSavingsMovement {
   id: string
@@ -85,6 +95,8 @@ export interface ProjectSavingsMovement {
   movement_date: string
   amount: number
   movement_type: SavingsMovementType
+  movement_kind: SavingsMovementKind
+  description: string | null
   created_at: string
   updated_at: string
 }

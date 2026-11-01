@@ -7,6 +7,9 @@ import type {
   Profile,
   Project,
   ProjectSavingsMovement,
+  SavingsCompoundingFrequency,
+  SavingsInterestRateType,
+  SavingsMovementKind,
   SavingsMode,
   SavingsMovementType,
 } from '@/types/domain'
@@ -17,10 +20,20 @@ import type {
   BudgetTemplate,
   BudgetTemplateAllocation,
 } from '@/features/monthly-budget/domain'
-import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
+import type {
+  ScheduledPayment,
+  ScheduledPaymentOccurrence,
+} from '@/features/scheduled-payments/domain'
 import type { ScheduledPaymentReminderDelivery } from '@/features/scheduled-payments/reminders'
-import type { FinancialTransaction, TransactionType } from '@/features/transactions/domain'
-import type { ManagedFund, ManagedFundMovement, ManagedFundMovementType } from '@/features/managed-funds/domain'
+import type {
+  FinancialTransaction,
+  TransactionType,
+} from '@/features/transactions/domain'
+import type {
+  ManagedFund,
+  ManagedFundMovement,
+  ManagedFundMovementType,
+} from '@/features/managed-funds/domain'
 import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
 import { DEFAULT_CURRENCY, isCurrencyCode } from '@/features/profile/currencies'
@@ -44,17 +57,22 @@ type ItemSubarticleRow = Database['public']['Tables']['item_subarticles']['Row']
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type SavingsMovementRow =
   Database['public']['Tables']['project_savings_movements']['Row']
-type FinancialCategoryRow = Database['public']['Tables']['financial_categories']['Row']
+type FinancialCategoryRow =
+  Database['public']['Tables']['financial_categories']['Row']
 type MonthlyBudgetRow = Database['public']['Tables']['monthly_budgets']['Row']
 type MonthlyBudgetAllocationRow =
   Database['public']['Tables']['monthly_budget_allocations']['Row']
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
 type ManagedFundRow = Database['public']['Tables']['managed_funds']['Row']
-type ManagedFundMovementRow = Database['public']['Tables']['managed_fund_movements']['Row']
+type ManagedFundMovementRow =
+  Database['public']['Tables']['managed_fund_movements']['Row']
 type BudgetTemplateRow = Database['public']['Tables']['budget_templates']['Row']
-type BudgetTemplateAllocationRow = Database['public']['Tables']['budget_template_allocations']['Row']
-type ScheduledPaymentRow = Database['public']['Tables']['scheduled_payments']['Row']
-type ScheduledPaymentOccurrenceRow = Database['public']['Tables']['scheduled_payment_occurrences']['Row']
+type BudgetTemplateAllocationRow =
+  Database['public']['Tables']['budget_template_allocations']['Row']
+type ScheduledPaymentRow =
+  Database['public']['Tables']['scheduled_payments']['Row']
+type ScheduledPaymentOccurrenceRow =
+  Database['public']['Tables']['scheduled_payment_occurrences']['Row']
 type ScheduledPaymentReminderDeliveryRow =
   Database['public']['Tables']['scheduled_payment_reminder_deliveries']['Row']
 
@@ -66,6 +84,24 @@ function asPreset(value: string): LabelPreset {
 
 function asMovementType(value: string): SavingsMovementType {
   return value === 'outflow' ? 'outflow' : 'inflow'
+}
+
+function asMovementKind(value: string | null | undefined): SavingsMovementKind {
+  return value === 'interest' ? 'interest' : 'contribution'
+}
+
+function asInterestRateType(
+  value: string | null | undefined,
+): SavingsInterestRateType {
+  return value === 'tna' ? 'tna' : 'tea'
+}
+
+function asCompoundingFrequency(
+  value: string | null | undefined,
+): SavingsCompoundingFrequency {
+  if (value === 'quarterly' || value === 'semiannual' || value === 'annual')
+    return value
+  return 'monthly'
 }
 
 function asSavingsMode(
@@ -92,7 +128,9 @@ export function mapProfile(row: ProfileRow): Profile {
   return {
     id: row.id,
     display_name: row.display_name,
-    currency_code: isCurrencyCode(row.currency_code) ? row.currency_code : DEFAULT_CURRENCY,
+    currency_code: isCurrencyCode(row.currency_code)
+      ? row.currency_code
+      : DEFAULT_CURRENCY,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
@@ -109,7 +147,10 @@ export function mapProject(row: ProjectRow): Project {
     label_preset: asPreset(row.label_preset),
     status_options: parseStatusOptions(row.status_options ?? null),
     priority_options: parsePriorityOptions(row.priority_options ?? null),
-    savings_mode: asSavingsMode(row.savings_mode, row.savings_goal_enabled ?? false),
+    savings_mode: asSavingsMode(
+      row.savings_mode,
+      row.savings_goal_enabled ?? false,
+    ),
     savings_goal_enabled: row.savings_goal_enabled ?? false,
     savings_initial_balance: parseNumeric(row.savings_initial_balance),
     savings_target_amount: parseNumeric(row.savings_target_amount),
@@ -118,7 +159,15 @@ export function mapProject(row: ProjectRow): Project {
     savings_goal_start_date: row.savings_goal_start_date,
     savings_amount: parseNumeric(row.savings_amount),
     savings_accrues_interest: row.savings_accrues_interest,
-    savings_interest_rate_annual: parseNumeric(row.savings_interest_rate_annual),
+    savings_interest_rate_annual: parseNumeric(
+      row.savings_interest_rate_annual,
+    ),
+    savings_interest_rate_type: asInterestRateType(
+      row.savings_interest_rate_type,
+    ),
+    savings_interest_compounding_frequency: asCompoundingFrequency(
+      row.savings_interest_compounding_frequency,
+    ),
     savings_start_date: row.savings_start_date,
     savings_end_date: row.savings_end_date,
     created_at: row.created_at,
@@ -126,7 +175,9 @@ export function mapProject(row: ProjectRow): Project {
   }
 }
 
-export function mapSavingsMovement(row: SavingsMovementRow): ProjectSavingsMovement {
+export function mapSavingsMovement(
+  row: SavingsMovementRow,
+): ProjectSavingsMovement {
   return {
     id: row.id,
     project_id: row.project_id,
@@ -134,6 +185,8 @@ export function mapSavingsMovement(row: SavingsMovementRow): ProjectSavingsMovem
     movement_date: row.movement_date,
     amount: parseNumeric(row.amount) ?? 0,
     movement_type: asMovementType(row.movement_type),
+    movement_kind: asMovementKind(row.movement_kind),
+    description: row.description,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
@@ -158,7 +211,10 @@ export function mapBudgetItem(row: {
   estimated_cost: string | number | null
   actual_cost: string | number | null
   selected_option_price?: number | null
-  item_options?: Array<{ selected: boolean; price: string | number | null }> | null
+  item_options?: Array<{
+    selected: boolean
+    price: string | number | null
+  }> | null
 }): import('@/utils/budget/calculations').BudgetItem {
   const options = (row.item_options ?? []).map((option) => ({
     selected: option.selected,
@@ -172,7 +228,8 @@ export function mapBudgetItem(row: {
     estimated_cost: parseNumeric(row.estimated_cost),
     actual_cost: parseNumeric(row.actual_cost),
     selected_option_price:
-      row.selected_option_price != null && Number.isFinite(row.selected_option_price)
+      row.selected_option_price != null &&
+      Number.isFinite(row.selected_option_price)
         ? row.selected_option_price
         : (options.find((option) => option.selected)?.price ?? null),
   }
@@ -240,7 +297,9 @@ export function mapItemSubarticle(row: ItemSubarticleRow): ItemSubarticle {
   }
 }
 
-export function mapFinancialCategory(row: FinancialCategoryRow): FinancialCategory {
+export function mapFinancialCategory(
+  row: FinancialCategoryRow,
+): FinancialCategory {
   return {
     id: row.id,
     userId: row.user_id,
@@ -251,7 +310,9 @@ export function mapFinancialCategory(row: FinancialCategoryRow): FinancialCatego
   }
 }
 
-export function mapMonthlyBudget(row: MonthlyBudgetRow): PersistedMonthlyBudget {
+export function mapMonthlyBudget(
+  row: MonthlyBudgetRow,
+): PersistedMonthlyBudget {
   return {
     id: row.id,
     userId: row.user_id,
@@ -270,22 +331,51 @@ export function mapMonthlyBudgetAllocation(
     monthlyBudgetId: row.monthly_budget_id,
     financialCategoryId: row.financial_category_id,
     amount: parseNumeric(row.amount) ?? 0,
+    paymentMode: row.payment_mode === 'single' ? 'single' : 'multiple',
+    scheduledPaymentId: row.scheduled_payment_id,
+    manualCompletionTransactionId: row.manual_completion_transaction_id,
+    manualCompletedAt: row.manual_completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
 }
 
-export function mapBudgetTemplate(row: BudgetTemplateRow): BudgetTemplate { return { id: row.id, userId: row.user_id, name: row.name, suggestedAvailableAmount: parseNumeric(row.suggested_available_amount), createdAt: row.created_at, updatedAt: row.updated_at } }
-export function mapBudgetTemplateAllocation(row: BudgetTemplateAllocationRow): BudgetTemplateAllocation { return { id: row.id, budgetTemplateId: row.budget_template_id, financialCategoryId: row.financial_category_id, amount: parseNumeric(row.amount) ?? 0, createdAt: row.created_at, updatedAt: row.updated_at } }
+export function mapBudgetTemplate(row: BudgetTemplateRow): BudgetTemplate {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    suggestedAvailableAmount: parseNumeric(row.suggested_available_amount),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+export function mapBudgetTemplateAllocation(
+  row: BudgetTemplateAllocationRow,
+): BudgetTemplateAllocation {
+  return {
+    id: row.id,
+    budgetTemplateId: row.budget_template_id,
+    financialCategoryId: row.financial_category_id,
+    amount: parseNumeric(row.amount) ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
 
-export function mapFinancialTransaction(row: TransactionRow): FinancialTransaction {
+export function mapFinancialTransaction(
+  row: TransactionRow,
+): FinancialTransaction {
   return {
     id: row.id,
     userId: row.user_id,
     name: row.name,
     occurredOn: row.occurred_on,
     amount: parseNumeric(row.amount) ?? 0,
-    type: row.transaction_type === 'income' ? 'income' : ('expense' as TransactionType),
+    type:
+      row.transaction_type === 'income'
+        ? 'income'
+        : ('expense' as TransactionType),
     financialCategoryId: row.financial_category_id,
     notes: row.notes,
     createdAt: row.created_at,
@@ -295,23 +385,42 @@ export function mapFinancialTransaction(row: TransactionRow): FinancialTransacti
 
 export function mapManagedFund(row: ManagedFundRow): ManagedFund {
   return {
-    id: row.id, userId: row.user_id, name: row.name, description: row.description,
-    archivedAt: row.archived_at, createdAt: row.created_at, updatedAt: row.updated_at,
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description,
+    archivedAt: row.archived_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
-export function mapManagedFundMovement(row: ManagedFundMovementRow): ManagedFundMovement {
+export function mapManagedFundMovement(
+  row: ManagedFundMovementRow,
+): ManagedFundMovement {
   return {
-    id: row.id, fundId: row.fund_id, occurredOn: row.occurred_on,
+    id: row.id,
+    fundId: row.fund_id,
+    occurredOn: row.occurred_on,
     amount: parseNumeric(row.amount) ?? 0,
-    type: row.movement_type === 'income' ? 'income' : ('expense' as ManagedFundMovementType),
-    description: row.description, createdAt: row.created_at, updatedAt: row.updated_at,
+    type:
+      row.movement_type === 'income'
+        ? 'income'
+        : ('expense' as ManagedFundMovementType),
+    description: row.description,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
-export function mapScheduledPayment(row: ScheduledPaymentRow): ScheduledPayment {
+export function mapScheduledPayment(
+  row: ScheduledPaymentRow,
+): ScheduledPayment {
   return {
-    id: row.id, userId: row.user_id, name: row.name, financialCategoryId: row.financial_category_id,
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    financialCategoryId: row.financial_category_id,
     frequency:
       row.frequency === 'annual'
         ? 'annual'
@@ -319,11 +428,14 @@ export function mapScheduledPayment(row: ScheduledPaymentRow): ScheduledPayment 
           ? 'one_time'
           : 'monthly',
     amountType: row.amount_type === 'variable' ? 'variable' : 'fixed',
-    expectedAmount: parseNumeric(row.expected_amount), startDate: row.start_date, endDate: row.end_date,
+    expectedAmount: parseNumeric(row.expected_amount),
+    startDate: row.start_date,
+    endDate: row.end_date,
     active: row.active,
     reminderEnabled: row.reminder_enabled,
     reminderDaysBefore: row.reminder_days_before,
-    createdAt: row.created_at, updatedAt: row.updated_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -331,10 +443,18 @@ export function mapScheduledPaymentOccurrence(
   row: ScheduledPaymentOccurrenceRow,
 ): ScheduledPaymentOccurrence {
   return {
-    id: row.id, userId: row.user_id, scheduledPaymentId: row.scheduled_payment_id,
-    dueDate: row.due_date, expectedAmount: parseNumeric(row.expected_amount),
-    status: row.status === 'paid' || row.status === 'skipped' ? row.status : 'pending',
-    transactionId: row.transaction_id, createdAt: row.created_at, updatedAt: row.updated_at,
+    id: row.id,
+    userId: row.user_id,
+    scheduledPaymentId: row.scheduled_payment_id,
+    dueDate: row.due_date,
+    expectedAmount: parseNumeric(row.expected_amount),
+    status:
+      row.status === 'paid' || row.status === 'skipped'
+        ? row.status
+        : 'pending',
+    transactionId: row.transaction_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -342,7 +462,9 @@ export function mapScheduledPaymentReminderDelivery(
   row: ScheduledPaymentReminderDeliveryRow,
 ): ScheduledPaymentReminderDelivery {
   const status =
-    row.status === 'sent' || row.status === 'failed' || row.status === 'processing'
+    row.status === 'sent' ||
+    row.status === 'failed' ||
+    row.status === 'processing'
       ? row.status
       : 'pending'
   return {
