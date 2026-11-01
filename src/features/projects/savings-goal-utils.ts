@@ -1,4 +1,7 @@
-import type { ProjectSavingsMovement, SavingsMovementType } from '@/types/domain'
+import type {
+  ProjectSavingsMovement,
+  SavingsMovementType,
+} from '@/types/domain'
 import {
   isSavingsGoalConfigComplete,
   type SavingsGoalConfig,
@@ -14,6 +17,10 @@ export function parseGoalDraft(input: {
   minimumReserve: string
   monthlyContribution: string
   startDate: string
+  accruesInterest: boolean
+  interestRateAnnual: string
+  interestRateType: ProjectSavingsGoalInput['interestRateType']
+  interestCompoundingFrequency: ProjectSavingsGoalInput['interestCompoundingFrequency']
 }): ProjectSavingsGoalInput {
   return {
     enabled: input.enabled,
@@ -22,10 +29,18 @@ export function parseGoalDraft(input: {
     minimumReserve: parseCost(input.minimumReserve),
     monthlyContribution: parseCost(input.monthlyContribution),
     startDate: input.startDate.trim() === '' ? null : input.startDate,
+    accruesInterest: input.accruesInterest,
+    interestRateAnnual: input.accruesInterest
+      ? parseCost(input.interestRateAnnual)
+      : null,
+    interestRateType: input.interestRateType,
+    interestCompoundingFrequency: input.interestCompoundingFrequency,
   }
 }
 
-export function toSavingsGoalConfig(input: ProjectSavingsGoalInput): SavingsGoalConfig {
+export function toSavingsGoalConfig(
+  input: ProjectSavingsGoalInput,
+): SavingsGoalConfig {
   return {
     enabled: input.enabled,
     initialBalance: input.initialBalance ?? 0,
@@ -33,6 +48,10 @@ export function toSavingsGoalConfig(input: ProjectSavingsGoalInput): SavingsGoal
     minimumReserve: input.minimumReserve ?? 0,
     monthlyContribution: input.monthlyContribution ?? 0,
     startDate: input.startDate ?? '',
+    accruesInterest: input.accruesInterest,
+    interestRateAnnual: input.interestRateAnnual,
+    interestRateType: input.interestRateType,
+    interestCompoundingFrequency: input.interestCompoundingFrequency,
   }
 }
 
@@ -64,6 +83,7 @@ export function movementsToProjectionInput(
     date: movement.movement_date,
     amount: movement.amount,
     type: movement.movement_type,
+    kind: movement.movement_kind,
   }))
 }
 
@@ -73,7 +93,8 @@ export function validateMovementInput(input: {
   amount: string
   type: SavingsMovementType
 }): string | null {
-  if (input.name.trim() === '') return 'El nombre del movimiento es obligatorio.'
+  if (input.name.trim() === '')
+    return 'El nombre del movimiento es obligatorio.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
     return 'La fecha del movimiento no es válida.'
   }

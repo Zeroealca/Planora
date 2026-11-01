@@ -23,7 +23,8 @@ export function SavingsGoalDashboardPanel({
     return (
       <div className="dashboard stack">
         <p className="muted">
-          Configura la meta en la pestaña <strong>Meta</strong> para ver la proyección.
+          Configura la meta en la pestaña <strong>Meta</strong> para ver la
+          proyección.
         </p>
       </div>
     )
@@ -33,7 +34,8 @@ export function SavingsGoalDashboardPanel({
     return (
       <div className="dashboard stack">
         <p className="muted">
-          No se puede proyectar todavía. Revisa aporte mensual, fechas y movimientos.
+          No se puede proyectar todavía. Revisa aporte mensual, fechas y
+          movimientos.
         </p>
       </div>
     )
@@ -55,7 +57,9 @@ export function SavingsGoalDashboardPanel({
           </article>
           <article className="metric-card metric-card-balance">
             <p className="metric-label">Necesitas acumular</p>
-            <p className="metric-value">{formatMoney(projection.requiredSavings)}</p>
+            <p className="metric-value">
+              {formatMoney(projection.requiredSavings)}
+            </p>
             <p className="metric-hint">Objetivo + reserva</p>
           </article>
           <article className="metric-card metric-card-progress">
@@ -63,29 +67,54 @@ export function SavingsGoalDashboardPanel({
             <p className="metric-value metric-value-text">
               {formatYearMonthLabel(projection.viableYearMonth)}
             </p>
-            <p className="metric-hint">{projection.monthsNeeded} meses necesarios</p>
+            <p className="metric-hint">
+              {projection.monthsNeeded} meses necesarios
+            </p>
           </article>
         </div>
       </section>
 
-      <section className="dashboard-section" aria-labelledby="goal-flow-heading">
+      <section
+        className="dashboard-section"
+        aria-labelledby="goal-flow-heading"
+      >
         <h3 id="goal-flow-heading">Proyección</h3>
         <div className="metrics-grid metrics-grid-secondary">
           <article className="metric-card metric-card-compact">
-            <p className="metric-label">Saldo inicial</p>
-            <p className="metric-value">{formatMoney(config.initialBalance)}</p>
+            <p className="metric-label">Capital aportado o registrado</p>
+            <p className="metric-value">
+              {formatMoney(projection.capitalContributed)}
+            </p>
           </article>
           <article className="metric-card metric-card-compact">
             <p className="metric-label">Aporte mensual</p>
-            <p className="metric-value">{formatMoney(config.monthlyContribution)}</p>
+            <p className="metric-value">
+              {formatMoney(config.monthlyContribution)}
+            </p>
           </article>
           <article className="metric-card metric-card-compact">
-            <p className="metric-label">Saldo proyectado</p>
-            <p className="metric-value">{formatMoney(projection.projectedBalance)}</p>
+            <p className="metric-label">Intereses reales recibidos</p>
+            <p className="metric-value">
+              {formatMoney(projection.actualInterestReceived)}
+            </p>
+          </article>
+          <article className="metric-card metric-card-compact">
+            <p className="metric-label">Intereses futuros estimados</p>
+            <p className="metric-value">
+              {formatMoney(projection.estimatedFutureInterest)}
+            </p>
+          </article>
+          <article className="metric-card metric-card-compact">
+            <p className="metric-label">Total proyectado</p>
+            <p className="metric-value">
+              {formatMoney(projection.projectedBalance)}
+            </p>
           </article>
           <article className="metric-card metric-card-compact metric-card-savings">
             <p className="metric-label">Después de la meta</p>
-            <p className="metric-value">{formatMoney(projection.remainingAfterGoal)}</p>
+            <p className="metric-value">
+              {formatMoney(projection.remainingAfterGoal)}
+            </p>
           </article>
           <article className="metric-card metric-card-compact">
             <p className="metric-label">Movimientos</p>

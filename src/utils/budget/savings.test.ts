@@ -11,6 +11,8 @@ const basePlan = {
   savings_amount: 100,
   savings_accrues_interest: false,
   savings_interest_rate_annual: null,
+  savings_interest_rate_type: 'tea' as const,
+  savings_interest_compounding_frequency: 'monthly' as const,
   savings_start_date: '2026-01-01',
   savings_end_date: '2026-06-01',
 }
@@ -55,14 +57,41 @@ describe('savings calculations', () => {
       savings_accrues_interest: true,
       savings_interest_rate_annual: 12,
     }
-    const monthlyRate = 0.12 / 12
+    const monthlyRate = Math.pow(1.12, 1 / 12) - 1
     const months = 6
     const payment = 100
-    const closedForm =
-      Math.round(
-        payment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * 100,
-      ) / 100
+    let closedForm = 0
+    for (let index = 0; index < months; index += 1) {
+      closedForm =
+        Math.round((closedForm * (1 + monthlyRate) + payment) * 100) / 100
+    }
     expect(calculateSavingsBreakdown(withInterest)?.total).toBe(closedForm)
+  })
+
+  it('converts TNA using the selected capitalization frequency', () => {
+    const tna = {
+      ...basePlan,
+      savings_accrues_interest: true,
+      savings_interest_rate_annual: 12,
+      savings_interest_rate_type: 'tna' as const,
+      savings_interest_compounding_frequency: 'quarterly' as const,
+    }
+    const monthlyRate = Math.pow(1 + 0.12 / 4, 4 / 12) - 1
+    const expected =
+      Math.round(
+        100 * ((Math.pow(1 + monthlyRate, 6) - 1) / monthlyRate) * 100,
+      ) / 100
+    expect(calculateSavingsBreakdown(tna)?.total).toBe(expected)
+  })
+
+  it('rejects annual rates above the documented 100% limit', () => {
+    expect(
+      isSavingsPlanComplete({
+        ...basePlan,
+        savings_accrues_interest: true,
+        savings_interest_rate_annual: 100.01,
+      }),
+    ).toBe(false)
   })
 
   it('compounds interest after monthly contribution and movements', () => {
@@ -85,8 +114,12 @@ describe('savings calculations', () => {
   })
 
   it('requires a complete plan', () => {
-    expect(isSavingsPlanComplete({ ...basePlan, savings_amount: null })).toBe(false)
-    expect(isSavingsPlanComplete({ ...basePlan, savings_start_date: null })).toBe(false)
+    expect(isSavingsPlanComplete({ ...basePlan, savings_amount: null })).toBe(
+      false,
+    )
+    expect(
+      isSavingsPlanComplete({ ...basePlan, savings_start_date: null }),
+    ).toBe(false)
     expect(
       isSavingsPlanComplete({
         ...basePlan,

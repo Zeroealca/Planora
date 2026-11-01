@@ -11,24 +11,35 @@ export function SavingsPlanFields({
   amount,
   accruesInterest,
   interestRate,
+  interestRateType,
+  interestCompoundingFrequency,
   startDate,
   endDate,
   movements = [],
   onAmountChange,
   onAccruesInterestChange,
   onInterestRateChange,
+  onInterestRateTypeChange,
+  onInterestCompoundingFrequencyChange,
   onStartDateChange,
   onEndDateChange,
 }: {
   amount: string
   accruesInterest: boolean
   interestRate: string
+  interestRateType: 'tea' | 'tna'
+  interestCompoundingFrequency:
+    'monthly' | 'quarterly' | 'semiannual' | 'annual'
   startDate: string
   endDate: string
   movements?: readonly SavingsPlanMovement[]
   onAmountChange: (value: string) => void
   onAccruesInterestChange: (value: boolean) => void
   onInterestRateChange: (value: string) => void
+  onInterestRateTypeChange: (value: 'tea' | 'tna') => void
+  onInterestCompoundingFrequencyChange: (
+    value: 'monthly' | 'quarterly' | 'semiannual' | 'annual',
+  ) => void
   onStartDateChange: (value: string) => void
   onEndDateChange: (value: string) => void
 }) {
@@ -39,18 +50,29 @@ export function SavingsPlanFields({
       amount,
       accruesInterest,
       interestRate,
+      interestRateType,
+      interestCompoundingFrequency,
       startDate,
       endDate,
     })
     return calculateSavingsBreakdown(plan, movements)
-  }, [amount, accruesInterest, interestRate, startDate, endDate, movements])
+  }, [
+    amount,
+    accruesInterest,
+    interestRate,
+    interestRateType,
+    interestCompoundingFrequency,
+    startDate,
+    endDate,
+    movements,
+  ])
 
   return (
     <fieldset className="stack savings-fieldset">
       <legend>Plan de ahorro</legend>
       <p className="field-hint">
-        Aportes mensuales en un periodo, más ingresos/retiros extraordinarios. No sustituye el
-        presupuesto/tope del proyecto
+        Aportes mensuales en un periodo, más ingresos/retiros extraordinarios.
+        No sustituye el presupuesto/tope del proyecto
         {accruesInterest ? ' (incluye proyección de intereses)' : ''}.
       </p>
 
@@ -98,32 +120,79 @@ export function SavingsPlanFields({
       </div>
 
       {accruesInterest ? (
-        <div className="field">
-          <label htmlFor="savings-rate">Tasa anual (%)</label>
-          <input
-            id="savings-rate"
-            type="number"
-            step="0.01"
-            value={interestRate}
-            onChange={(event) => onInterestRateChange(event.target.value)}
-            placeholder="4.5"
-          />
-        </div>
+        <>
+          <div className="field">
+            <label htmlFor="savings-rate">Tasa anual (%)</label>
+            <input
+              id="savings-rate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={interestRate}
+              onChange={(event) => onInterestRateChange(event.target.value)}
+              placeholder="4.5"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="savings-rate-type">Tipo de tasa</label>
+            <select
+              id="savings-rate-type"
+              value={interestRateType}
+              onChange={(event) =>
+                onInterestRateTypeChange(event.target.value as 'tea' | 'tna')
+              }
+            >
+              <option value="tea">TEA (tasa efectiva anual)</option>
+              <option value="tna">TNA (tasa nominal anual)</option>
+            </select>
+            <span className="field-hint">
+              TEA ya incorpora la capitalización anual; TNA necesita su
+              frecuencia de capitalización.
+            </span>
+          </div>
+          {interestRateType === 'tna' ? (
+            <div className="field">
+              <label htmlFor="savings-compounding">Capitalización</label>
+              <select
+                id="savings-compounding"
+                value={interestCompoundingFrequency}
+                onChange={(event) =>
+                  onInterestCompoundingFrequencyChange(
+                    event.target.value as
+                      'monthly' | 'quarterly' | 'semiannual' | 'annual',
+                  )
+                }
+              >
+                <option value="monthly">Mensual</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="semiannual">Semestral</option>
+                <option value="annual">Anual</option>
+              </select>
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       {preview ? (
         <div className="alert savings-preview">
           <p>
-            <strong>Total proyectado del plan:</strong> {formatMoney(preview.total)}
+            <strong>Total proyectado del plan:</strong>{' '}
+            {formatMoney(preview.total)}
           </p>
           <p className="muted">
-            {preview.months} meses · aportes {formatMoney(preview.contributions)}
+            {preview.months} meses · aportes{' '}
+            {formatMoney(preview.contributions)}
             {preview.extraordinaryNet !== 0
               ? ` · extras ${formatMoney(preview.extraordinaryNet)}`
               : ''}
             {preview.interestEarned > 0
-              ? ` · intereses ${formatMoney(preview.interestEarned)}`
+              ? ` · intereses futuros estimados ${formatMoney(preview.interestEarned)}`
               : ''}
+          </p>
+          <p className="field-hint">
+            La simulación coloca los aportes al final de cada mes y no garantiza
+            rendimientos.
           </p>
         </div>
       ) : null}

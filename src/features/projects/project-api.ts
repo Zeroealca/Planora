@@ -45,7 +45,12 @@ type ItemSubarticleRow = Database['public']['Tables']['item_subarticles']['Row']
 
 type ProjectBundleRow = ProjectRow & {
   categories: CategoryRow[] | null
-  items: Array<ItemRow & { item_options: OptionRow[] | null; item_subarticles: ItemSubarticleRow[] | null }> | null
+  items: Array<
+    ItemRow & {
+      item_options: OptionRow[] | null
+      item_subarticles: ItemSubarticleRow[] | null
+    }
+  > | null
 }
 
 export type ProjectListEntry = Project & { items: BudgetItem[] }
@@ -135,7 +140,11 @@ export async function fetchProjectBundle(projectId: string): Promise<{
 
   const savingsMovements = (movementRows ?? [])
     .map(mapSavingsMovement)
-    .sort((a, b) => a.movement_date.localeCompare(b.movement_date) || a.name.localeCompare(b.name))
+    .sort(
+      (a, b) =>
+        a.movement_date.localeCompare(b.movement_date) ||
+        a.name.localeCompare(b.name),
+    )
 
   return {
     project: mapProject(row),
@@ -155,8 +164,11 @@ export async function createProject(input: {
   /** Locked at creation: `goal` projects stay goals forever. */
   savingsMode?: SavingsMode
 }): Promise<Project> {
-  const label_preset: LabelPreset = input.useMoveInTemplate ? 'move_in' : 'default'
-  const savingsMode: SavingsMode = input.savingsMode === 'goal' ? 'goal' : 'none'
+  const label_preset: LabelPreset = input.useMoveInTemplate
+    ? 'move_in'
+    : 'default'
+  const savingsMode: SavingsMode =
+    input.savingsMode === 'goal' ? 'goal' : 'none'
   const payload = buildProjectPayload({
     name: input.name,
     description: input.description,
@@ -172,6 +184,10 @@ export async function createProject(input: {
             minimumReserve: null,
             monthlyContribution: null,
             startDate: null,
+            accruesInterest: false,
+            interestRateAnnual: null,
+            interestRateType: 'tea',
+            interestCompoundingFrequency: 'monthly',
           }
         : undefined,
   })
@@ -183,7 +199,8 @@ export async function createProject(input: {
       ...payload,
       savings_mode: savingsMode,
       savings_goal_enabled: savingsMode === 'goal',
-      status_options: DEFAULT_STATUS_OPTIONS as unknown as import('@/types/database').Json,
+      status_options:
+        DEFAULT_STATUS_OPTIONS as unknown as import('@/types/database').Json,
       priority_options: (input.useMoveInTemplate
         ? MOVE_IN_PRIORITY_OPTIONS
         : DEFAULT_PRIORITY_OPTIONS) as unknown as import('@/types/database').Json,
@@ -253,7 +270,9 @@ export async function updateProjectSavingsPlan(
   currentMode: SavingsMode = 'none',
 ): Promise<void> {
   if (currentMode === 'goal') {
-    throw new Error('Este proyecto es una meta de ahorro y no admite plan de compras.')
+    throw new Error(
+      'Este proyecto es una meta de ahorro y no admite plan de compras.',
+    )
   }
   const { error } = await supabase
     .from('projects')
@@ -305,13 +324,7 @@ export async function updateProjectBudget(
 /** @deprecated Use updateProjectSavingsPlan */
 export async function updateProjectSavings(
   projectId: string,
-  savings: {
-    savings_amount: number | null
-    savings_accrues_interest: boolean
-    savings_interest_rate_annual: number | null
-    savings_start_date: string | null
-    savings_end_date: string | null
-  },
+  savings: SavingsPlan,
 ): Promise<void> {
   await updateProjectSavingsPlan(projectId, savings)
 }
@@ -323,6 +336,8 @@ export async function createSavingsMovement(
     movement_date: string
     amount: number
     movement_type: SavingsMovementType
+    movement_kind: ProjectSavingsMovement['movement_kind']
+    description: string | null
   },
 ): Promise<ProjectSavingsMovement> {
   const { data, error } = await supabase
@@ -333,6 +348,8 @@ export async function createSavingsMovement(
       movement_date: input.movement_date,
       amount: input.amount,
       movement_type: input.movement_type,
+      movement_kind: input.movement_kind,
+      description: input.description,
     })
     .select()
     .single()
@@ -348,6 +365,8 @@ export async function updateSavingsMovement(
     movement_date: string
     amount: number
     movement_type: SavingsMovementType
+    movement_kind: ProjectSavingsMovement['movement_kind']
+    description: string | null
   },
 ): Promise<void> {
   const { error } = await supabase
@@ -357,6 +376,8 @@ export async function updateSavingsMovement(
       movement_date: input.movement_date,
       amount: input.amount,
       movement_type: input.movement_type,
+      movement_kind: input.movement_kind,
+      description: input.description,
     })
     .eq('id', movementId)
 
@@ -402,8 +423,10 @@ export async function duplicateProject(
       icon: project.icon,
       budget: project.budget,
       label_preset: project.label_preset,
-      status_options: project.status_options as unknown as import('@/types/database').Json,
-      priority_options: project.priority_options as unknown as import('@/types/database').Json,
+      status_options:
+        project.status_options as unknown as import('@/types/database').Json,
+      priority_options:
+        project.priority_options as unknown as import('@/types/database').Json,
       savings_mode: project.savings_mode,
       savings_goal_enabled: project.savings_mode === 'goal',
       savings_initial_balance: project.savings_initial_balance,
@@ -414,6 +437,9 @@ export async function duplicateProject(
       savings_amount: project.savings_amount,
       savings_accrues_interest: project.savings_accrues_interest,
       savings_interest_rate_annual: project.savings_interest_rate_annual,
+      savings_interest_rate_type: project.savings_interest_rate_type,
+      savings_interest_compounding_frequency:
+        project.savings_interest_compounding_frequency,
       savings_start_date: project.savings_start_date,
       savings_end_date: project.savings_end_date,
     })
@@ -434,6 +460,8 @@ export async function duplicateProject(
             movement_date: movement.movement_date,
             amount: movement.amount,
             movement_type: movement.movement_type,
+            movement_kind: movement.movement_kind,
+            description: movement.description,
           })),
         )
       if (movementError) throw new Error(supabaseErrorMessage(movementError))
@@ -455,9 +483,13 @@ export async function duplicateProject(
       if (catError) throw new Error(supabaseErrorMessage(catError))
       const inserted = (catRows ?? [])
         .map(mapCategory)
-        .sort((a, b) => a.display_order - b.display_order || a.name.localeCompare(b.name))
+        .sort(
+          (a, b) =>
+            a.display_order - b.display_order || a.name.localeCompare(b.name),
+        )
       const sources = [...categories].sort(
-        (a, b) => a.display_order - b.display_order || a.name.localeCompare(b.name),
+        (a, b) =>
+          a.display_order - b.display_order || a.name.localeCompare(b.name),
       )
       for (let index = 0; index < sources.length; index += 1) {
         const source = sources[index]
@@ -492,7 +524,8 @@ export async function duplicateProject(
             .from('items')
             .update({ completed_at: item.completed_at })
             .eq('id', createdItem.id)
-          if (completedError) throw new Error(supabaseErrorMessage(completedError))
+          if (completedError)
+            throw new Error(supabaseErrorMessage(completedError))
         }
 
         for (const option of item.options) {

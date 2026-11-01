@@ -8,14 +8,60 @@ export type SavingsPlan = {
   savings_amount: number | null
   savings_accrues_interest: boolean
   savings_interest_rate_annual: number | null
+  savings_interest_rate_type: SavingsInterestRateType
+  savings_interest_compounding_frequency: SavingsCompoundingFrequency
   savings_start_date: string | null
   savings_end_date: string | null
+}
+
+export type SavingsInterestRateType = 'tea' | 'tna'
+export type SavingsCompoundingFrequency =
+  'monthly' | 'quarterly' | 'semiannual' | 'annual'
+
+export const MAX_SAVINGS_ANNUAL_RATE_PERCENT = 100
+
+const COMPOUNDING_PERIODS_PER_YEAR: Record<
+  SavingsCompoundingFrequency,
+  number
+> = {
+  monthly: 12,
+  quarterly: 4,
+  semiannual: 2,
+  annual: 1,
 }
 
 export type SavingsPlanMovement = {
   date: string
   amount: number
   type: 'inflow' | 'outflow'
+}
+
+/** Effective monthly rate. Contributions are assumed at each month's end. */
+export function monthlySavingsInterestRate(
+  plan: Pick<
+    SavingsPlan,
+    | 'savings_accrues_interest'
+    | 'savings_interest_rate_annual'
+    | 'savings_interest_rate_type'
+    | 'savings_interest_compounding_frequency'
+  >,
+): number {
+  if (!plan.savings_accrues_interest) return 0
+  const rate = plan.savings_interest_rate_annual
+  if (
+    rate == null ||
+    !Number.isFinite(rate) ||
+    rate < 0 ||
+    rate > MAX_SAVINGS_ANNUAL_RATE_PERCENT
+  )
+    return 0
+  const annualRate = rate / 100
+  if (plan.savings_interest_rate_type === 'tna') {
+    const periods =
+      COMPOUNDING_PERIODS_PER_YEAR[plan.savings_interest_compounding_frequency]
+    return Math.pow(1 + annualRate / periods, periods / 12) - 1
+  }
+  return Math.pow(1 + annualRate, 1 / 12) - 1
 }
 
 export type SavingsBreakdown = {
@@ -52,17 +98,15 @@ function netMovementsForMonth(
 ): number {
   let net = 0
   for (const movement of movements) {
-    if (!movement.date || yearMonthFromDate(movement.date) !== yearMonth) continue
+    if (!movement.date || yearMonthFromDate(movement.date) !== yearMonth)
+      continue
     if (!Number.isFinite(movement.amount) || movement.amount <= 0) continue
     net += movement.type === 'inflow' ? movement.amount : -movement.amount
   }
   return net
 }
 
-export function countSavingsMonths(
-  startDate: string,
-  endDate: string,
-): number {
+export function countSavingsMonths(startDate: string, endDate: string): number {
   const start = new Date(`${startDate}T00:00:00`)
   const end = new Date(`${endDate}T00:00:00`)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0
@@ -87,7 +131,8 @@ export function isSavingsPlanComplete(plan: SavingsPlan): boolean {
     if (
       plan.savings_interest_rate_annual == null ||
       !Number.isFinite(plan.savings_interest_rate_annual) ||
-      plan.savings_interest_rate_annual < 0
+      plan.savings_interest_rate_annual < 0 ||
+      plan.savings_interest_rate_annual > MAX_SAVINGS_ANNUAL_RATE_PERCENT
     ) {
       return false
     }
@@ -107,14 +152,14 @@ export function calculateSavingsBreakdown(
 ): SavingsBreakdown | null {
   if (!isSavingsPlanComplete(plan)) return null
 
-  const months = countSavingsMonths(plan.savings_start_date!, plan.savings_end_date!)
+  const months = countSavingsMonths(
+    plan.savings_start_date!,
+    plan.savings_end_date!,
+  )
   const payment = plan.savings_amount!
   const startYm = yearMonthFromDate(plan.savings_start_date!)
   const endYm = yearMonthFromDate(plan.savings_end_date!)
-  const monthlyRate =
-    plan.savings_accrues_interest && plan.savings_interest_rate_annual
-      ? plan.savings_interest_rate_annual / 100 / 12
-      : 0
+  const monthlyRate = monthlySavingsInterestRate(plan)
 
   let balance = 0
   let contributions = 0

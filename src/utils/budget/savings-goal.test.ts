@@ -16,6 +16,10 @@ const autoExample: SavingsGoalConfig = {
   minimumReserve: 2000,
   monthlyContribution: 1408.33,
   startDate: '2027-04-01',
+  accruesInterest: false,
+  interestRateAnnual: null,
+  interestRateType: 'tea',
+  interestCompoundingFrequency: 'monthly',
 }
 
 describe('savings goal projection', () => {
@@ -31,7 +35,9 @@ describe('savings goal projection', () => {
     expect(result!.viableYearMonth).toBe('2027-08')
     expect(result!.projectedBalance).toBe(14077.51)
     expect(result!.remainingAfterGoal).toBe(2077.51)
-    expect(formatYearMonthLabel(result!.viableYearMonth)).toMatch(/agosto.*2027/i)
+    expect(formatYearMonthLabel(result!.viableYearMonth)).toMatch(
+      /agosto.*2027/i,
+    )
   })
 
   it('applies extraordinary inflows and outflows', () => {
@@ -106,6 +112,33 @@ describe('savings goal projection', () => {
     expect(comparison.monthsDelta).toBe(-1)
     expect(describeMonthsDelta(comparison.monthsDelta)).toBe('1 mes antes')
     expect(simulation!.viableYearMonth).toBe('2027-07')
+  })
+
+  it('keeps credited interest separate from estimated future interest', () => {
+    const result = projectSavingsGoal(
+      {
+        ...autoExample,
+        initialBalance: 1000,
+        targetAmount: 1400,
+        minimumReserve: 0,
+        monthlyContribution: 100,
+        accruesInterest: true,
+        interestRateAnnual: 12,
+      },
+      [
+        {
+          name: 'Interés de abril',
+          date: '2027-04-10',
+          amount: 10,
+          type: 'inflow',
+          kind: 'interest',
+        },
+      ],
+    )
+    expect(result).not.toBeNull()
+    expect(result!.actualInterestReceived).toBe(10)
+    expect(result!.estimatedFutureInterest).toBeGreaterThan(0)
+    expect(result!.capitalContributed).toBe(1400)
   })
 })
 

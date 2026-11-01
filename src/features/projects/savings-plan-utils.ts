@@ -1,8 +1,5 @@
 import type { Project } from '@/types/domain'
-import {
-  isSavingsPlanComplete,
-  type SavingsPlan,
-} from '@/utils/budget/savings'
+import { isSavingsPlanComplete, type SavingsPlan } from '@/utils/budget/savings'
 import { parseCost } from '@/utils/form'
 
 export function savingsPlanFromProject(project?: Project): SavingsPlan {
@@ -10,6 +7,9 @@ export function savingsPlanFromProject(project?: Project): SavingsPlan {
     savings_amount: project?.savings_amount ?? null,
     savings_accrues_interest: project?.savings_accrues_interest ?? false,
     savings_interest_rate_annual: project?.savings_interest_rate_annual ?? null,
+    savings_interest_rate_type: project?.savings_interest_rate_type ?? 'tea',
+    savings_interest_compounding_frequency:
+      project?.savings_interest_compounding_frequency ?? 'monthly',
     savings_start_date: project?.savings_start_date ?? null,
     savings_end_date: project?.savings_end_date ?? null,
   }
@@ -19,6 +19,8 @@ export function parseSavingsPlanInput(input: {
   amount: string
   accruesInterest: boolean
   interestRate: string
+  interestRateType: SavingsPlan['savings_interest_rate_type']
+  interestCompoundingFrequency: SavingsPlan['savings_interest_compounding_frequency']
   startDate: string
   endDate: string
 }): SavingsPlan {
@@ -29,6 +31,8 @@ export function parseSavingsPlanInput(input: {
     savings_amount: parsedAmount,
     savings_accrues_interest: input.accruesInterest,
     savings_interest_rate_annual: input.accruesInterest ? parsedRate : null,
+    savings_interest_rate_type: input.interestRateType,
+    savings_interest_compounding_frequency: input.interestCompoundingFrequency,
     savings_start_date: input.startDate.trim() === '' ? null : input.startDate,
     savings_end_date: input.endDate.trim() === '' ? null : input.endDate,
   }

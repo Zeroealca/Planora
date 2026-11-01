@@ -3,6 +3,12 @@
  * Persist only config + movements; never store viable date / months / totals.
  */
 
+import {
+  monthlySavingsInterestRate,
+  type SavingsCompoundingFrequency,
+  type SavingsInterestRateType,
+} from './savings'
+
 export type SavingsMovementType = 'inflow' | 'outflow'
 
 export type SavingsGoalConfig = {
@@ -12,6 +18,10 @@ export type SavingsGoalConfig = {
   minimumReserve: number
   monthlyContribution: number
   startDate: string
+  accruesInterest: boolean
+  interestRateAnnual: number | null
+  interestRateType: SavingsInterestRateType
+  interestCompoundingFrequency: SavingsCompoundingFrequency
 }
 
 export type SavingsMovementInput = {
@@ -19,6 +29,7 @@ export type SavingsMovementInput = {
   date: string
   amount: number
   type: SavingsMovementType
+  kind?: 'contribution' | 'interest'
 }
 
 export type SavingsGoalProjection = {
@@ -28,6 +39,9 @@ export type SavingsGoalProjection = {
   viableDate: string
   projectedBalance: number
   remainingAfterGoal: number
+  capitalContributed: number
+  actualInterestReceived: number
+  estimatedFutureInterest: number
 }
 
 export type SavingsProjectionComparison = {
@@ -46,7 +60,10 @@ export function yearMonthFromDate(date: string): string {
   return date.slice(0, 7)
 }
 
-export function addMonthsToYearMonth(yearMonth: string, months: number): string {
+export function addMonthsToYearMonth(
+  yearMonth: string,
+  months: number,
+): string {
   const [yearPart, monthPart] = yearMonth.split('-')
   const year = Number(yearPart)
   const monthIndex = Number(monthPart) - 1
@@ -60,10 +77,7 @@ export function dateForYearMonth(yearMonth: string, day = 1): string {
   return `${yearMonth}-${String(day).padStart(2, '0')}`
 }
 
-export function formatYearMonthLabel(
-  yearMonth: string,
-  locale = 'es',
-): string {
+export function formatYearMonthLabel(yearMonth: string, locale = 'es'): string {
   const date = new Date(`${dateForYearMonth(yearMonth)}T00:00:00`)
   if (Number.isNaN(date.getTime())) return yearMonth
   const label = new Intl.DateTimeFormat(locale, {
@@ -88,6 +102,8 @@ export function isSavingsGoalConfigComplete(
     | 'minimumReserve'
     | 'monthlyContribution'
     | 'startDate'
+    | 'accruesInterest'
+    | 'interestRateAnnual'
   >,
 ): boolean {
   if (!config.startDate || !/^\d{4}-\d{2}-\d{2}$/.test(config.startDate)) {
@@ -108,6 +124,14 @@ export function isSavingsGoalConfigComplete(
   ) {
     return false
   }
+  if (
+    config.accruesInterest &&
+    (config.interestRateAnnual == null ||
+      !Number.isFinite(config.interestRateAnnual) ||
+      config.interestRateAnnual < 0 ||
+      config.interestRateAnnual > 100)
+  )
+    return false
   return true
 }
 
@@ -124,6 +148,23 @@ function netMovementsForMonth(
   return net
 }
 
+export function actualInterestReceived(
+  movements: readonly SavingsMovementInput[],
+): number {
+  return roundMoney(
+    movements.reduce(
+      (total, movement) =>
+        total +
+        (movement.kind === 'interest' &&
+        movement.type === 'inflow' &&
+        Number.isFinite(movement.amount)
+          ? movement.amount
+          : 0),
+      0,
+    ),
+  )
+}
+
 /**
  * Month 0 = start month: initial balance + movements that month (no monthly contribution).
  * Months 1..N: previous + monthly contribution + movements of that month.
@@ -136,6 +177,28 @@ export function projectSavingsGoal(
   if (!isSavingsGoalConfigComplete(config)) return null
 
   const needed = requiredSavings(config.targetAmount, config.minimumReserve)
+  const monthlyRate = monthlySavingsInterestRate({
+    savings_accrues_interest: config.accruesInterest,
+    savings_interest_rate_annual: config.interestRateAnnual,
+    savings_interest_rate_type: config.interestRateType,
+    savings_interest_compounding_frequency: config.interestCompoundingFrequency,
+  })
+  const actualInterest = actualInterestReceived(movements)
+  const movementsNet = movements.reduce(
+    (total, movement) =>
+      total + (movement.type === 'inflow' ? movement.amount : -movement.amount),
+    0,
+  )
+  const nonInterestMovementsNet = movements.reduce(
+    (total, movement) =>
+      total +
+      (movement.kind === 'interest'
+        ? 0
+        : movement.type === 'inflow'
+          ? movement.amount
+          : -movement.amount),
+    0,
+  )
   const startYm = yearMonthFromDate(config.startDate)
   let balance = roundMoney(
     config.initialBalance + netMovementsForMonth(movements, startYm),
@@ -149,19 +212,26 @@ export function projectSavingsGoal(
       viableDate: dateForYearMonth(startYm),
       projectedBalance: balance,
       remainingAfterGoal: roundMoney(balance - config.targetAmount),
+      capitalContributed: roundMoney(
+        config.initialBalance + nonInterestMovementsNet,
+      ),
+      actualInterestReceived: actualInterest,
+      estimatedFutureInterest: 0,
     }
   }
 
   const canProgress =
     config.monthlyContribution > 0 ||
-    movements.some((movement) => movement.type === 'inflow' && movement.amount > 0)
+    movements.some(
+      (movement) => movement.type === 'inflow' && movement.amount > 0,
+    )
 
   if (!canProgress) return null
 
   for (let months = 1; months <= MAX_PROJECTION_MONTHS; months += 1) {
     const ym = addMonthsToYearMonth(startYm, months)
     balance = roundMoney(
-      balance +
+      balance * (1 + monthlyRate) +
         config.monthlyContribution +
         netMovementsForMonth(movements, ym),
     )
@@ -173,6 +243,18 @@ export function projectSavingsGoal(
         viableDate: dateForYearMonth(ym),
         projectedBalance: balance,
         remainingAfterGoal: roundMoney(balance - config.targetAmount),
+        capitalContributed: roundMoney(
+          config.initialBalance +
+            nonInterestMovementsNet +
+            config.monthlyContribution * months,
+        ),
+        actualInterestReceived: actualInterest,
+        estimatedFutureInterest: roundMoney(
+          balance -
+            (config.initialBalance +
+              movementsNet +
+              config.monthlyContribution * months),
+        ),
       }
     }
   }

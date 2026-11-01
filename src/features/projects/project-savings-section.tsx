@@ -55,9 +55,17 @@ type DraftFields = {
   minimumReserve: string
   monthlyContribution: string
   startDate: string
+  accruesInterest: boolean
+  interestRateAnnual: string
+  interestRateType: ProjectSavingsGoalInput['interestRateType']
+  interestCompoundingFrequency: ProjectSavingsGoalInput['interestCompoundingFrequency']
 }
 
-const MODE_OPTIONS: readonly { id: SavingsMode; label: string; hint: string }[] = [
+const MODE_OPTIONS: readonly {
+  id: SavingsMode
+  label: string
+  hint: string
+}[] = [
   {
     id: 'none',
     label: 'Sin plan de ahorro',
@@ -78,6 +86,10 @@ function draftFromGoal(goal: ProjectSavingsGoalInput): DraftFields {
     minimumReserve: costInputValue(goal.minimumReserve),
     monthlyContribution: costInputValue(goal.monthlyContribution),
     startDate: goal.startDate ?? '',
+    accruesInterest: goal.accruesInterest,
+    interestRateAnnual: costInputValue(goal.interestRateAnnual),
+    interestRateType: goal.interestRateType,
+    interestCompoundingFrequency: goal.interestCompoundingFrequency,
   }
 }
 
@@ -100,12 +112,14 @@ function ProjectionDetails({
 }) {
   return (
     <section className="savings-projection-card" aria-label={title}>
-      {eyebrow ? <p className="muted savings-projection-eyebrow">{eyebrow}</p> : null}
+      {eyebrow ? (
+        <p className="muted savings-projection-eyebrow">{eyebrow}</p>
+      ) : null}
       <h3>{title}</h3>
       {!projection ? (
         <p className="muted">
-          Completa saldo inicial, objetivo, reserva, aporte mensual y fecha de inicio para ver la
-          proyección.
+          Completa saldo inicial, objetivo, reserva, aporte mensual y fecha de
+          inicio para ver la proyección.
         </p>
       ) : (
         <ul className="plain-list savings-summary">
@@ -167,24 +181,38 @@ function PlanSavingsEditor({
   const formatMoney = useFormatMoney()
   const plan = savingsPlanFromProject(project)
   const purchases = calculateSavingsPlanPurchaseSummary(items, statusOptions)
-  const [planAmount, setPlanAmount] = useState(costInputValue(plan.savings_amount))
+  const [planAmount, setPlanAmount] = useState(
+    costInputValue(plan.savings_amount),
+  )
   const [planAccrues, setPlanAccrues] = useState(plan.savings_accrues_interest)
-  const [planRate, setPlanRate] = useState(costInputValue(plan.savings_interest_rate_annual))
+  const [planRate, setPlanRate] = useState(
+    costInputValue(plan.savings_interest_rate_annual),
+  )
+  const [planRateType, setPlanRateType] = useState(
+    plan.savings_interest_rate_type,
+  )
+  const [planCompoundingFrequency, setPlanCompoundingFrequency] = useState(
+    plan.savings_interest_compounding_frequency,
+  )
   const [planStart, setPlanStart] = useState(plan.savings_start_date ?? '')
   const [planEnd, setPlanEnd] = useState(plan.savings_end_date ?? '')
   const [submitting, setSubmitting] = useState(false)
 
-  const planMovements = movementsToProjectionInput(movements).map((movement) => ({
-    date: movement.date,
-    amount: movement.amount,
-    type: movement.type,
-  }))
+  const planMovements = movementsToProjectionInput(movements).map(
+    (movement) => ({
+      date: movement.date,
+      amount: movement.amount,
+      type: movement.type,
+    }),
+  )
 
   const planPreview = calculateSavingsBreakdown(
     parseSavingsPlanInput({
       amount: planAmount,
       accruesInterest: planAccrues,
       interestRate: planRate,
+      interestRateType: planRateType,
+      interestCompoundingFrequency: planCompoundingFrequency,
       startDate: planStart,
       endDate: planEnd,
     }),
@@ -197,6 +225,8 @@ function PlanSavingsEditor({
       amount: planAmount,
       accruesInterest: planAccrues,
       interestRate: planRate,
+      interestRateType: planRateType,
+      interestCompoundingFrequency: planCompoundingFrequency,
       startDate: planStart,
       endDate: planEnd,
     })
@@ -213,7 +243,11 @@ function PlanSavingsEditor({
       onChanged()
     } catch (err) {
       console.error(err)
-      onError(err instanceof Error ? err.message : 'No se pudo guardar el plan de ahorro.')
+      onError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo guardar el plan de ahorro.',
+      )
     } finally {
       setSubmitting(false)
     }
@@ -239,7 +273,11 @@ function PlanSavingsEditor({
       onChanged()
     } catch (err) {
       console.error(err)
-      onError(err instanceof Error ? err.message : 'No se pudo actualizar el presupuesto.')
+      onError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo actualizar el presupuesto.',
+      )
     } finally {
       setSubmitting(false)
     }
@@ -251,55 +289,87 @@ function PlanSavingsEditor({
         <div className="row-between">
           <div>
             <h2 id="plan-purchases-heading">Artículos planificados</h2>
-            <p className="muted">Referencia de compras: no modifica el ahorro acumulado ni crea transacciones.</p>
+            <p className="muted">
+              Referencia de compras: no modifica el ahorro acumulado ni crea
+              transacciones.
+            </p>
           </div>
           <Link
             className="btn btn-ghost"
             to={`/projects/${project.id}?tab=items${purchases.totalCount === 0 ? '&create=1' : ''}`}
           >
-            {purchases.totalCount === 0 ? 'Añadir primer artículo' : 'Ver artículos'}
+            {purchases.totalCount === 0
+              ? 'Añadir primer artículo'
+              : 'Ver artículos'}
           </Link>
         </div>
         {purchases.totalCount === 0 ? (
           <p className="muted">Aún no has añadido artículos al plan.</p>
         ) : (
           <>
-            <div className="metrics-grid metrics-grid-secondary" aria-label="Resumen de artículos">
-              <article className="metric-card metric-card-compact metric-card-pending"><p className="metric-label">Pendiente estimado</p><p className="metric-value">{formatMoney(purchases.pendingEstimated)}</p></article>
-              <article className="metric-card metric-card-compact metric-card-spent"><p className="metric-label">Total gastado</p><p className="metric-value">{formatMoney(purchases.spent)}</p></article>
-              <article className="metric-card metric-card-compact metric-card-projected"><p className="metric-label">Total proyectado</p><p className="metric-value">{formatMoney(purchases.projected)}</p></article>
+            <div
+              className="metrics-grid metrics-grid-secondary"
+              aria-label="Resumen de artículos"
+            >
+              <article className="metric-card metric-card-compact metric-card-pending">
+                <p className="metric-label">Pendiente estimado</p>
+                <p className="metric-value">
+                  {formatMoney(purchases.pendingEstimated)}
+                </p>
+              </article>
+              <article className="metric-card metric-card-compact metric-card-spent">
+                <p className="metric-label">Total gastado</p>
+                <p className="metric-value">{formatMoney(purchases.spent)}</p>
+              </article>
+              <article className="metric-card metric-card-compact metric-card-projected">
+                <p className="metric-label">Total proyectado</p>
+                <p className="metric-value">
+                  {formatMoney(purchases.projected)}
+                </p>
+              </article>
             </div>
-            <p className="muted">{purchases.purchasedCount} de {purchases.totalCount} artículos comprados.</p>
+            <p className="muted">
+              {purchases.purchasedCount} de {purchases.totalCount} artículos
+              comprados.
+            </p>
           </>
         )}
       </section>
       <form className="stack card" onSubmit={(event) => void onSavePlan(event)}>
-      <SavingsPlanFields
-        amount={planAmount}
-        accruesInterest={planAccrues}
-        interestRate={planRate}
-        startDate={planStart}
-        endDate={planEnd}
-        movements={planMovements}
-        onAmountChange={setPlanAmount}
-        onAccruesInterestChange={setPlanAccrues}
-        onInterestRateChange={setPlanRate}
-        onStartDateChange={setPlanStart}
-        onEndDateChange={setPlanEnd}
-      />
-      <div className="row project-page-actions">
-        <button className="btn btn-primary" type="submit" disabled={submitting}>
-          {submitting ? 'Guardando…' : 'Guardar plan'}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={submitting || !planPreview}
-          onClick={() => void onApplyPlanToBudget()}
-        >
-          Usar total como presupuesto
-        </button>
-      </div>
+        <SavingsPlanFields
+          amount={planAmount}
+          accruesInterest={planAccrues}
+          interestRate={planRate}
+          interestRateType={planRateType}
+          interestCompoundingFrequency={planCompoundingFrequency}
+          startDate={planStart}
+          endDate={planEnd}
+          movements={planMovements}
+          onAmountChange={setPlanAmount}
+          onAccruesInterestChange={setPlanAccrues}
+          onInterestRateChange={setPlanRate}
+          onInterestRateTypeChange={setPlanRateType}
+          onInterestCompoundingFrequencyChange={setPlanCompoundingFrequency}
+          onStartDateChange={setPlanStart}
+          onEndDateChange={setPlanEnd}
+        />
+        <div className="row project-page-actions">
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? 'Guardando…' : 'Guardar plan'}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={submitting || !planPreview}
+            onClick={() => void onApplyPlanToBudget()}
+          >
+            Usar total como presupuesto
+          </button>
+        </div>
       </form>
     </>
   )
@@ -322,9 +392,8 @@ export function ProjectSavingsSection({
   const savedDraft = draftFromGoal(savedGoal)
   const [localDraft, setLocalDraft] = useState<DraftFields | null>(null)
   const [simulating, setSimulating] = useState(false)
-  const [scenarioBaseline, setScenarioBaseline] = useState<ProjectSavingsGoalInput | null>(
-    null,
-  )
+  const [scenarioBaseline, setScenarioBaseline] =
+    useState<ProjectSavingsGoalInput | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -333,8 +402,14 @@ export function ProjectSavingsSection({
   const [movementName, setMovementName] = useState('')
   const [movementDate, setMovementDate] = useState('')
   const [movementAmount, setMovementAmount] = useState('')
-  const [movementType, setMovementType] = useState<SavingsMovementType>('inflow')
-  const [editingMovementId, setEditingMovementId] = useState<string | null>(null)
+  const [movementType, setMovementType] =
+    useState<SavingsMovementType>('inflow')
+  const [movementKind, setMovementKind] =
+    useState<ProjectSavingsMovement['movement_kind']>('contribution')
+  const [movementDescription, setMovementDescription] = useState('')
+  const [editingMovementId, setEditingMovementId] = useState<string | null>(
+    null,
+  )
   const [movementBusy, setMovementBusy] = useState(false)
 
   const draft = localDraft ?? savedDraft
@@ -366,7 +441,11 @@ export function ProjectSavingsSection({
   )
 
   function patchDraft(patch: Partial<DraftFields>) {
-    setLocalDraft((current) => ({ ...(current ?? savedDraft), ...patch, enabled: true }))
+    setLocalDraft((current) => ({
+      ...(current ?? savedDraft),
+      ...patch,
+      enabled: true,
+    }))
     setError(null)
     setInfo(null)
     if (
@@ -384,7 +463,9 @@ export function ProjectSavingsSection({
   async function onSelectMode(next: SavingsMode) {
     if (next === mode) return
     if (isSavingsGoalProject(mode) || next === 'goal') {
-      setError('La meta de ahorro solo se elige al crear el proyecto y no se puede cambiar.')
+      setError(
+        'La meta de ahorro solo se elige al crear el proyecto y no se puede cambiar.',
+      )
       return
     }
     if (
@@ -402,11 +483,19 @@ export function ProjectSavingsSection({
     setScenarioBaseline(null)
     try {
       await updateProjectSavingsMode(project.id, next, mode)
-      setInfo(next === 'none' ? 'Plan de ahorro desactivado.' : 'Modo: plan de ahorro.')
+      setInfo(
+        next === 'none'
+          ? 'Plan de ahorro desactivado.'
+          : 'Modo: plan de ahorro.',
+      )
       onChanged()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'No se pudo cambiar el modo de ahorro.')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo cambiar el modo de ahorro.',
+      )
     } finally {
       setModeBusy(false)
     }
@@ -429,7 +518,11 @@ export function ProjectSavingsSection({
       onChanged()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'No se pudo guardar la meta de ahorro.')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo guardar la meta de ahorro.',
+      )
     } finally {
       setSubmitting(false)
     }
@@ -444,7 +537,9 @@ export function ProjectSavingsSection({
     setLocalDraft(savedDraft)
     setSimulating(true)
     setScenarioBaseline(null)
-    setInfo('Modo simulación: los cambios no se guardan hasta que apliques a la meta.')
+    setInfo(
+      'Modo simulación: los cambios no se guardan hasta que apliques a la meta.',
+    )
   }
 
   function onDiscardSimulation() {
@@ -478,7 +573,7 @@ export function ProjectSavingsSection({
       name: movementName,
       date: movementDate,
       amount: movementAmount,
-      type: movementType,
+      type: movementKind === 'interest' ? 'inflow' : movementType,
     })
     if (validation) {
       setError(validation)
@@ -494,25 +589,35 @@ export function ProjectSavingsSection({
           name: movementName,
           movement_date: movementDate,
           amount,
-          movement_type: movementType,
+          movement_type: movementKind === 'interest' ? 'inflow' : movementType,
+          movement_kind: movementKind,
+          description: movementDescription.trim() || null,
         })
       } else {
         await createSavingsMovement(project.id, {
           name: movementName,
           movement_date: movementDate,
           amount,
-          movement_type: movementType,
+          movement_type: movementKind === 'interest' ? 'inflow' : movementType,
+          movement_kind: movementKind,
+          description: movementDescription.trim() || null,
         })
       }
       setMovementName('')
       setMovementDate('')
       setMovementAmount('')
       setMovementType('inflow')
+      setMovementKind('contribution')
+      setMovementDescription('')
       setEditingMovementId(null)
       onChanged()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el movimiento.')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo guardar el movimiento.',
+      )
     } finally {
       setMovementBusy(false)
     }
@@ -524,6 +629,8 @@ export function ProjectSavingsSection({
     setMovementDate(movement.movement_date)
     setMovementAmount(costInputValue(movement.amount))
     setMovementType(movement.movement_type)
+    setMovementKind(movement.movement_kind)
+    setMovementDescription(movement.description ?? '')
   }
 
   async function onDeleteMovement(movementId: string) {
@@ -537,11 +644,17 @@ export function ProjectSavingsSection({
         setMovementName('')
         setMovementDate('')
         setMovementAmount('')
+        setMovementKind('contribution')
+        setMovementDescription('')
       }
       onChanged()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'No se pudo eliminar el movimiento.')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo eliminar el movimiento.',
+      )
     } finally {
       setMovementBusy(false)
     }
@@ -553,8 +666,8 @@ export function ProjectSavingsSection({
         <section className="stack card" aria-labelledby="savings-mode-heading">
           <h2 id="savings-mode-heading">Meta de ahorro</h2>
           <p className="muted">
-            Este proyecto es solo de meta. El tipo se eligió al crearlo y <strong>no se puede
-            cambiar</strong>.
+            Este proyecto es solo de meta. El tipo se eligió al crearlo y{' '}
+            <strong>no se puede cambiar</strong>.
           </p>
         </section>
       ) : (
@@ -562,10 +675,17 @@ export function ProjectSavingsSection({
           <h2 id="savings-mode-heading">Plan de ahorro</h2>
           <p className="muted">
             Opcional y aparte del presupuesto/tope (
-            {project.budget == null ? 'sin definir' : formatMoney(project.budget)}). Para una
-            meta de ahorro (objetivo + reserva), crea un proyecto de ese tipo.
+            {project.budget == null
+              ? 'sin definir'
+              : formatMoney(project.budget)}
+            ). Para una meta de ahorro (objetivo + reserva), crea un proyecto de
+            ese tipo.
           </p>
-          <div className="savings-mode-options" role="radiogroup" aria-label="Plan de ahorro">
+          <div
+            className="savings-mode-options"
+            role="radiogroup"
+            aria-label="Plan de ahorro"
+          >
             {MODE_OPTIONS.map((option) => (
               <label key={option.id} className="savings-mode-option">
                 <input
@@ -615,8 +735,8 @@ export function ProjectSavingsSection({
           <form className="stack card" onSubmit={onSaveConfig}>
             <h2>Meta de ahorro</h2>
             <p className="muted">
-              Cómo y cuándo reunir dinero (objetivo + reserva). No sustituye el presupuesto del
-              proyecto.
+              Cómo y cuándo reunir dinero (objetivo + reserva). No sustituye el
+              presupuesto del proyecto.
             </p>
 
             <div className="filters item-filters item-filters-open">
@@ -627,7 +747,9 @@ export function ProjectSavingsSection({
                   type="number"
                   step="0.01"
                   value={draft.initialBalance}
-                  onChange={(event) => patchDraft({ initialBalance: event.target.value })}
+                  onChange={(event) =>
+                    patchDraft({ initialBalance: event.target.value })
+                  }
                 />
               </div>
               <div className="field">
@@ -637,7 +759,9 @@ export function ProjectSavingsSection({
                   type="number"
                   step="0.01"
                   value={draft.targetAmount}
-                  onChange={(event) => patchDraft({ targetAmount: event.target.value })}
+                  onChange={(event) =>
+                    patchDraft({ targetAmount: event.target.value })
+                  }
                 />
               </div>
               <div className="field">
@@ -647,7 +771,9 @@ export function ProjectSavingsSection({
                   type="number"
                   step="0.01"
                   value={draft.minimumReserve}
-                  onChange={(event) => patchDraft({ minimumReserve: event.target.value })}
+                  onChange={(event) =>
+                    patchDraft({ minimumReserve: event.target.value })
+                  }
                 />
               </div>
               <div className="field">
@@ -668,18 +794,99 @@ export function ProjectSavingsSection({
                   id="savings-goal-start"
                   type="date"
                   value={draft.startDate}
-                  onChange={(event) => patchDraft({ startDate: event.target.value })}
+                  onChange={(event) =>
+                    patchDraft({ startDate: event.target.value })
+                  }
                 />
               </div>
+              <div className="field checkbox-field">
+                <input
+                  id="goal-interest"
+                  type="checkbox"
+                  checked={draft.accruesInterest}
+                  onChange={(event) =>
+                    patchDraft({ accruesInterest: event.target.checked })
+                  }
+                />
+                <label htmlFor="goal-interest">
+                  Estimar rendimiento de la cuenta
+                </label>
+              </div>
+              {draft.accruesInterest ? (
+                <>
+                  <div className="field">
+                    <label htmlFor="goal-rate">Tasa anual (%)</label>
+                    <input
+                      id="goal-rate"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={draft.interestRateAnnual}
+                      onChange={(event) =>
+                        patchDraft({ interestRateAnnual: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="goal-rate-type">Tipo de tasa</label>
+                    <select
+                      id="goal-rate-type"
+                      value={draft.interestRateType}
+                      onChange={(event) =>
+                        patchDraft({
+                          interestRateType: event.target
+                            .value as ProjectSavingsGoalInput['interestRateType'],
+                        })
+                      }
+                    >
+                      <option value="tea">TEA (tasa efectiva anual)</option>
+                      <option value="tna">TNA (tasa nominal anual)</option>
+                    </select>
+                    <span className="field-hint">
+                      TEA es la opción predeterminada. Para TNA selecciona la
+                      capitalización.
+                    </span>
+                  </div>
+                  {draft.interestRateType === 'tna' ? (
+                    <div className="field">
+                      <label htmlFor="goal-compounding">Capitalización</label>
+                      <select
+                        id="goal-compounding"
+                        value={draft.interestCompoundingFrequency}
+                        onChange={(event) =>
+                          patchDraft({
+                            interestCompoundingFrequency: event.target
+                              .value as ProjectSavingsGoalInput['interestCompoundingFrequency'],
+                          })
+                        }
+                      >
+                        <option value="monthly">Mensual</option>
+                        <option value="quarterly">Trimestral</option>
+                        <option value="semiannual">Semestral</option>
+                        <option value="annual">Anual</option>
+                      </select>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
             </div>
 
             <div className="row project-page-actions">
               {!simulating ? (
                 <>
-                  <button className="btn btn-primary" type="submit" disabled={submitting}>
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={submitting}
+                  >
                     {submitting ? 'Guardando…' : 'Guardar meta'}
                   </button>
-                  <button type="button" className="btn btn-ghost" onClick={onStartSimulation}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={onStartSimulation}
+                  >
                     Simular
                   </button>
                 </>
@@ -693,7 +900,11 @@ export function ProjectSavingsSection({
                   >
                     Aplicar a la meta
                   </button>
-                  <button type="button" className="btn" onClick={onSaveScenario}>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={onSaveScenario}
+                  >
                     Guardar escenario
                   </button>
                   <button
@@ -709,8 +920,9 @@ export function ProjectSavingsSection({
             {simulating ? (
               <p className="field-hint">
                 <strong>Aplicar a la meta</strong> escribe en la base de datos.{' '}
-                <strong>Guardar escenario</strong> solo fija la base de comparación en esta
-                sesión. <strong>Descartar</strong> vuelve a la meta guardada.
+                <strong>Guardar escenario</strong> solo fija la base de
+                comparación en esta sesión. <strong>Descartar</strong> vuelve a
+                la meta guardada.
               </p>
             ) : null}
           </form>
@@ -719,11 +931,19 @@ export function ProjectSavingsSection({
             {simulating ? (
               <>
                 <ProjectionDetails
-                  title={scenarioBaseline ? 'Escenario base' : 'Actual (guardado)'}
+                  title={
+                    scenarioBaseline ? 'Escenario base' : 'Actual (guardado)'
+                  }
                   eyebrow={scenarioBaseline ? 'Sesión' : 'Base de datos'}
-                  projection={scenarioBaseline ? baselineProjection : actualProjection}
-                  targetAmount={(scenarioBaseline ?? savedGoal).targetAmount ?? 0}
-                  minimumReserve={(scenarioBaseline ?? savedGoal).minimumReserve ?? 0}
+                  projection={
+                    scenarioBaseline ? baselineProjection : actualProjection
+                  }
+                  targetAmount={
+                    (scenarioBaseline ?? savedGoal).targetAmount ?? 0
+                  }
+                  minimumReserve={
+                    (scenarioBaseline ?? savedGoal).minimumReserve ?? 0
+                  }
                   monthlyContribution={
                     (scenarioBaseline ?? savedGoal).monthlyContribution ?? 0
                   }
@@ -760,7 +980,10 @@ export function ProjectSavingsSection({
       ) : null}
 
       {mode === 'plan' || mode === 'goal' ? (
-        <section className="stack card" aria-labelledby="savings-movements-heading">
+        <section
+          className="stack card"
+          aria-labelledby="savings-movements-heading"
+        >
           <h2 id="savings-movements-heading">Movimientos extraordinarios</h2>
           <p className="muted">
             {mode === 'plan'
@@ -768,7 +991,10 @@ export function ProjectSavingsSection({
               : 'Aportes o retiros puntuales futuros. Se incluyen en la proyección mes a mes.'}
           </p>
 
-          <form className="stack" onSubmit={(event) => void onSubmitMovement(event)}>
+          <form
+            className="stack"
+            onSubmit={(event) => void onSubmitMovement(event)}
+          >
             <div className="filters item-filters item-filters-open">
               <div className="field">
                 <label htmlFor="movement-name">Nombre</label>
@@ -813,9 +1039,43 @@ export function ProjectSavingsSection({
                   <option value="outflow">Retiro / gasto</option>
                 </select>
               </div>
+              <div className="field">
+                <label htmlFor="movement-kind">Registro</label>
+                <select
+                  id="movement-kind"
+                  value={movementKind}
+                  onChange={(event) => {
+                    const kind = event.target
+                      .value as ProjectSavingsMovement['movement_kind']
+                    setMovementKind(kind)
+                    if (kind === 'interest') setMovementType('inflow')
+                  }}
+                >
+                  <option value="contribution">Aporte o retiro</option>
+                  <option value="interest">
+                    Interés acreditado por el banco
+                  </option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="movement-description">
+                  Descripción (opcional)
+                </label>
+                <input
+                  id="movement-description"
+                  value={movementDescription}
+                  onChange={(event) =>
+                    setMovementDescription(event.target.value)
+                  }
+                />
+              </div>
             </div>
             <div className="row">
-              <button className="btn btn-primary" type="submit" disabled={movementBusy}>
+              <button
+                className="btn btn-primary"
+                type="submit"
+                disabled={movementBusy}
+              >
                 {editingMovementId
                   ? movementBusy
                     ? 'Guardando…'
@@ -853,7 +1113,11 @@ export function ProjectSavingsSection({
                     <span className="muted">
                       {' '}
                       · {movement.movement_date} ·{' '}
-                      {movement.movement_type === 'inflow' ? 'Aporte' : 'Retiro'}
+                      {movement.movement_kind === 'interest'
+                        ? 'Interés acreditado'
+                        : movement.movement_type === 'inflow'
+                          ? 'Aporte'
+                          : 'Retiro'}
                     </span>
                   </div>
                   <div className="row">

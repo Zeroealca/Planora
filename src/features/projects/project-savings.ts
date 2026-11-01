@@ -1,6 +1,10 @@
 import type { Project, SavingsMode } from '@/types/domain'
 import type { SavingsGoalConfig } from '@/utils/budget/savings-goal'
 import type { SavingsPlan } from '@/utils/budget/savings'
+import type {
+  SavingsCompoundingFrequency,
+  SavingsInterestRateType,
+} from '@/types/domain'
 
 export type ProjectSavingsGoalInput = {
   enabled: boolean
@@ -9,6 +13,10 @@ export type ProjectSavingsGoalInput = {
   minimumReserve: number | null
   monthlyContribution: number | null
   startDate: string | null
+  accruesInterest: boolean
+  interestRateAnnual: number | null
+  interestRateType: SavingsInterestRateType
+  interestCompoundingFrequency: SavingsCompoundingFrequency
 }
 
 /** Persist savings-goal fields only — never writes projects.budget or plan fields. */
@@ -21,6 +29,12 @@ export function buildSavingsGoalPayload(goal: ProjectSavingsGoalInput) {
     savings_minimum_reserve: goal.minimumReserve,
     savings_goal_monthly_amount: goal.monthlyContribution,
     savings_goal_start_date: goal.startDate,
+    savings_accrues_interest: goal.accruesInterest,
+    savings_interest_rate_annual: goal.accruesInterest
+      ? goal.interestRateAnnual
+      : null,
+    savings_interest_rate_type: goal.interestRateType,
+    savings_interest_compounding_frequency: goal.interestCompoundingFrequency,
   }
 }
 
@@ -34,6 +48,9 @@ export function buildSavingsPlanPayload(plan: SavingsPlan) {
     savings_interest_rate_annual: plan.savings_accrues_interest
       ? plan.savings_interest_rate_annual
       : null,
+    savings_interest_rate_type: plan.savings_interest_rate_type,
+    savings_interest_compounding_frequency:
+      plan.savings_interest_compounding_frequency,
     savings_start_date: plan.savings_start_date,
     savings_end_date: plan.savings_end_date,
   }
@@ -61,6 +78,10 @@ export function buildProjectPayload(input: {
     minimumReserve: null,
     monthlyContribution: null,
     startDate: null,
+    accruesInterest: false,
+    interestRateAnnual: null,
+    interestRateType: 'tea',
+    interestCompoundingFrequency: 'monthly',
   }
 
   return {
@@ -73,7 +94,9 @@ export function buildProjectPayload(input: {
   }
 }
 
-export function savingsGoalConfigFromProject(project: Project): SavingsGoalConfig {
+export function savingsGoalConfigFromProject(
+  project: Project,
+): SavingsGoalConfig {
   return {
     enabled: project.savings_mode === 'goal',
     initialBalance: project.savings_initial_balance ?? 0,
@@ -81,10 +104,17 @@ export function savingsGoalConfigFromProject(project: Project): SavingsGoalConfi
     minimumReserve: project.savings_minimum_reserve ?? 0,
     monthlyContribution: project.savings_goal_monthly_amount ?? 0,
     startDate: project.savings_goal_start_date ?? '',
+    accruesInterest: project.savings_accrues_interest,
+    interestRateAnnual: project.savings_interest_rate_annual,
+    interestRateType: project.savings_interest_rate_type,
+    interestCompoundingFrequency:
+      project.savings_interest_compounding_frequency,
   }
 }
 
-export function savingsGoalInputFromProject(project: Project): ProjectSavingsGoalInput {
+export function savingsGoalInputFromProject(
+  project: Project,
+): ProjectSavingsGoalInput {
   return {
     enabled: project.savings_mode === 'goal',
     initialBalance: project.savings_initial_balance,
@@ -92,6 +122,11 @@ export function savingsGoalInputFromProject(project: Project): ProjectSavingsGoa
     minimumReserve: project.savings_minimum_reserve,
     monthlyContribution: project.savings_goal_monthly_amount,
     startDate: project.savings_goal_start_date,
+    accruesInterest: project.savings_accrues_interest,
+    interestRateAnnual: project.savings_interest_rate_annual,
+    interestRateType: project.savings_interest_rate_type,
+    interestCompoundingFrequency:
+      project.savings_interest_compounding_frequency,
   }
 }
 
@@ -100,6 +135,8 @@ export function buildSavingsPayload(savings: {
   savings_amount: number | null
   savings_accrues_interest: boolean
   savings_interest_rate_annual: number | null
+  savings_interest_rate_type: SavingsInterestRateType
+  savings_interest_compounding_frequency: SavingsCompoundingFrequency
   savings_start_date: string | null
   savings_end_date: string | null
 }) {
