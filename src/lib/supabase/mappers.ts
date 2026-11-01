@@ -20,6 +20,7 @@ import type {
 import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
 import type { ScheduledPaymentReminderDelivery } from '@/features/scheduled-payments/reminders'
 import type { FinancialTransaction, TransactionType } from '@/features/transactions/domain'
+import type { ManagedFund, ManagedFundMovement, ManagedFundMovementType } from '@/features/managed-funds/domain'
 import { LABEL_PRESETS } from '@/types/domain'
 import type { Database } from '@/types/database'
 import { DEFAULT_CURRENCY, isCurrencyCode } from '@/features/profile/currencies'
@@ -48,6 +49,8 @@ type MonthlyBudgetRow = Database['public']['Tables']['monthly_budgets']['Row']
 type MonthlyBudgetAllocationRow =
   Database['public']['Tables']['monthly_budget_allocations']['Row']
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
+type ManagedFundRow = Database['public']['Tables']['managed_funds']['Row']
+type ManagedFundMovementRow = Database['public']['Tables']['managed_fund_movements']['Row']
 type BudgetTemplateRow = Database['public']['Tables']['budget_templates']['Row']
 type BudgetTemplateAllocationRow = Database['public']['Tables']['budget_template_allocations']['Row']
 type ScheduledPaymentRow = Database['public']['Tables']['scheduled_payments']['Row']
@@ -287,6 +290,22 @@ export function mapFinancialTransaction(row: TransactionRow): FinancialTransacti
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  }
+}
+
+export function mapManagedFund(row: ManagedFundRow): ManagedFund {
+  return {
+    id: row.id, userId: row.user_id, name: row.name, description: row.description,
+    archivedAt: row.archived_at, createdAt: row.created_at, updatedAt: row.updated_at,
+  }
+}
+
+export function mapManagedFundMovement(row: ManagedFundMovementRow): ManagedFundMovement {
+  return {
+    id: row.id, fundId: row.fund_id, occurredOn: row.occurred_on,
+    amount: parseNumeric(row.amount) ?? 0,
+    type: row.movement_type === 'income' ? 'income' : ('expense' as ManagedFundMovementType),
+    description: row.description, createdAt: row.created_at, updatedAt: row.updated_at,
   }
 }
 

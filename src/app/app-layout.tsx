@@ -68,6 +68,9 @@ export function AppLayout() {
             <Link to="/budget" aria-current={isCurrent('/budget') ? 'page' : undefined} onClick={() => closeMenu({ restoreFocus: true })}>
               Presupuesto
             </Link>
+            <Link to="/managed-funds" aria-current={isCurrent('/managed-funds') ? 'page' : undefined} onClick={() => closeMenu({ restoreFocus: true })}>
+              Fondos administrados
+            </Link>
             <Link to="/projects" aria-current={isCurrent('/projects') ? 'page' : undefined} onClick={() => closeMenu({ restoreFocus: true })}>
               Proyectos
             </Link>

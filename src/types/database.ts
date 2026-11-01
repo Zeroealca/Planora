@@ -148,6 +148,77 @@ export type Database = {
         }
         Relationships: []
       }
+      managed_funds: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      managed_fund_movements: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          fund_id: string
+          id: string
+          movement_type: string
+          occurred_on: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          fund_id: string
+          id?: string
+          movement_type: string
+          occurred_on: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          fund_id?: string
+          id?: string
+          movement_type?: string
+          occurred_on?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "managed_fund_movements_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "managed_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_payment_occurrences: {
         Row: {
           created_at: string
