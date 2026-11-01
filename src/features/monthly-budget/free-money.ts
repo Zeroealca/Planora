@@ -44,8 +44,6 @@ export function calculateFreeMoney(input: {
   const releases: AllocationRelease[] = []
 
   for (const allocation of input.allocations) {
-    if (allocation.paymentMode !== 'single') continue
-
     let source: AllocationRelease['source'] | null = null
     let transactionId: string | null = null
 
@@ -70,11 +68,15 @@ export function calculateFreeMoney(input: {
     const transaction = transactionId === null ? undefined : transactionById.get(transactionId)
     if (!source || !transactionId || !eligibleTransaction(transaction, allocation, input.period)) continue
 
+    const periodSpent = fromCents(addCents(...input.transactions
+      .filter((candidate) => eligibleTransaction(candidate, allocation, input.period))
+      .map((candidate) => toCents(candidate.amount))))
+
     releases.push({
       allocationId: allocation.id,
       transactionId,
       source,
-      amount: fromCents(maxCents(0, subtractCents(toCents(allocation.amount), toCents(transaction.amount)))),
+      amount: fromCents(maxCents(0, subtractCents(toCents(allocation.amount), toCents(periodSpent)))),
     })
   }
 

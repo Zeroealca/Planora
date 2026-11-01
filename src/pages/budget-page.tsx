@@ -403,7 +403,7 @@ export function BudgetPage() {
                 }
                 const a = allocations.find((x) => x.financialCategoryId === financialCategoryId)
                 const release = a ? releaseByAllocationId.get(a.id) : undefined
-                const manualCandidates = a?.paymentMode === 'single' && a.scheduledPaymentId === null
+                const manualCandidates = a && a.scheduledPaymentId === null
                   ? transactions.filter((transaction) => transaction.type === 'expense' && transaction.financialCategoryId === a.financialCategoryId)
                   : []
                 const coverage = calculateCategoryCommitmentCoverage({
@@ -417,7 +417,7 @@ export function BudgetPage() {
                       <strong>{categoryLabel(financialCategoryId)}</strong>
                       <p>
                         {a
-                          ? `${money(c.spent)} de ${money(c.budget)}`
+                          ? `Presupuesto: ${money(c.budget)} · Gastado en el periodo: ${money(c.spent)}`
                           : `Sin presupuesto · ${money(c.spent)} gastado`}
                       </p>
                       {coverage.knownCommitment > 0 ? (
@@ -432,38 +432,38 @@ export function BudgetPage() {
                       {coverage.isKnownShortfall ? (
                         <p className="field-error">Los pagos programados superan el presupuesto de esta categoría en {money(Math.abs(coverage.coverage))}.</p>
                       ) : null}
-                      {a?.paymentMode === 'single' ? (
+                      {a ? (
                         <div className="stack">
                           <p>
-                            <strong>Un pago por periodo.</strong>{' '}
+                            <strong>{a.paymentMode === 'single' ? 'Un pago por periodo.' : 'Múltiples pagos por periodo.'}</strong>{' '}
                             {a.scheduledPaymentId
                               ? 'Se completa automáticamente solo con la ocurrencia pagada y su transacción de este periodo.'
-                              : 'Requiere confirmar una transacción concreta de este periodo.'}
+                              : 'Selecciona el gasto que indica que no esperas más pagos en este periodo.'}
                           </p>
                           {release ? (
                             <>
-                              <p className="page-status">{release.amount > 0 ? `Pago completado · sobrante liberado: ${money(release.amount)}` : 'Pago completado · no hay sobrante para liberar.'}</p>
+                              <p className="page-status">{release.amount > 0 ? `Estado: completado · sobrante liberado: ${money(release.amount)}` : 'Estado: completado · no hay sobrante para liberar.'}</p>
                               {release.source === 'manual' ? (
                                 <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
                               ) : null}
                             </>
                           ) : a.scheduledPaymentId ? (
-                            <p className="muted">Pendiente: no hay una ocurrencia pagada con una transacción válida en este periodo.</p>
+                            <p className="muted">Estado: pendiente · no hay una ocurrencia pagada con una transacción válida en este periodo.</p>
                           ) : a.manualCompletionTransactionId ? (
                             <>
-                              <p className="muted">Confirmado manualmente, pero la transacción ya no es válida para este periodo; no se libera dinero.</p>
+                              <p className="muted">Estado: pendiente · la transacción definitiva ya no es válida para este periodo; no se libera dinero.</p>
                               <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
                             </>
                           ) : manualCandidates.length === 0 ? (
-                            <p className="muted">No se puede liberar dinero: registra y selecciona un gasto real de esta categoría y periodo.</p>
+                            <p className="muted">Estado: pendiente · registra y selecciona un gasto real de esta categoría y periodo.</p>
                           ) : (
                             <div className="row">
-                              <label className="sr-only" htmlFor={`manual-payment-${a.id}`}>Transacción que completa el pago</label>
+                              <label className="sr-only" htmlFor={`manual-payment-${a.id}`}>Transacción definitiva del presupuesto</label>
                               <select id={`manual-payment-${a.id}`} value={manualTransactionId[a.id] ?? ''} onChange={(event) => setManualTransactionId((current) => ({ ...current, [a.id]: event.target.value }))}>
-                                <option value="">Selecciona el gasto real</option>
+                                <option value="">Selecciona el pago definitivo</option>
                                 {manualCandidates.map((transaction) => <option key={transaction.id} value={transaction.id}>{transaction.occurredOn} · {transaction.name} · {money(transaction.amount)}</option>)}
                               </select>
-                              <button className="btn btn-ghost" type="button" disabled={!manualTransactionId[a.id]} onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, manualTransactionId[a.id] ?? null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago.'))}>Confirmar pago</button>
+                              <button className="btn btn-ghost" type="button" disabled={!manualTransactionId[a.id]} onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, manualTransactionId[a.id] ?? null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago.'))}>Marcar como pago definitivo</button>
                             </div>
                           )}
                         </div>

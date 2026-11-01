@@ -42,10 +42,26 @@ describe('free money', () => {
     }).released).toBe(0)
   })
 
-  it('does not release a partial, unconfirmed, multiple-payment, or cross-period expense', () => {
+  it('does not release an unconfirmed or cross-period expense', () => {
     expect(calculate({ allocations: [allocation()], transactions: [transaction()] }).released).toBe(0)
-    expect(calculate({ allocations: [allocation({ paymentMode: 'multiple', manualCompletionTransactionId: 'transaction', manualCompletedAt: 'completed' })], transactions: [transaction()] }).released).toBe(0)
     expect(calculate({ allocations: [allocation({ manualCompletionTransactionId: 'transaction', manualCompletedAt: 'completed' })], transactions: [transaction({ occurredOn: '2026-12-01' })] }).released).toBe(0)
+  })
+
+  it('uses all period expenses when the final transaction completes a multiple-payment allocation', () => {
+    const finalPayment = transaction({ id: 'second', amount: 45, occurredOn: '2026-11-15' })
+    const summary = calculate({
+      allocations: [allocation({ amount: 100, paymentMode: 'multiple', manualCompletionTransactionId: 'second', manualCompletedAt: 'completed' })],
+      transactions: [transaction({ id: 'first', amount: 30 }), finalPayment],
+    })
+    expect(summary.released).toBe(25)
+    expect(summary.freeMoney).toBe(75)
+  })
+
+  it('recalculates a definitive payment when another period expense is added or the allocation changes', () => {
+    const completed = allocation({ amount: 100, manualCompletionTransactionId: 'transaction', manualCompletedAt: 'completed' })
+    expect(calculate({ allocations: [completed], transactions: [transaction({ amount: 75 })] }).released).toBe(25)
+    expect(calculate({ allocations: [completed], transactions: [transaction({ amount: 75 }), transaction({ id: 'later', amount: 15, occurredOn: '2026-11-20' })] }).released).toBe(10)
+    expect(calculate({ allocations: [{ ...completed, amount: 80 }], transactions: [transaction({ amount: 75 })] }).released).toBe(5)
   })
 
   it('drops a manual release when its linked transaction is edited away or removed', () => {

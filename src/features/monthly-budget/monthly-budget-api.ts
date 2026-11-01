@@ -172,12 +172,13 @@ export async function updateMonthlyBudgetAllocationPaymentSettings(input: {
   paymentMode: 'multiple' | 'single'
   scheduledPaymentId: string | null
 }): Promise<void> {
+  const scheduledPaymentId = input.paymentMode === 'single' ? input.scheduledPaymentId : null
   const { error } = await supabase
     .from('monthly_budget_allocations')
     .update({
       payment_mode: input.paymentMode,
-      scheduled_payment_id: input.paymentMode === 'single' ? input.scheduledPaymentId : null,
-      manual_completion_transaction_id: null,
+      scheduled_payment_id: scheduledPaymentId,
+      ...(scheduledPaymentId === null ? {} : { manual_completion_transaction_id: null }),
     })
     .eq('id', input.allocationId)
 
