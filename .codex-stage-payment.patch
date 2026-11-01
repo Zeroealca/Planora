@@ -1,0 +1,73 @@
+diff --git a/src/lib/supabase/mappers.ts b/src/lib/supabase/mappers.ts
+--- a/src/lib/supabase/mappers.ts
++++ b/src/lib/supabase/mappers.ts
+@@ -266,6 +266,10 @@ export function mapMonthlyBudgetAllocation(
+     monthlyBudgetId: row.monthly_budget_id,
+     financialCategoryId: row.financial_category_id,
+     amount: parseNumeric(row.amount) ?? 0,
++    paymentMode: row.payment_mode === 'single' ? 'single' : 'multiple',
++    scheduledPaymentId: row.scheduled_payment_id,
++    manualCompletionTransactionId: row.manual_completion_transaction_id,
++    manualCompletedAt: row.manual_completed_at,
+     createdAt: row.created_at,
+     updatedAt: row.updated_at,
+   }
+diff --git a/src/types/database.ts b/src/types/database.ts
+--- a/src/types/database.ts
++++ b/src/types/database.ts
+@@ -578,6 +578,10 @@ export type Database = {
+           created_at: string
+           financial_category_id: string
+           id: string
++          manual_completed_at: string | null
++          manual_completion_transaction_id: string | null
+           monthly_budget_id: string
++          payment_mode: string
++          scheduled_payment_id: string | null
+           updated_at: string
+         }
+@@ -587,6 +591,10 @@ export type Database = {
+           created_at?: string
+           financial_category_id: string
+           id?: string
++          manual_completed_at?: string | null
++          manual_completion_transaction_id?: string | null
+           monthly_budget_id: string
++          payment_mode?: string
++          scheduled_payment_id?: string | null
+           updated_at?: string
+         }
+@@ -595,6 +603,10 @@ export type Database = {
+           created_at?: string
+           financial_category_id?: string
+           id?: string
++          manual_completed_at?: string | null
++          manual_completion_transaction_id?: string | null
+           monthly_budget_id?: string
++          payment_mode?: string
++          scheduled_payment_id?: string | null
+           updated_at?: string
+         }
+@@ -610,8 +622,22 @@ export type Database = {
+            foreignKeyName: "monthly_budget_allocations_monthly_budget_id_fkey"
+            columns: ["monthly_budget_id"]
+            isOneToOne: false
+             referencedRelation: "monthly_budgets"
+             referencedColumns: ["id"]
+           },
++          {
++            foreignKeyName: "monthly_budget_allocations_manual_completion_transaction_id_fkey"
++            columns: ["manual_completion_transaction_id"]
++            isOneToOne: false
++            referencedRelation: "transactions"
++            referencedColumns: ["id"]
++          },
++          {
++            foreignKeyName: "monthly_budget_allocations_scheduled_payment_id_fkey"
++            columns: ["scheduled_payment_id"]
++            isOneToOne: false
++            referencedRelation: "scheduled_payments"
++            referencedColumns: ["id"]
++          },
+         ]
+       }
