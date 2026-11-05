@@ -331,10 +331,7 @@ export function mapMonthlyBudgetAllocation(
     monthlyBudgetId: row.monthly_budget_id,
     financialCategoryId: row.financial_category_id,
     amount: parseNumeric(row.amount) ?? 0,
-    paymentMode: row.payment_mode === 'single' ? 'single' : 'multiple',
-    scheduledPaymentId: row.scheduled_payment_id,
-    manualCompletionTransactionId: row.manual_completion_transaction_id,
-    manualCompletedAt: row.manual_completed_at,
+    paymentsCompletedAt: row.payments_completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

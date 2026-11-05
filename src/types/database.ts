@@ -650,11 +650,8 @@ export type Database = {
           created_at: string
           financial_category_id: string
           id: string
-          manual_completed_at: string | null
-          manual_completion_transaction_id: string | null
           monthly_budget_id: string
-          payment_mode: string
-          scheduled_payment_id: string | null
+          payments_completed_at: string | null
           updated_at: string
         }
         Insert: {
@@ -662,11 +659,8 @@ export type Database = {
           created_at?: string
           financial_category_id: string
           id?: string
-          manual_completed_at?: string | null
-          manual_completion_transaction_id?: string | null
           monthly_budget_id: string
-          payment_mode?: string
-          scheduled_payment_id?: string | null
+          payments_completed_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -674,11 +668,8 @@ export type Database = {
           created_at?: string
           financial_category_id?: string
           id?: string
-          manual_completed_at?: string | null
-          manual_completion_transaction_id?: string | null
           monthly_budget_id?: string
-          payment_mode?: string
-          scheduled_payment_id?: string | null
+          payments_completed_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -694,20 +685,6 @@ export type Database = {
             columns: ['monthly_budget_id']
             isOneToOne: false
             referencedRelation: 'monthly_budgets'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'monthly_budget_allocations_manual_completion_transaction_id_fkey'
-            columns: ['manual_completion_transaction_id']
-            isOneToOne: false
-            referencedRelation: 'transactions'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'monthly_budget_allocations_scheduled_payment_id_fkey'
-            columns: ['scheduled_payment_id']
-            isOneToOne: false
-            referencedRelation: 'scheduled_payments'
             referencedColumns: ['id']
           },
         ]

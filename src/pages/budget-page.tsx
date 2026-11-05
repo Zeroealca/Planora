@@ -11,9 +11,8 @@ import {
   fetchMonthlyBudgetByPeriod,
   listFinancialCategories,
   listMonthlyBudgetAllocations,
-  setMonthlyBudgetAllocationManualCompletion,
+  setMonthlyBudgetAllocationPaymentsCompleted,
   updateMonthlyBudgetAllocationAmount,
-  updateMonthlyBudgetAllocationPaymentSettings,
   updateMonthlyBudgetAvailableAmount,
 } from '@/features/monthly-budget/monthly-budget-api'
 import type {
@@ -61,9 +60,6 @@ export function BudgetPage() {
   const [categoryName, setCategoryName] = useState('')
   const [amount, setAmount] = useState('')
   const [editAllocation, setEditAllocation] = useState<PersistedMonthlyBudgetAllocation | null>(null)
-  const [paymentMode, setPaymentMode] = useState<'multiple' | 'single'>('multiple')
-  const [scheduledPaymentId, setScheduledPaymentId] = useState('')
-  const [manualTransactionId, setManualTransactionId] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
   async function load() {
@@ -117,8 +113,6 @@ export function BudgetPage() {
     setEditAllocation(null)
     setCategoryName('')
     setAmount('')
-    setPaymentMode('multiple')
-    setScheduledPaymentId('')
   }
 
   async function saveAllocation(e: FormEvent) {
@@ -135,13 +129,6 @@ export function BudgetPage() {
     try {
       if (editAllocation) {
         await updateMonthlyBudgetAllocationAmount(editAllocation.id, v)
-        await updateMonthlyBudgetAllocationPaymentSettings({
-          allocationId: editAllocation.id,
-          paymentMode,
-          scheduledPaymentId: paymentMode === 'single' && scheduledPaymentId !== ''
-            ? scheduledPaymentId
-            : null,
-        })
       } else {
         const trimmed = categoryName.trim()
         if (!trimmed) {
@@ -208,7 +195,6 @@ export function BudgetPage() {
     unassigned: m?.unassigned ?? 0,
     allocations,
     transactions,
-    occurrences: scheduledOccurrences,
   })
   const releaseByAllocationId = new Map(
     freeMoney.releases.map((release) => [release.allocationId, release] as const),
@@ -403,9 +389,8 @@ export function BudgetPage() {
                 }
                 const a = allocations.find((x) => x.financialCategoryId === financialCategoryId)
                 const release = a ? releaseByAllocationId.get(a.id) : undefined
-                const manualCandidates = a && a.scheduledPaymentId === null
-                  ? transactions.filter((transaction) => transaction.type === 'expense' && transaction.financialCategoryId === a.financialCategoryId)
-                  : []
+                const hasExpenses = c.spent > 0
+                const paymentsCompleted = a?.paymentsCompletedAt != null && hasExpenses
                 const coverage = calculateCategoryCommitmentCoverage({
                   allocated: c.budget,
                   spent: c.spent,
@@ -434,37 +419,15 @@ export function BudgetPage() {
                       ) : null}
                       {a ? (
                         <div className="stack">
-                          <p>
-                            <strong>{a.paymentMode === 'single' ? 'Un pago por periodo.' : 'Múltiples pagos por periodo.'}</strong>{' '}
-                            {a.scheduledPaymentId
-                              ? 'Se completa automáticamente solo con la ocurrencia pagada y su transacción de este periodo.'
-                              : 'Selecciona el gasto que indica que no esperas más pagos en este periodo.'}
-                          </p>
-                          {release ? (
+                          {paymentsCompleted ? (
                             <>
-                              <p className="page-status">{release.amount > 0 ? `Estado: completado · sobrante liberado: ${money(release.amount)}` : 'Estado: completado · no hay sobrante para liberar.'}</p>
-                              {release.source === 'manual' ? (
-                                <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
-                              ) : null}
+                              <p className="page-status">{release && release.amount > 0 ? `Estado: pagos completados · sobrante liberado: ${money(release.amount)}` : 'Estado: pagos completados · no hay sobrante para liberar.'}</p>
+                              <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationPaymentsCompleted(a.id, false).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
                             </>
-                          ) : a.scheduledPaymentId ? (
-                            <p className="muted">Estado: pendiente · no hay una ocurrencia pagada con una transacción válida en este periodo.</p>
-                          ) : a.manualCompletionTransactionId ? (
-                            <>
-                              <p className="muted">Estado: pendiente · la transacción definitiva ya no es válida para este periodo; no se libera dinero.</p>
-                              <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revertir la confirmación.'))}>Revertir confirmación</button>
-                            </>
-                          ) : manualCandidates.length === 0 ? (
-                            <p className="muted">Estado: pendiente · registra y selecciona un gasto real de esta categoría y periodo.</p>
+                          ) : !hasExpenses ? (
+                            <p className="muted">Estado: pendiente · registra al menos un gasto real para poder marcar los pagos como completados.</p>
                           ) : (
-                            <div className="row">
-                              <label className="sr-only" htmlFor={`manual-payment-${a.id}`}>Transacción definitiva del presupuesto</label>
-                              <select id={`manual-payment-${a.id}`} value={manualTransactionId[a.id] ?? ''} onChange={(event) => setManualTransactionId((current) => ({ ...current, [a.id]: event.target.value }))}>
-                                <option value="">Selecciona el pago definitivo</option>
-                                {manualCandidates.map((transaction) => <option key={transaction.id} value={transaction.id}>{transaction.occurredOn} · {transaction.name} · {money(transaction.amount)}</option>)}
-                              </select>
-                              <button className="btn btn-ghost" type="button" disabled={!manualTransactionId[a.id]} onClick={() => void setMonthlyBudgetAllocationManualCompletion(a.id, manualTransactionId[a.id] ?? null).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago.'))}>Marcar como pago definitivo</button>
-                            </div>
+                            <button className="btn btn-ghost" type="button" onClick={() => void setMonthlyBudgetAllocationPaymentsCompleted(a.id, true).then(load).catch((err) => setError(err instanceof Error ? err.message : 'No se pudo completar los pagos.'))}>Ya realicé todos los pagos</button>
                           )}
                         </div>
                       ) : null}
@@ -495,8 +458,6 @@ export function BudgetPage() {
                               setEditAllocation(a)
                               setCategoryName(categoryLabel(a.financialCategoryId))
                               setAmount(costInputValue(a.amount))
-                              setPaymentMode(a.paymentMode)
-                              setScheduledPaymentId(a.scheduledPaymentId ?? '')
                               setError(null)
                             }}
                             aria-label={`Editar asignación de ${categoryLabel(a.financialCategoryId)}`}
@@ -546,26 +507,6 @@ export function BudgetPage() {
                   autoComplete="off"
                 />
               </div>
-              {editAllocation ? (
-                <>
-                  <div className="field">
-                    <label htmlFor="budget-payment-mode">Pagos por periodo</label>
-                    <select id="budget-payment-mode" value={paymentMode} onChange={(event) => setPaymentMode(event.target.value === 'single' ? 'single' : 'multiple')}>
-                      <option value="multiple">Múltiples pagos por periodo</option>
-                      <option value="single">Un pago por periodo</option>
-                    </select>
-                  </div>
-                  {paymentMode === 'single' ? (
-                    <div className="field">
-                      <label htmlFor="budget-scheduled-payment">Pago programado vinculado (opcional)</label>
-                      <select id="budget-scheduled-payment" value={scheduledPaymentId} onChange={(event) => setScheduledPaymentId(event.target.value)}>
-                        <option value="">Sin vínculo: confirmación manual</option>
-                        {scheduledPayments.filter((payment) => payment.financialCategoryId === editAllocation.financialCategoryId).map((payment) => <option key={payment.id} value={payment.id}>{payment.name} · {payment.frequency === 'annual' ? 'anual' : payment.frequency === 'monthly' ? 'mensual' : 'único'}</option>)}
-                      </select>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
               <div className="field">
                 <label htmlFor="budget-category-amount">Monto presupuestado</label>
                 <input
