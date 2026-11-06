@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { IconBack, IconClose } from '@/components/icons'
 import { DashboardPanel } from '@/features/dashboard/dashboard-panel'
+import { SavingsPlanPrioritySummary } from '@/features/dashboard/savings-plan-priority-summary'
 import { SavingsGoalDashboardPanel } from '@/features/dashboard/savings-goal-dashboard-panel'
 import { CategorySection } from '@/features/categories/category-section'
 import {
@@ -404,6 +405,13 @@ export function ProjectPage() {
               savingsMode={project.savings_mode}
               attentionCount={attentionCount}
             />
+            {project.savings_mode === 'plan' ? (
+              <SavingsPlanPrioritySummary
+                items={items}
+                statusOptions={project.status_options}
+                priorityOptions={project.priority_options}
+              />
+            ) : null}
             <NextDecisionsPanel
               projectId={project.id}
               items={items}
