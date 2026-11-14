@@ -2006,6 +2006,17 @@ html[data-theme='dark'] select.item-table-input {
   display: grid;
 }
 
+.item-subarticle-draft {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.item-subarticle-draft legend {
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
 .item-filters input,
 .item-filters select {
   min-height: 2.75rem;

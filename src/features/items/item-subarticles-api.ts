@@ -10,17 +10,17 @@ export type ItemSubarticleInput = {
   actual_cost: number | null
 }
 
-export async function createItemSubarticle(
+export async function createItemSubarticles(
   itemId: string,
-  input: ItemSubarticleInput,
-): Promise<ItemSubarticle> {
+  inputs: readonly ItemSubarticleInput[],
+): Promise<ItemSubarticle[]> {
+  if (inputs.length === 0) return []
   const { data, error } = await supabase
     .from('item_subarticles')
-    .insert({ item_id: itemId, ...input, name: input.name.trim() })
+    .insert(inputs.map((input) => ({ item_id: itemId, ...input, name: input.name.trim() })))
     .select()
-    .single()
   if (error) throw new Error(supabaseErrorMessage(error))
-  return mapItemSubarticle(data)
+  return data.map(mapItemSubarticle)
 }
 
 export async function updateItemSubarticle(id: string, input: ItemSubarticleInput): Promise<void> {

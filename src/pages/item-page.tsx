@@ -43,10 +43,10 @@ export function ItemPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading = false) => {
     if (!projectId || !itemId) return
     setError(null)
-    setLoading(true)
+    if (showLoading) setLoading(true)
     try {
       const bundle = await fetchProjectBundle(projectId)
       setProject(bundle.project)
@@ -56,7 +56,7 @@ export function ItemPage() {
       console.error(err)
       setError(err instanceof Error ? err.message : 'No se pudo cargar el ítem.')
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }, [projectId, itemId])
 
@@ -103,7 +103,7 @@ export function ItemPage() {
         <p className="field-error" role="alert">
           {error}
         </p>
-        <button type="button" className="btn" onClick={() => void load()}>
+        <button type="button" className="btn" onClick={() => void load(true)}>
           Reintentar
         </button>
       </div>

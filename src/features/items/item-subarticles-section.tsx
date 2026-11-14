@@ -4,12 +4,26 @@ import type { ItemSubarticle } from '@/types/domain'
 import { costInputValue, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
 import {
-  createItemSubarticle,
+  createItemSubarticles,
   deleteItemSubarticle,
   updateItemSubarticle,
 } from './item-subarticles-api'
 import { calculateSavingsPlanPurchaseSummary } from '@/features/projects/savings-plan-purchases'
 import { DEFAULT_STATUS_OPTIONS } from '@/features/projects/project-options'
+
+type ArticleDraft = {
+  name: string
+  estimated: string
+  status: 'pending' | 'purchased'
+  actual: string
+}
+
+const emptyDraft = (): ArticleDraft => ({
+  name: '',
+  estimated: '',
+  status: 'pending',
+  actual: '',
+})
 
 export function ItemSubarticlesSection({
   itemId,
@@ -22,10 +36,7 @@ export function ItemSubarticlesSection({
 }) {
   const formatMoney = useFormatMoney()
   const [editing, setEditing] = useState<ItemSubarticle | null>(null)
-  const [name, setName] = useState('')
-  const [estimated, setEstimated] = useState('')
-  const [status, setStatus] = useState<'pending' | 'purchased'>('pending')
-  const [actual, setActual] = useState('')
+  const [drafts, setDrafts] = useState<ArticleDraft[]>([emptyDraft()])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const summary = calculateSavingsPlanPurchaseSummary(
@@ -35,26 +46,38 @@ export function ItemSubarticlesSection({
 
   function reset() {
     setEditing(null)
-    setName('')
-    setEstimated('')
-    setStatus('pending')
-    setActual('')
+    setDrafts([emptyDraft()])
     setError(null)
+  }
+
+  function updateDraft(index: number, field: keyof ArticleDraft, value: string) {
+    setDrafts((current) => current.map((draft, draftIndex) => (
+      draftIndex === index
+        ? { ...draft, [field]: field === 'status' ? value as ArticleDraft['status'] : value }
+        : draft
+    )))
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    const estimatedCost = parseCost(estimated)
-    const actualCost = parseCost(actual)
-    if (!name.trim()) return setError('El nombre es obligatorio.')
-    if (estimatedCost != null && estimatedCost < 0) return setError('El precio estimado no es válido.')
-    if (actualCost != null && actualCost < 0) return setError('El precio pagado no es válido.')
+    const inputs = drafts.map((draft, index) => ({
+      index,
+      name: draft.name,
+      estimated_cost: parseCost(draft.estimated),
+      status: draft.status,
+      actual_cost: parseCost(draft.actual),
+    }))
+    const missingName = inputs.find((input) => !input.name.trim())
+    if (missingName) return setError(`El nombre del artículo ${missingName.index + 1} es obligatorio.`)
+    const invalidEstimated = inputs.find((input) => input.estimated_cost != null && input.estimated_cost < 0)
+    if (invalidEstimated) return setError(`El precio estimado del artículo ${invalidEstimated.index + 1} no es válido.`)
+    const invalidActual = inputs.find((input) => input.actual_cost != null && input.actual_cost < 0)
+    if (invalidActual) return setError(`El precio pagado del artículo ${invalidActual.index + 1} no es válido.`)
     setBusy(true)
     setError(null)
-    const input = { name, estimated_cost: estimatedCost, status, actual_cost: actualCost }
     try {
-      if (editing) await updateItemSubarticle(editing.id, input)
-      else await createItemSubarticle(itemId, input)
+      if (editing) await updateItemSubarticle(editing.id, inputs[0])
+      else await createItemSubarticles(itemId, inputs)
       reset()
       onChanged()
     } catch (err) {
@@ -74,14 +97,20 @@ export function ItemSubarticlesSection({
       </div>
       {subarticles.length === 0 ? <p className="muted">Aún no hay artículos internos. Agrega el primero para desglosar este ítem.</p> : (
         <ul className="plain-list savings-movements-list">
-          {subarticles.map((article) => <li key={article.id}><div><strong>{article.name}</strong><span className="muted"> · {article.status === 'purchased' ? 'Comprado' : 'Pendiente'}</span></div><div className="row"><span>{article.status === 'purchased' ? formatMoney(article.actual_cost ?? 0) : formatMoney(article.estimated_cost ?? 0)}</span><button type="button" className="btn-icon" aria-label={`Editar ${article.name}`} onClick={() => { setEditing(article); setName(article.name); setEstimated(costInputValue(article.estimated_cost)); setStatus(article.status); setActual(costInputValue(article.actual_cost)) }}><IconPencil /></button><button type="button" className="btn-icon btn-icon-danger" aria-label={`Eliminar ${article.name}`} onClick={() => { if (window.confirm(`¿Eliminar “${article.name}”?`)) void deleteItemSubarticle(article.id).then(onChanged).catch((err: unknown) => setError(err instanceof Error ? err.message : 'No se pudo eliminar el artículo.')) }}><IconTrash /></button></div></li>)}
+          {subarticles.map((article) => <li key={article.id}><div><strong>{article.name}</strong><span className="muted"> · {article.status === 'purchased' ? 'Comprado' : 'Pendiente'}</span></div><div className="row"><span>{article.status === 'purchased' ? formatMoney(article.actual_cost ?? 0) : formatMoney(article.estimated_cost ?? 0)}</span><button type="button" className="btn-icon" aria-label={`Editar ${article.name}`} onClick={() => { setEditing(article); setDrafts([{ name: article.name, estimated: costInputValue(article.estimated_cost), status: article.status, actual: costInputValue(article.actual_cost) }]); setError(null) }}><IconPencil /></button><button type="button" className="btn-icon btn-icon-danger" aria-label={`Eliminar ${article.name}`} onClick={() => { if (window.confirm(`¿Eliminar “${article.name}”?`)) void deleteItemSubarticle(article.id).then(onChanged).catch((err: unknown) => setError(err instanceof Error ? err.message : 'No se pudo eliminar el artículo.')) }}><IconTrash /></button></div></li>)}
         </ul>
       )}
       <form className="stack" onSubmit={(event) => void submit(event)}>
         <h3>{editing ? 'Editar artículo' : 'Agregar artículo'}</h3>
-        <div className="filters item-filters item-filters-open"><div className="field"><label htmlFor="subarticle-name">Nombre</label><input id="subarticle-name" value={name} onChange={(event) => setName(event.target.value)} required /></div><div className="field"><label htmlFor="subarticle-estimated">Precio estimado</label><input id="subarticle-estimated" type="number" min="0" step="0.01" value={estimated} onChange={(event) => setEstimated(event.target.value)} /></div><div className="field"><label htmlFor="subarticle-status">Estado</label><select id="subarticle-status" value={status} onChange={(event) => setStatus(event.target.value as 'pending' | 'purchased')}><option value="pending">Pendiente</option><option value="purchased">Comprado</option></select></div><div className="field"><label htmlFor="subarticle-actual">Precio pagado</label><input id="subarticle-actual" type="number" min="0" step="0.01" value={actual} onChange={(event) => setActual(event.target.value)} /></div></div>
+        {drafts.map((draft, index) => (
+          <fieldset className="item-subarticle-draft" key={index}>
+            <legend>{editing ? 'Artículo' : `Artículo ${index + 1}`}</legend>
+            <div className="filters item-filters item-filters-open"><div className="field"><label htmlFor={`subarticle-name-${index}`}>Nombre</label><input id={`subarticle-name-${index}`} value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value)} required /></div><div className="field"><label htmlFor={`subarticle-estimated-${index}`}>Precio estimado</label><input id={`subarticle-estimated-${index}`} type="number" min="0" step="0.01" value={draft.estimated} onChange={(event) => updateDraft(index, 'estimated', event.target.value)} /></div><div className="field"><label htmlFor={`subarticle-status-${index}`}>Estado</label><select id={`subarticle-status-${index}`} value={draft.status} onChange={(event) => updateDraft(index, 'status', event.target.value)}><option value="pending">Pendiente</option><option value="purchased">Comprado</option></select></div><div className="field"><label htmlFor={`subarticle-actual-${index}`}>Precio pagado</label><input id={`subarticle-actual-${index}`} type="number" min="0" step="0.01" value={draft.actual} onChange={(event) => updateDraft(index, 'actual', event.target.value)} /></div></div>
+            {!editing && drafts.length > 1 ? <button type="button" className="btn btn-ghost" onClick={() => setDrafts((current) => current.filter((_, draftIndex) => draftIndex !== index))}>Quitar artículo</button> : null}
+          </fieldset>
+        ))}
         {error ? <p className="field-error" role="alert">{error}</p> : null}
-        <div className="row"><button className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : editing ? 'Guardar artículo' : 'Agregar artículo'}</button>{editing ? <button type="button" className="btn btn-ghost" onClick={reset}>Cancelar</button> : null}</div>
+        <div className="row">{!editing ? <button type="button" className="btn btn-ghost" onClick={() => setDrafts((current) => [...current, emptyDraft()])}>Añadir otro artículo</button> : null}<button className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : editing ? 'Guardar artículo' : drafts.length === 1 ? 'Agregar artículo' : `Agregar ${drafts.length} artículos`}</button>{editing ? <button type="button" className="btn btn-ghost" onClick={reset}>Cancelar</button> : null}</div>
       </form>
     </section>
   )
