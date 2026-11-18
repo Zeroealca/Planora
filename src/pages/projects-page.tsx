@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
+import { IconClose } from '@/components/icons'
 import { fetchProjects, type ProjectListEntry } from '@/features/projects/project-api'
 import { ProjectForm } from '@/features/projects/project-form'
 import { isSavingsGoalProject } from '@/features/projects/project-kind'
@@ -15,6 +16,7 @@ import {
   projectSavingsGoal,
 } from '@/utils/budget/savings-goal'
 import { formatPercent, useFormatMoney } from '@/utils/format'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 export function ProjectsPage() {
   const { user } = useAuth()
@@ -25,6 +27,18 @@ export function ProjectsPage() {
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const createOpen = creating || params.get('create') === '1'
+  const createDialogRef = useRef<HTMLElement>(null)
+
+  function closeCreation() {
+    setCreating(false)
+    setParams((previous) => {
+      const next = new URLSearchParams(previous)
+      next.delete('create')
+      return next
+    }, { replace: true })
+  }
+
+  useModalAccessibility(createOpen, createDialogRef, closeCreation)
 
   async function load() {
     setError(null)
@@ -154,14 +168,36 @@ export function ProjectsPage() {
       ) : null}
 
       {createOpen ? (
-        <ProjectForm
-          userId={user.id}
-          onSaved={(id) => {
-            setCreating(false)
-            setParams({})
-            void navigate(`/projects/${id}`)
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeCreation()
           }}
-        />
+        >
+          <section
+            className="modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-project-title"
+            ref={createDialogRef}
+            tabIndex={-1}
+          >
+            <div className="modal-head">
+              <h2 id="new-project-title">Nuevo proyecto</h2>
+              <button type="button" className="btn-icon" onClick={closeCreation} aria-label="Cerrar">
+                <IconClose />
+              </button>
+            </div>
+            <ProjectForm
+              userId={user.id}
+              onSaved={(id) => {
+                closeCreation()
+                void navigate(`/projects/${id}`)
+              }}
+            />
+          </section>
+        </div>
       ) : (
         <button type="button" className="btn btn-primary" onClick={() => { setCreating(true); setParams({ create: '1' }) }}>
           Crear proyecto

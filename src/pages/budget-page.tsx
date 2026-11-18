@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { IconEye, IconPencil, IconPlusCircle, IconTrash } from '@/components/icons'
+import { IconClose, IconEye, IconPencil, IconPlusCircle, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
 import { BudgetCategoryChart } from '@/features/monthly-budget/budget-category-chart'
 import { BudgetReusePanel } from '@/features/monthly-budget/budget-reuse-panel'
@@ -34,9 +34,11 @@ import { listScheduledPaymentOccurrencesForPeriod, listScheduledPayments } from 
 import type { ScheduledPayment, ScheduledPaymentOccurrence } from '@/features/scheduled-payments/domain'
 import { listTransactions } from '@/features/transactions/transaction-api'
 import type { FinancialTransaction } from '@/features/transactions/domain'
+import { TransactionForm } from '@/features/transactions/transaction-form'
 import { formatYearMonthLabel } from '@/utils/budget/savings-goal'
 import { costInputValue, parseCost } from '@/utils/form'
 import { useFormatMoney } from '@/utils/format'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 function todayCivil(): string {
   const today = new Date()
@@ -60,7 +62,12 @@ export function BudgetPage() {
   const [categoryName, setCategoryName] = useState('')
   const [amount, setAmount] = useState('')
   const [editAllocation, setEditAllocation] = useState<PersistedMonthlyBudgetAllocation | null>(null)
+  const [allocationDialogOpen, setAllocationDialogOpen] = useState(false)
+  const [transactionType, setTransactionType] = useState<'expense' | 'income' | null>(null)
+  const [transactionCategoryId, setTransactionCategoryId] = useState<string | undefined>()
   const [error, setError] = useState<string | null>(null)
+  const allocationDialogRef = useRef<HTMLElement>(null)
+  const transactionDialogRef = useRef<HTMLElement>(null)
 
   async function load() {
     setError(null)
@@ -115,6 +122,32 @@ export function BudgetPage() {
     setAmount('')
   }
 
+  function closeAllocationDialog() {
+    setAllocationDialogOpen(false)
+    resetAllocationForm()
+  }
+
+  function openAllocationDialog(allocation?: PersistedMonthlyBudgetAllocation) {
+    setEditAllocation(allocation ?? null)
+    setCategoryName(allocation ? categoryLabel(allocation.financialCategoryId) : '')
+    setAmount(costInputValue(allocation?.amount ?? null))
+    setError(null)
+    setAllocationDialogOpen(true)
+  }
+
+  function openTransactionDialog(type: 'expense' | 'income', categoryId?: string) {
+    setTransactionCategoryId(categoryId)
+    setTransactionType(type)
+  }
+
+  function closeTransactionDialog() {
+    setTransactionType(null)
+    setTransactionCategoryId(undefined)
+  }
+
+  useModalAccessibility(allocationDialogOpen, allocationDialogRef, closeAllocationDialog)
+  useModalAccessibility(transactionType !== null, transactionDialogRef, closeTransactionDialog)
+
   async function saveAllocation(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -155,7 +188,7 @@ export function BudgetPage() {
         })
       }
 
-      resetAllocationForm()
+      closeAllocationDialog()
       void load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la asignación.')
@@ -216,9 +249,12 @@ export function BudgetPage() {
             <Link className="btn btn-ghost" to={`/budget/transactions?period=${period}`}>
               Movimientos
             </Link>
-            <Link className="btn btn-primary" to={`/budget/transactions?period=${period}&create=1`}>
+            <button type="button" className="btn btn-primary" onClick={() => openTransactionDialog('expense')}>
               Registrar gasto
-            </Link>
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => openTransactionDialog('income')}>
+              Registrar ingreso
+            </button>
             </>
           ) : null}
         </div>
@@ -441,25 +477,21 @@ export function BudgetPage() {
                       >
                         <IconEye />
                       </Link>
-                      <Link
+                      <button
+                        type="button"
                         className="btn-icon"
-                        to={`/budget/transactions?period=${period}&create=1&category=${financialCategoryId}`}
+                        onClick={() => openTransactionDialog('expense', financialCategoryId)}
                         aria-label={`Registrar gasto en ${categoryLabel(financialCategoryId)}`}
                         title="Registrar gasto"
                       >
                         <IconPlusCircle />
-                      </Link>
+                      </button>
                       {a ? (
                         <>
                           <button
                             className="btn-icon"
                             type="button"
-                            onClick={() => {
-                              setEditAllocation(a)
-                              setCategoryName(categoryLabel(a.financialCategoryId))
-                              setAmount(costInputValue(a.amount))
-                              setError(null)
-                            }}
+                            onClick={() => openAllocationDialog(a)}
                             aria-label={`Editar asignación de ${categoryLabel(a.financialCategoryId)}`}
                             title="Editar"
                           >
@@ -492,44 +524,9 @@ export function BudgetPage() {
               })}
             </ul>
 
-            <form className="budget-form-compact" onSubmit={saveAllocation}>
-              <div className="field">
-                <label htmlFor="budget-category-name">
-                  {editAllocation ? 'Categoría' : 'Nombre de categoría'}
-                </label>
-                <input
-                  id="budget-category-name"
-                  type="text"
-                  value={editAllocation ? (editingCategoryName ?? '') : categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
-                  placeholder="Ej. Alimentación"
-                  disabled={!!editAllocation}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="budget-category-amount">Monto presupuestado</label>
-                <input
-                  id="budget-category-amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="budget-form-compact-actions">
-                <button className="btn" disabled={!canSubmitAllocation}>
-                  {editAllocation ? 'Guardar' : 'Añadir'}
-                </button>
-                {editAllocation ? (
-                  <button type="button" className="btn btn-ghost" onClick={resetAllocationForm}>
-                    Cancelar
-                  </button>
-                ) : null}
-              </div>
-            </form>
+            <button type="button" className="btn btn-primary" onClick={() => openAllocationDialog()}>
+              Añadir categoría al presupuesto
+            </button>
           </section>
 
           <BudgetReusePanel
@@ -540,6 +537,38 @@ export function BudgetPage() {
             onCreated={load}
           />
         </>
+      ) : null}
+      {allocationDialogOpen ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeAllocationDialog() }}>
+          <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="allocation-dialog-title" ref={allocationDialogRef} tabIndex={-1}>
+            <div className="modal-head">
+              <h2 id="allocation-dialog-title">{editAllocation ? 'Editar presupuesto de categoría' : 'Añadir categoría al presupuesto'}</h2>
+              <button type="button" className="btn-icon" onClick={closeAllocationDialog} aria-label="Cerrar"><IconClose /></button>
+            </div>
+            <form className="stack" onSubmit={saveAllocation}>
+              <div className="field">
+                <label htmlFor="budget-category-name">{editAllocation ? 'Categoría' : 'Nombre de categoría'}</label>
+                <input id="budget-category-name" type="text" value={editAllocation ? (editingCategoryName ?? '') : categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Ej. Alimentación" disabled={!!editAllocation} autoComplete="off" autoFocus data-modal-initial-focus />
+              </div>
+              <div className="field">
+                <label htmlFor="budget-category-amount">Monto presupuestado</label>
+                <input id="budget-category-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0" />
+              </div>
+              <button className="btn btn-primary" disabled={!canSubmitAllocation}>{editAllocation ? 'Guardar' : 'Añadir'}</button>
+            </form>
+          </section>
+        </div>
+      ) : null}
+      {transactionType ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeTransactionDialog() }}>
+          <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="transaction-dialog-title" ref={transactionDialogRef} tabIndex={-1}>
+            <div className="modal-head">
+              <h2 id="transaction-dialog-title">Registrar {transactionType === 'expense' ? 'gasto' : 'ingreso'}</h2>
+              <button type="button" className="btn-icon" onClick={closeTransactionDialog} aria-label="Cerrar"><IconClose /></button>
+            </div>
+            <TransactionForm userId={user.id} categories={categories} defaultDate={todayCivil()} defaultType={transactionType} defaultCategoryId={transactionCategoryId} onCategoryCreated={(category) => setCategories((previous) => [...previous, category])} onSaved={() => { closeTransactionDialog(); void load() }} />
+          </section>
+        </div>
       ) : null}
     </div>
   )

@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
-import { IconCheck, IconPencil, IconTrash } from '@/components/icons'
+import { useRef, useState, type FormEvent } from 'react'
+import { IconCheck, IconClose, IconPencil, IconTrash } from '@/components/icons'
 import { createCategory, deleteCategory, updateCategory } from './category-api'
 import type { Category } from '@/types/domain'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 export function CategorySection({
   projectId,
@@ -17,6 +18,16 @@ export function CategorySection({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const createDialogRef = useRef<HTMLElement>(null)
+
+  function closeCreation() {
+    setCreating(false)
+    setName('')
+    setError(null)
+  }
+
+  useModalAccessibility(creating, createDialogRef, closeCreation)
 
   async function onCreate(event: FormEvent) {
     event.preventDefault()
@@ -28,7 +39,7 @@ export function CategorySection({
     setSubmitting(true)
     try {
       await createCategory(projectId, name, categories.length)
-      setName('')
+      closeCreation()
       onChanged()
     } catch (err) {
       console.error(err)
@@ -141,27 +152,52 @@ export function CategorySection({
         </ul>
       )}
 
-      <form className="budget-form-compact category-add-form" onSubmit={onCreate}>
-        <div className="field">
-          <label htmlFor="new-category">Nueva categoría</label>
-          <input
-            id="new-category"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Ej. Cocina"
-            autoComplete="off"
-          />
-        </div>
-        <div className="budget-form-compact-actions">
-          <button
-            className="btn"
-            type="submit"
-            disabled={submitting || name.trim() === ''}
+      <button type="button" className="btn" onClick={() => setCreating(true)}>
+        Nueva categoría
+      </button>
+
+      {creating ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeCreation()
+          }}
+        >
+          <section
+            className="modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-category-title"
+            ref={createDialogRef}
+            tabIndex={-1}
           >
-            {submitting ? 'Añadiendo…' : 'Añadir'}
-          </button>
+            <div className="modal-head">
+              <h2 id="new-category-title">Nueva categoría</h2>
+              <button type="button" className="btn-icon" onClick={closeCreation} aria-label="Cerrar">
+                <IconClose />
+              </button>
+            </div>
+            <form className="stack" onSubmit={onCreate}>
+              <div className="field">
+                <label htmlFor="new-category">Nombre de categoría</label>
+                <input
+                  id="new-category"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Ej. Cocina"
+                  autoComplete="off"
+                  autoFocus
+                  data-modal-initial-focus
+                />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={submitting || name.trim() === ''}>
+                {submitting ? 'Añadiendo…' : 'Añadir categoría'}
+              </button>
+            </form>
+          </section>
         </div>
-      </form>
+      ) : null}
 
       {error ? (
         <p className="field-error" role="alert">
