@@ -4,6 +4,7 @@ export type InterestRateType = 'nominal' | 'effective'
 export type CompoundingFrequency = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 export type ExtraPaymentFrequency = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 export type RepaymentStrategy = 'reduce_term' | 'reduce_payment'
+export type CreditCapacityMethod = 'after_debts' | 'total_obligations'
 
 export type ExtraPayment = { month: number; amount: number }
 
@@ -54,6 +55,7 @@ export type CreditCapacityInput = {
   rateType: InterestRateType
   compoundingFrequency: CompoundingFrequency
   requestedCredit: number
+  calculationMethod?: CreditCapacityMethod
 }
 
 export type CreditCapacity = {
@@ -148,7 +150,12 @@ export function simulateMortgage(input: MortgageInput): MortgageSimulation {
 }
 
 export function estimateCreditCapacity(input: CreditCapacityInput): CreditCapacity {
-  const paymentCapacity = Math.max(0, nonNegative(input.monthlyIncome) * (nonNegative(input.maxIncomePercentage) / 100) - nonNegative(input.monthlyDebts))
+  const income = nonNegative(input.monthlyIncome)
+  const debts = nonNegative(input.monthlyDebts)
+  const percentage = nonNegative(input.maxIncomePercentage) / 100
+  const paymentCapacity = input.calculationMethod === 'total_obligations'
+    ? Math.max(0, income * percentage - debts)
+    : Math.max(0, (income - debts) * percentage)
   const months = Math.max(0, Math.round(nonNegative(input.termYears) * 12))
   const rate = calculateMonthlyRate(input.annualRate, input.rateType, input.compoundingFrequency)
   const maximumByPayment = months === 0 ? 0 : rate === 0 ? paymentCapacity * months : paymentCapacity * (1 - Math.pow(1 + rate, -months)) / rate

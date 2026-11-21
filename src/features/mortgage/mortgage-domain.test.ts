@@ -40,4 +40,9 @@ describe('credit capacity', () => {
     expect(result.estimatedCredit).toBeLessThanOrEqual(38400)
     expect(result.additionalDownPayment).toBeGreaterThan(0)
   })
+  it('supports capacity based on income after debts or on the total obligations limit', () => {
+    const baseInput = { monthlyIncome: 1300, monthlyDebts: 184.85, maxIncomePercentage: 40, propertyPrice: 48000, maxFinancingPercentage: 100, termYears: 25, annualRate: 5.99, rateType: 'nominal' as const, compoundingFrequency: 'monthly' as const, requestedCredit: 48000 }
+    expect(estimateCreditCapacity({ ...baseInput, calculationMethod: 'after_debts' }).monthlyPaymentCapacity).toBe(446.06)
+    expect(estimateCreditCapacity({ ...baseInput, calculationMethod: 'total_obligations' }).monthlyPaymentCapacity).toBe(335.15)
+  })
 })

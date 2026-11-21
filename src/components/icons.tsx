@@ -4,6 +4,7 @@ import {
   CirclePlus,
   Eye,
   GripVertical,
+  Info,
   Pencil,
   RefreshCw,
   Menu,
@@ -60,4 +61,8 @@ export function IconEye({ className, size = 16 }: { className?: string; size?: n
 
 export function IconPlusCircle({ className, size = 16 }: { className?: string; size?: number }) {
   return <CirclePlus className={className} size={size} aria-hidden="true" />
+}
+
+export function IconInfo({ className, size = 16 }: { className?: string; size?: number }) {
+  return <Info className={className} size={size} aria-hidden="true" />
 }

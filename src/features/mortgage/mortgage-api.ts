@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase/client'
 import { supabaseErrorMessage } from '@/lib/supabase/errors'
-import type { CompoundingFrequency, ExtraPayment, ExtraPaymentFrequency, InterestRateType, RepaymentStrategy } from './mortgage-domain'
+import type { CompoundingFrequency, CreditCapacityMethod, ExtraPayment, ExtraPaymentFrequency, InterestRateType, RepaymentStrategy } from './mortgage-domain'
 
 export type Mortgage = {
-  id: string; userId: string; name: string; propertyPrice: number; downPayment: number; requestedCredit: number; termMonths: number; annualRate: number; rateType: InterestRateType; compoundingFrequency: CompoundingFrequency; startDate: string; monthlyInsurance: number; monthlyFees: number; initialCosts: number; createdAt: string; updatedAt: string
+  id: string; userId: string; name: string; propertyPrice: number; downPayment: number; requestedCredit: number; termMonths: number; annualRate: number; rateType: InterestRateType; compoundingFrequency: CompoundingFrequency; startDate: string; monthlyInsurance: number; monthlyFees: number; initialCosts: number; capacityMonthlyIncome: number; capacityMonthlyDebts: number; capacityMaxIncomePercentage: number; capacityMaxFinancingPercentage: number; capacityCalculationMethod: CreditCapacityMethod; createdAt: string; updatedAt: string
 }
 export type MortgageScenario = { id: string; mortgageId: string; name: string; strategy: RepaymentStrategy; periodicExtra: { amount: number; frequency: ExtraPaymentFrequency; startMonth: number } | null; oneTimeExtras: ExtraPayment[]; createdAt: string; updatedAt: string }
 
@@ -15,12 +15,12 @@ function parseExtras(value: unknown): ExtraPayment[] {
   return value.flatMap((item) => typeof item === 'object' && item !== null && typeof item.month === 'number' && typeof item.amount === 'number' ? [{ month: item.month, amount: item.amount }] : [])
 }
 function mapMortgage(row: import('@/types/database').Database['public']['Tables']['mortgages']['Row']): Mortgage {
-  return { id: row.id, userId: row.user_id, name: row.name, propertyPrice: row.property_price, downPayment: row.down_payment, requestedCredit: row.requested_credit, termMonths: row.term_months, annualRate: row.annual_rate, rateType: rateType(row.rate_type), compoundingFrequency: frequency(row.compounding_frequency), startDate: row.start_date, monthlyInsurance: row.monthly_insurance, monthlyFees: row.monthly_fees, initialCosts: row.initial_costs, createdAt: row.created_at, updatedAt: row.updated_at }
+  return { id: row.id, userId: row.user_id, name: row.name, propertyPrice: row.property_price, downPayment: row.down_payment, requestedCredit: row.requested_credit, termMonths: row.term_months, annualRate: row.annual_rate, rateType: rateType(row.rate_type), compoundingFrequency: frequency(row.compounding_frequency), startDate: row.start_date, monthlyInsurance: row.monthly_insurance, monthlyFees: row.monthly_fees, initialCosts: row.initial_costs, capacityMonthlyIncome: row.capacity_monthly_income, capacityMonthlyDebts: row.capacity_monthly_debts, capacityMaxIncomePercentage: row.capacity_max_income_percentage, capacityMaxFinancingPercentage: row.capacity_max_financing_percentage, capacityCalculationMethod: row.capacity_calculation_method === 'total_obligations' ? 'total_obligations' : 'after_debts', createdAt: row.created_at, updatedAt: row.updated_at }
 }
 function mapScenario(row: import('@/types/database').Database['public']['Tables']['mortgage_scenarios']['Row']): MortgageScenario {
   return { id: row.id, mortgageId: row.mortgage_id, name: row.name, strategy: row.repayment_strategy === 'reduce_payment' ? 'reduce_payment' : 'reduce_term', periodicExtra: row.periodic_extra_amount == null ? null : { amount: row.periodic_extra_amount, frequency: scenarioFrequency(row.periodic_extra_frequency), startMonth: row.periodic_extra_start_month }, oneTimeExtras: parseExtras(row.one_time_extras), createdAt: row.created_at, updatedAt: row.updated_at }
 }
-export type MortgageInput = Omit<Mortgage, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+export type MortgageInput = Pick<Mortgage, 'name' | 'propertyPrice' | 'downPayment' | 'requestedCredit' | 'termMonths' | 'annualRate' | 'rateType' | 'compoundingFrequency' | 'startDate' | 'monthlyInsurance' | 'monthlyFees' | 'initialCosts'>
 export type MortgageScenarioInput = Omit<MortgageScenario, 'id' | 'mortgageId' | 'createdAt' | 'updatedAt'>
 
 function validMortgage(input: MortgageInput): MortgageInput {
@@ -35,6 +35,10 @@ export async function saveMortgage(userId: string, input: MortgageInput, id?: st
   const { data, error } = await query.select().single(); if (error) throw new Error(supabaseErrorMessage(error)); return mapMortgage(data)
 }
 export async function deleteMortgage(id: string): Promise<void> { const { error } = await supabase.from('mortgages').delete().eq('id', id); if (error) throw new Error(supabaseErrorMessage(error)) }
+export async function saveMortgageCapacity(id: string, input: { income: number; debts: number; maxIncomePercentage: number; maxFinancingPercentage: number; method: CreditCapacityMethod }): Promise<void> {
+  const { error } = await supabase.from('mortgages').update({ capacity_monthly_income: input.income, capacity_monthly_debts: input.debts, capacity_max_income_percentage: input.maxIncomePercentage, capacity_max_financing_percentage: input.maxFinancingPercentage, capacity_calculation_method: input.method }).eq('id', id)
+  if (error) throw new Error(supabaseErrorMessage(error))
+}
 export async function listMortgageScenarios(mortgageId: string): Promise<MortgageScenario[]> { const { data, error } = await supabase.from('mortgage_scenarios').select('*').eq('mortgage_id', mortgageId).order('created_at'); if (error) throw new Error(supabaseErrorMessage(error)); return (data ?? []).map(mapScenario) }
 export async function saveMortgageScenario(mortgageId: string, input: MortgageScenarioInput, id?: string): Promise<MortgageScenario> {
   if (!input.name.trim()) throw new Error('El nombre del escenario es obligatorio.')
