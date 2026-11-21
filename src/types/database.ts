@@ -178,6 +178,18 @@ export type Database = {
         }
         Relationships: []
       }
+      mortgages: {
+        Row: { id: string; user_id: string; name: string; property_price: number; down_payment: number; requested_credit: number; term_years: number; annual_rate: number; rate_type: string; compounding_frequency: string; start_date: string; monthly_insurance: number; monthly_fees: number; initial_costs: number; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; name: string; property_price: number; down_payment?: number; requested_credit: number; term_years: number; annual_rate: number; rate_type?: string; compounding_frequency?: string; start_date: string; monthly_insurance?: number; monthly_fees?: number; initial_costs?: number; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; name?: string; property_price?: number; down_payment?: number; requested_credit?: number; term_years?: number; annual_rate?: number; rate_type?: string; compounding_frequency?: string; start_date?: string; monthly_insurance?: number; monthly_fees?: number; initial_costs?: number; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      mortgage_scenarios: {
+        Row: { id: string; mortgage_id: string; name: string; repayment_strategy: string; periodic_extra_amount: number | null; periodic_extra_frequency: string; periodic_extra_start_month: number; one_time_extras: Json; created_at: string; updated_at: string }
+        Insert: { id?: string; mortgage_id: string; name: string; repayment_strategy?: string; periodic_extra_amount?: number | null; periodic_extra_frequency?: string; periodic_extra_start_month?: number; one_time_extras?: Json; created_at?: string; updated_at?: string }
+        Update: { id?: string; mortgage_id?: string; name?: string; repayment_strategy?: string; periodic_extra_amount?: number | null; periodic_extra_frequency?: string; periodic_extra_start_month?: number; one_time_extras?: Json; created_at?: string; updated_at?: string }
+        Relationships: [{ foreignKeyName: 'mortgage_scenarios_mortgage_id_fkey'; columns: ['mortgage_id']; isOneToOne: false; referencedRelation: 'mortgages'; referencedColumns: ['id'] }]
+      }
       managed_fund_movements: {
         Row: {
           amount: number

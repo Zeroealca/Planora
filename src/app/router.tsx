@@ -16,6 +16,7 @@ const BudgetPage = lazy(() => import('@/pages/budget-page').then(({ BudgetPage }
 const TransactionsPage = lazy(() => import('@/pages/transactions-page').then(({ TransactionsPage }) => ({ default: TransactionsPage })))
 const ScheduledPaymentsPage = lazy(() => import('@/pages/scheduled-payments-page').then(({ ScheduledPaymentsPage }) => ({ default: ScheduledPaymentsPage })))
 const ManagedFundsPage = lazy(() => import('@/pages/managed-funds-page').then(({ ManagedFundsPage }) => ({ default: ManagedFundsPage })))
+const MortgagePage = lazy(() => import('@/pages/mortgage-page').then(({ MortgagePage }) => ({ default: MortgagePage })))
 
 /**
  * Client-side routing (history API). Basename follows Vite `base`.
@@ -36,6 +37,7 @@ export function AppRoutes() {
             <Route path="budget/transactions" element={<TransactionsPage />} />
             <Route path="budget/scheduled-payments" element={<ScheduledPaymentsPage />} />
             <Route path="managed-funds" element={<ManagedFundsPage />} />
+            <Route path="mortgage" element={<MortgagePage />} />
             <Route path="transactions" element={<Navigate to="/budget/transactions" replace />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="projects/:projectId" element={<ProjectPage />} />

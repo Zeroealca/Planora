@@ -71,6 +71,9 @@ export function AppLayout() {
             <Link to="/managed-funds" aria-current={isCurrent('/managed-funds') ? 'page' : undefined} onClick={() => closeMenu({ restoreFocus: true })}>
               Fondos administrados
             </Link>
+            <Link to="/mortgage" aria-current={isCurrent('/mortgage') ? 'page' : undefined} onClick={() => closeMenu({ restoreFocus: true })}>
+              Mi hipoteca
+            </Link>
             <Link to="/projects" aria-current={isCurrent('/projects') ? 'page' : undefined} onClick={() => closeMenu({ restoreFocus: true })}>
               Proyectos
             </Link>
