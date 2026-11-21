@@ -179,9 +179,9 @@ export type Database = {
         Relationships: []
       }
       mortgages: {
-        Row: { id: string; user_id: string; name: string; property_price: number; down_payment: number; requested_credit: number; term_years: number; annual_rate: number; rate_type: string; compounding_frequency: string; start_date: string; monthly_insurance: number; monthly_fees: number; initial_costs: number; created_at: string; updated_at: string }
-        Insert: { id?: string; user_id: string; name: string; property_price: number; down_payment?: number; requested_credit: number; term_years: number; annual_rate: number; rate_type?: string; compounding_frequency?: string; start_date: string; monthly_insurance?: number; monthly_fees?: number; initial_costs?: number; created_at?: string; updated_at?: string }
-        Update: { id?: string; user_id?: string; name?: string; property_price?: number; down_payment?: number; requested_credit?: number; term_years?: number; annual_rate?: number; rate_type?: string; compounding_frequency?: string; start_date?: string; monthly_insurance?: number; monthly_fees?: number; initial_costs?: number; created_at?: string; updated_at?: string }
+        Row: { id: string; user_id: string; name: string; property_price: number; down_payment: number; requested_credit: number; term_years: number; term_months: number; annual_rate: number; rate_type: string; compounding_frequency: string; start_date: string; monthly_insurance: number; monthly_fees: number; initial_costs: number; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; name: string; property_price: number; down_payment?: number; requested_credit: number; term_years: number; term_months: number; annual_rate: number; rate_type?: string; compounding_frequency?: string; start_date: string; monthly_insurance?: number; monthly_fees?: number; initial_costs?: number; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; name?: string; property_price?: number; down_payment?: number; requested_credit?: number; term_years?: number; term_months?: number; annual_rate?: number; rate_type?: string; compounding_frequency?: string; start_date?: string; monthly_insurance?: number; monthly_fees?: number; initial_costs?: number; created_at?: string; updated_at?: string }
         Relationships: []
       }
       mortgage_scenarios: {
