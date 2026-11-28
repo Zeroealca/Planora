@@ -11,6 +11,9 @@ export function supabaseErrorMessage(error: { message: string } | null): string 
 
 export function authErrorMessage(message: string): string {
   const lower = message.toLowerCase()
+  if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('over_email_send_rate_limit')) {
+    return 'Se alcanzó el límite de correos. Espera antes de solicitar otro enlace.'
+  }
   if (lower.includes('email not confirmed')) {
     return 'Confirma tu cuenta con el enlace del correo antes de entrar.'
   }
