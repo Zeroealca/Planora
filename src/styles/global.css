@@ -1034,6 +1034,17 @@ button:disabled,
   gap: 0.75rem;
 }
 
+.movement-form-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.movement-form-fields .field {
+  min-width: 0;
+}
+
 .item-form-modal {
   width: min(100%, 40rem);
 }

@@ -101,8 +101,6 @@ export function BudgetPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when period changes
   }, [period])
 
-  if (!user) return null
-
   async function saveAvailable(e: FormEvent) {
     e.preventDefault()
     const v = parseCost(available)
@@ -147,6 +145,8 @@ export function BudgetPage() {
 
   useModalAccessibility(allocationDialogOpen, allocationDialogRef, closeAllocationDialog)
   useModalAccessibility(transactionType !== null, transactionDialogRef, closeTransactionDialog)
+
+  if (!user) return null
 
   async function saveAllocation(e: FormEvent) {
     e.preventDefault()

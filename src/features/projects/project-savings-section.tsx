@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
-import { IconPencil, IconTrash } from '@/components/icons'
+import { IconClose, IconPencil, IconTrash } from '@/components/icons'
 import type {
   Project,
   ItemWithOptions,
@@ -47,6 +47,7 @@ import {
   validateMovementInput,
   validateSavingsGoalInput,
 } from './savings-goal-utils'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 type DraftFields = {
   enabled: boolean
@@ -411,6 +412,8 @@ export function ProjectSavingsSection({
     null,
   )
   const [movementBusy, setMovementBusy] = useState(false)
+  const [movementDialogOpen, setMovementDialogOpen] = useState(false)
+  const movementDialogRef = useRef<HTMLElement>(null)
 
   const draft = localDraft ?? savedDraft
   const parsedDraft = parseGoalDraft({ ...draft, enabled: true })
@@ -439,6 +442,29 @@ export function ProjectSavingsSection({
     scenarioBaseline ? baselineProjection : actualProjection,
     simulationProjection,
   )
+
+  function resetMovementForm() {
+    setMovementName('')
+    setMovementDate('')
+    setMovementAmount('')
+    setMovementType('inflow')
+    setMovementKind('contribution')
+    setMovementDescription('')
+    setEditingMovementId(null)
+  }
+
+  function closeMovementDialog() {
+    setMovementDialogOpen(false)
+    resetMovementForm()
+  }
+
+  function openMovementDialog() {
+    resetMovementForm()
+    setError(null)
+    setMovementDialogOpen(true)
+  }
+
+  useModalAccessibility(movementDialogOpen, movementDialogRef, closeMovementDialog)
 
   function patchDraft(patch: Partial<DraftFields>) {
     setLocalDraft((current) => ({
@@ -603,13 +629,7 @@ export function ProjectSavingsSection({
           description: movementDescription.trim() || null,
         })
       }
-      setMovementName('')
-      setMovementDate('')
-      setMovementAmount('')
-      setMovementType('inflow')
-      setMovementKind('contribution')
-      setMovementDescription('')
-      setEditingMovementId(null)
+      closeMovementDialog()
       onChanged()
     } catch (err) {
       console.error(err)
@@ -631,6 +651,8 @@ export function ProjectSavingsSection({
     setMovementType(movement.movement_type)
     setMovementKind(movement.movement_kind)
     setMovementDescription(movement.description ?? '')
+    setError(null)
+    setMovementDialogOpen(true)
   }
 
   async function onDeleteMovement(movementId: string) {
@@ -640,12 +662,7 @@ export function ProjectSavingsSection({
     try {
       await deleteSavingsMovement(movementId)
       if (editingMovementId === movementId) {
-        setEditingMovementId(null)
-        setMovementName('')
-        setMovementDate('')
-        setMovementAmount('')
-        setMovementKind('contribution')
-        setMovementDescription('')
+        closeMovementDialog()
       }
       onChanged()
     } catch (err) {
@@ -991,116 +1008,9 @@ export function ProjectSavingsSection({
               : 'Aportes o retiros puntuales futuros. Se incluyen en la proyección mes a mes.'}
           </p>
 
-          <form
-            className="stack"
-            onSubmit={(event) => void onSubmitMovement(event)}
-          >
-            <div className="filters item-filters item-filters-open">
-              <div className="field">
-                <label htmlFor="movement-name">Nombre</label>
-                <input
-                  id="movement-name"
-                  value={movementName}
-                  onChange={(event) => setMovementName(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="movement-date">Fecha</label>
-                <input
-                  id="movement-date"
-                  type="date"
-                  value={movementDate}
-                  onChange={(event) => setMovementDate(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="movement-amount">Monto</label>
-                <input
-                  id="movement-amount"
-                  type="number"
-                  step="0.01"
-                  value={movementAmount}
-                  onChange={(event) => setMovementAmount(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="movement-type">Tipo</label>
-                <select
-                  id="movement-type"
-                  value={movementType}
-                  onChange={(event) =>
-                    setMovementType(event.target.value as SavingsMovementType)
-                  }
-                >
-                  <option value="inflow">Aporte extraordinario</option>
-                  <option value="outflow">Retiro / gasto</option>
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="movement-kind">Registro</label>
-                <select
-                  id="movement-kind"
-                  value={movementKind}
-                  onChange={(event) => {
-                    const kind = event.target
-                      .value as ProjectSavingsMovement['movement_kind']
-                    setMovementKind(kind)
-                    if (kind === 'interest') setMovementType('inflow')
-                  }}
-                >
-                  <option value="contribution">Aporte o retiro</option>
-                  <option value="interest">
-                    Interés acreditado por el banco
-                  </option>
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="movement-description">
-                  Descripción (opcional)
-                </label>
-                <input
-                  id="movement-description"
-                  value={movementDescription}
-                  onChange={(event) =>
-                    setMovementDescription(event.target.value)
-                  }
-                />
-              </div>
-            </div>
-            <div className="row">
-              <button
-                className="btn btn-primary"
-                type="submit"
-                disabled={movementBusy}
-              >
-                {editingMovementId
-                  ? movementBusy
-                    ? 'Guardando…'
-                    : 'Actualizar movimiento'
-                  : movementBusy
-                    ? 'Añadiendo…'
-                    : 'Añadir movimiento'}
-              </button>
-              {editingMovementId ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setEditingMovementId(null)
-                    setMovementName('')
-                    setMovementDate('')
-                    setMovementAmount('')
-                    setMovementType('inflow')
-                  }}
-                >
-                  Cancelar
-                </button>
-              ) : null}
-            </div>
-          </form>
+          <button type="button" className="btn btn-primary" onClick={openMovementDialog}>
+            Añadir movimiento
+          </button>
 
           {movements.length === 0 ? (
             <p className="muted">Sin movimientos todavía.</p>
@@ -1148,6 +1058,76 @@ export function ProjectSavingsSection({
               ))}
             </ul>
           )}
+
+          {movementDialogOpen ? (
+            <div
+              className="modal-backdrop"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) closeMovementDialog()
+              }}
+            >
+              <section
+                className="modal-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="savings-movement-dialog-title"
+                ref={movementDialogRef}
+                tabIndex={-1}
+              >
+                <div className="modal-head">
+                  <h2 id="savings-movement-dialog-title">
+                    {editingMovementId ? 'Editar movimiento' : 'Añadir movimiento'}
+                  </h2>
+                  <button type="button" className="btn-icon" onClick={closeMovementDialog} aria-label="Cerrar">
+                    <IconClose />
+                  </button>
+                </div>
+                <form className="stack" onSubmit={(event) => void onSubmitMovement(event)}>
+                  <div className="movement-form-fields">
+                    <div className="field">
+                      <label htmlFor="movement-name">Nombre</label>
+                      <input id="movement-name" value={movementName} onChange={(event) => setMovementName(event.target.value)} required autoFocus data-modal-initial-focus />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="movement-date">Fecha</label>
+                      <input id="movement-date" type="date" value={movementDate} onChange={(event) => setMovementDate(event.target.value)} required />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="movement-amount">Monto</label>
+                      <input id="movement-amount" type="number" step="0.01" value={movementAmount} onChange={(event) => setMovementAmount(event.target.value)} required />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="movement-type">Tipo</label>
+                      <select id="movement-type" value={movementType} onChange={(event) => setMovementType(event.target.value as SavingsMovementType)}>
+                        <option value="inflow">Aporte extraordinario</option>
+                        <option value="outflow">Retiro / gasto</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="movement-kind">Registro</label>
+                      <select id="movement-kind" value={movementKind} onChange={(event) => {
+                        const kind = event.target.value as ProjectSavingsMovement['movement_kind']
+                        setMovementKind(kind)
+                        if (kind === 'interest') setMovementType('inflow')
+                      }}>
+                        <option value="contribution">Aporte o retiro</option>
+                        <option value="interest">Interés acreditado por el banco</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="movement-description">Descripción (opcional)</label>
+                      <input id="movement-description" value={movementDescription} onChange={(event) => setMovementDescription(event.target.value)} />
+                    </div>
+                  </div>
+                  {error ? <p className="field-error" role="alert">{error}</p> : null}
+                  <button className="btn btn-primary" type="submit" disabled={movementBusy}>
+                    {movementBusy ? 'Guardando…' : editingMovementId ? 'Actualizar movimiento' : 'Añadir movimiento'}
+                  </button>
+                </form>
+              </section>
+            </div>
+          ) : null}
         </section>
       ) : null}
     </div>

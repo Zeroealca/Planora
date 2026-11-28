@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
-import { IconPencil, IconTrash } from '@/components/icons'
+import { IconClose, IconPencil, IconTrash } from '@/components/icons'
 import { useAuth } from '@/features/auth/auth-context'
 import { currentMonthlyPeriod, nextMonthlyPeriod, previousMonthlyPeriod } from '@/features/monthly-budget/period'
 import { costInputValue, emptyToNull, parseCost } from '@/utils/form'
@@ -22,6 +22,7 @@ import {
   type ManagedFundMovement,
   type ManagedFundMovementType,
 } from '@/features/managed-funds/domain'
+import { useModalAccessibility } from '@/hooks/use-modal-accessibility'
 
 function today(): string {
   const date = new Date()
@@ -43,8 +44,15 @@ export function ManagedFundsPage() {
   const [error, setError] = useState<string | null>(null)
   const [fundForm, setFundForm] = useState<FundFormState>(null)
   const [movementForm, setMovementForm] = useState<MovementFormState>(null)
+  const movementDialogRef = useRef<HTMLElement>(null)
 
   const selectedFund = funds?.find((fund) => fund.id === selectedId) ?? null
+
+  function closeMovementForm() {
+    setMovementForm(null)
+  }
+
+  useModalAccessibility(movementForm !== null, movementDialogRef, closeMovementForm)
 
   async function loadFunds() {
     setError(null)
@@ -115,7 +123,7 @@ export function ManagedFundsPage() {
     try {
       if (movementForm.movement) await updateManagedFundMovement(movementForm.movement.id, input)
       else await createManagedFundMovement(selectedFund.id, input)
-      setMovementForm(null)
+      closeMovementForm()
       void loadMovements(selectedFund.id)
       void loadFunds()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo guardar el movimiento.') }
@@ -160,6 +168,6 @@ export function ManagedFundsPage() {
       <section className="stack"><h3>Movimientos de {formatYearMonthLabel(period)}</h3>{movements && periodMovements.length === 0 ? <div className="empty-state"><p>No hay movimientos en este mes. El saldo anterior se conserva automáticamente.</p></div> : null}<ul className="transaction-list">{periodMovements.map((movement) => <li key={movement.id} className="card row-between"><div><strong>{movement.description ?? (movement.type === 'income' ? 'Entrada' : 'Gasto')}</strong><p className="muted">{movement.occurredOn} · {movement.type === 'income' ? 'Entrada' : 'Gasto'}</p></div><div className="row"><strong className={movement.type === 'income' ? 'amount-income' : 'amount-expense'}>{movement.type === 'income' ? '+' : '−'}{money(movement.amount)}</strong>{!selectedFund.archivedAt ? <><button className="btn-icon" onClick={() => setMovementForm({ type: movement.type, movement })} aria-label="Editar movimiento"><IconPencil /></button><button className="btn-icon btn-icon-danger" onClick={() => void removeMovement(movement)} aria-label="Eliminar movimiento"><IconTrash /></button></> : null}</div></li>)}</ul></section>
     </section> : null}
     {fundForm ? <section className="card stack" aria-label="Formulario de fondo"><h2>{fundForm.fund ? 'Editar fondo' : 'Nuevo fondo'}</h2><form className="stack" onSubmit={saveFund}><label>Nombre<input name="name" required defaultValue={fundForm.fund?.name ?? ''} /></label><label>Descripción (opcional)<textarea name="description" defaultValue={fundForm.fund?.description ?? ''} /></label><div className="row"><button className="btn btn-primary" type="submit">Guardar</button><button className="btn" type="button" onClick={() => setFundForm(null)}>Cancelar</button></div></form></section> : null}
-    {movementForm ? <section className="card stack" aria-label="Formulario de movimiento"><h2>{movementForm.movement ? 'Editar movimiento' : movementForm.type === 'income' ? 'Registrar entrada' : 'Registrar gasto'}</h2><form className="stack" onSubmit={saveMovement}><label>Fecha<input name="date" type="date" required defaultValue={movementForm.movement?.occurredOn ?? (period === currentMonthlyPeriod() ? today() : `${period}-01`)} /></label><label>Importe (USD)<input name="amount" type="number" min="0.01" step="0.01" required defaultValue={costInputValue(movementForm.movement?.amount ?? null)} /></label><label>Descripción{movementForm.type === 'expense' ? '' : ' (opcional)'}<textarea name="description" required={movementForm.type === 'expense'} defaultValue={movementForm.movement?.description ?? ''} /></label><div className="row"><button className="btn btn-primary" type="submit">Guardar</button><button className="btn" type="button" onClick={() => setMovementForm(null)}>Cancelar</button></div></form></section> : null}
+    {movementForm ? <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeMovementForm() }}><section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="managed-fund-movement-title" ref={movementDialogRef} tabIndex={-1}><div className="modal-head"><h2 id="managed-fund-movement-title">{movementForm.movement ? 'Editar movimiento' : movementForm.type === 'income' ? 'Registrar entrada' : 'Registrar gasto'}</h2><button className="btn-icon" type="button" onClick={closeMovementForm} aria-label="Cerrar"><IconClose /></button></div><form className="stack" onSubmit={saveMovement}><label>Fecha<input name="date" type="date" required autoFocus data-modal-initial-focus defaultValue={movementForm.movement?.occurredOn ?? (period === currentMonthlyPeriod() ? today() : `${period}-01`)} /></label><label>Importe (USD)<input name="amount" type="number" min="0.01" step="0.01" required defaultValue={costInputValue(movementForm.movement?.amount ?? null)} /></label><label>Descripción{movementForm.type === 'expense' ? '' : ' (opcional)'}<textarea name="description" required={movementForm.type === 'expense'} defaultValue={movementForm.movement?.description ?? ''} /></label><div className="row"><button className="btn btn-primary" type="submit">Guardar</button><button className="btn" type="button" onClick={closeMovementForm}>Cancelar</button></div></form></section></div> : null}
   </div>
 }
